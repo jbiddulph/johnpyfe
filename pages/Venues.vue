@@ -14,7 +14,9 @@
             <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
             <template #footer>
               <UButton label="Details" class="mr-2" @click="openDetailsModal(venue)" />
-              <UButton label="Edit" @click="openEditModal(venue, venue.id)" />
+              <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(venue, venue.id)" />
+              <UButton label="<>" class="mr-2" color="blue" @click="openMapModal(venue, venue.id)" />
+              <UButton label="Delete" color="red" @click="openDeleteModal(venue, venue.id)" />
             </template>
           </UCard>
             <!-- <UButton label="Edit" @click="openEditModal(venue)" />
@@ -40,18 +42,37 @@
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEditOpen = false" />
         </div>
-        <venue-addEditVenue class="h-48" :editing="editMode" :venueid="venueid"  />
+        <venue-addEditVenue class="h-48" :editing="editMode" :venueid="venueid" @closeModal="handleCloseModal" />
+      </UCard>
+    </UModal>
+    <UModal v-model="isMapOpen" prevent-close>
+      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <div class="flex justify-end">
+          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isMapOpen = false" />
+        </div>
+        <venue-mapVenue class="h-48" :editing="editMode" :venueid="venueid" @closeModal="handleCloseModal" />
+      </UCard>
+    </UModal>
+    <UModal v-model="isDeleteOpen" prevent-close>
+      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <div class="flex justify-end">
+          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isDeleteOpen = false" />
+        </div>
+        <venue-deleteVenue class="h-48" :content="content" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
   </div>
 </template>
 
 <script lang="ts" setup>
+const toast = useToast();
 import { useVenueStore } from "@/store/venue.js";
 const venueStore = useVenueStore();
 const venueid = ref(null);
 const isDetailsOpen = ref(false)
 const isAddEditOpen = ref(false)
+const isMapOpen = ref(false)
+const isDeleteOpen = ref(false)
 const editMode = ref(false)
 const content = ref({});
 const fetchVenues = async () => {
@@ -69,19 +90,41 @@ const openAddModal = (venue: object) => {
   isAddEditOpen.value = true
   content.value = venue
 }
+const openDeleteModal = (venue: object) => {
+  isDeleteOpen.value = true
+  content.value = venue
+}
 const openEditModal = (venue: object, id: Number) => {
   isAddEditOpen.value = true
   content.value = venue
   editMode.value = true
   venueid.value = id
 }
+const openMapModal = (venue: object, id: Number) => {
+  isMapOpen.value = true
+  content.value = venue
+  editMode.value = true
+  venueid.value = id
+}
+const handleCloseModal = () => {
+  isAddEditOpen.value = false
+  isDeleteOpen.value = false
+  toast.add({ title: 'Deleted Venue!' })
+  venueStore.fetchVenues()
+}
+
 watch(isAddEditOpen, (newValue: any) => {
   if (!newValue) {
     editMode.value = false;
   }
 });
-onMounted(() => {
-  fetchVenues()
+watch(isMapOpen, (newValue: any) => {
+  if (!newValue) {
+    editMode.value = false;
+  }
+});
+onMounted( async() => {
+  await venueStore.fetchVenues()
 });
 </script>
 

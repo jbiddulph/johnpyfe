@@ -22,7 +22,7 @@ export const useVenueStore = defineStore({
           body: JSON.stringify(newVenue)
         });
         console.log("Venue created successfully");
-        await navigateTo({ path: '/' });
+        await navigateTo({ path: '/venues' });
       } catch (error) {
         console.error("Error creating venue:", error);
       }
@@ -70,24 +70,26 @@ export const useVenueStore = defineStore({
           body: JSON.stringify(data),
         });
         console.log("Venue saved successfully");
-        await navigateTo({ path: '/' });
+        await navigateTo({ path: '/venues' });
       } catch (error) {
         console.error("Error saving venue details:", error);
         throw error;
       }
     },
-    async logoutUser() {
+    async deleteVenue(id) {
+      console.log("deleting: ", id);
       try {
-        await fetch("http://localhost:8000/api/logout", {
-          method: 'POST',
-          headers: {'content-type': 'application/json'},
-          credentials: "include",  
+        await fetch(`http://127.0.0.1:8000/api/venues/${id}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
         });
-        this.user = null;
-        await navigateTo({ path: '/login' });
+        console.log("Venue deleted successfully");
+        await navigateTo({ path: '/venues' });
       } catch (error) {
-        console.error("Error logging out user:", error);
+        console.error("Error creating venue:", error);
       }
-    }
+    },
   }  
 });

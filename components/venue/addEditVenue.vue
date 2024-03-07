@@ -41,6 +41,7 @@ const props = defineProps({
   editing: Boolean,
   venueid: Number
 })
+const emits = defineEmits(['closeModal']);
 const types = ['pub', 'restaurant', 'cafe', 'bar'];
 const venue = ref({
   venuename: '',
@@ -116,9 +117,11 @@ const submitVenue = async () => {
       console.log("venue Data: ", venueData);
       await venueStore.editVenue(venueData.id, venueData); // Pass formData to addVenue function
       console.log("Venue edited successfully:", venueData);
+      emits('closeModal');
     } else {
       await venueStore.addVenue(venueData); // Pass formData to addVenue function
       console.log("Venue added successfully:", venueData);
+      emits('closeModal');
     }
 
   } catch (error) {
