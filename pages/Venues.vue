@@ -4,25 +4,27 @@
       <h1 class="text-4xl font-bold my-8">Venues</h1>
       <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
     </div>
-    <div class="mt-8">
-      <ul class="flex flex-row flex-wrap">
-        <li v-for="(venue, index) in venueStore.venues.venues" :key="index" class="flex-shrink-0 mr-4 mb-4">
-          <UCard>
+    <div class="mt-8 pb-12">
+      <UPagination :ui="{ wrapper: 'justify-center'}" :model-value="currentPage" v-if="totalPages > 1" :page-count="5" :total="totalPages" @change="handlePageChange" />
+      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <li v-for="(venue, index) in paginatedVenues" :key="index">
+          <UCard class="h-[250px]">
             <template #header>
-              {{ venue.venuename }}
+              <h3 class="font-bold">{{ venue.venuename }}</h3>
             </template>
             <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
             <template #footer>
-              <UButton label="Details" class="mr-2" @click="openDetailsModal(venue)" />
-              <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(venue, venue.id)" />
-              <UButton label="<>" class="mr-2" color="blue" @click="openMapModal(venue, venue.id)" />
-              <UButton label="Delete" color="red" @click="openDeleteModal(venue, venue.id)" />
+              <div class="flex justify-center">
+                <UButton label="Details" class="mr-2" @click="openDetailsModal(venue)" />
+                <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(venue, venue.id)" />
+                <UButton label="<>" class="mr-2" color="blue" @click="openMapModal(venue, venue.id)" />
+                <UButton label="Delete" color="red" @click="openDeleteModal(venue, venue.id)" />
+              </div>
             </template>
           </UCard>
-            <!-- <UButton label="Edit" @click="openEditModal(venue)" />
-            <UButton label="Delete" @click="openDeleteModal(venue)" /> -->
         </li>
       </ul>
+      
     </div>
     <UModal v-model="isDetailsOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
@@ -64,7 +66,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 const toast = useToast();
 import { useVenueStore } from "@/store/venue.js";
 const venueStore = useVenueStore();
@@ -75,9 +77,8 @@ const isMapOpen = ref(false)
 const isDeleteOpen = ref(false)
 const editMode = ref(false)
 const content = ref({});
-const fetchVenues = async () => {
-  await venueStore.fetchVenues();
-};
+const currentPage = ref(1); // Current page
+const itemsPerPage = 8; // Number of items per page
 const openDetailsModal = (venue: object) => {
   isDetailsOpen.value = true
   content.value = venue
@@ -107,12 +108,44 @@ const openMapModal = (venue: object, id: Number) => {
   venueid.value = id
 }
 const handleCloseModal = () => {
+  isMapOpen.value = false
   isAddEditOpen.value = false
   isDeleteOpen.value = false
   toast.add({ title: 'Deleted Venue!' })
   venueStore.fetchVenues()
 }
+// Watch for changes in currentPage and update paginatedVenues accordingly
+watch(currentPage, (newPage) => {
+  fetchVenues(newPage);
+});
 
+async function fetchVenues(page: number) {
+  await venueStore.fetchVenues(page, itemsPerPage);
+}
+
+// Fetch venues on component mount
+onMounted(async () => {
+  await fetchVenues(currentPage.value);
+});
+
+// Computed property to calculate paginated venues
+const paginatedVenues = computed(() => {
+  const venues = venueStore.venues?.venues; // Use optional chaining to access nested properties
+  if (!venues) return []; // Return an empty array if venues is undefined
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = currentPage.value * itemsPerPage;
+  return venues.slice(start, end);
+});
+
+// Computed property to calculate total number of pages
+const totalPages = computed(() => {
+  return Math.ceil(venueStore.venues.total / itemsPerPage);
+});
+
+// Method to handle page change
+function handlePageChange(page: number) {
+  currentPage.value = page;
+}
 watch(isAddEditOpen, (newValue: any) => {
   if (!newValue) {
     editMode.value = false;
@@ -124,7 +157,7 @@ watch(isMapOpen, (newValue: any) => {
   }
 });
 onMounted( async() => {
-  await venueStore.fetchVenues()
+  await venueStore.fetchVenues();
 });
 </script>
 

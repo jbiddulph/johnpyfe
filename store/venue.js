@@ -29,7 +29,7 @@ export const useVenueStore = defineStore({
     },
     async fetchVenues() {
       try {
-        const response = await fetch("http://localhost:8000/api/venues/all", {
+        const response = await fetch("http://127.0.0.1:8000/api/venues/all", {
           headers: {
             "Content-Type": "application/json"
           },
@@ -43,7 +43,7 @@ export const useVenueStore = defineStore({
     },
     async fetchVenueDetails(id) {
       try {
-        const response = await fetch(`http://localhost:8000/api/venues/${id}`, {
+        const response = await fetch(`http://127.0.0.1:8000/api/venues/${id}`, {
           headers: {
             "Content-Type": "application/json"
           },
@@ -52,6 +52,7 @@ export const useVenueStore = defineStore({
         if (!response.ok) {
           throw new Error('Failed to fetch venue details');
         }
+        console.log("response: ", response);
         const content = await response.json();
         return content;
       } catch (error) {
@@ -62,7 +63,7 @@ export const useVenueStore = defineStore({
     async editVenue(id, data) {
       try {
         console.log("The ID IS: ", id)
-        await fetch(`http://localhost:8000/api/venues/${id}`, {
+        await fetch(`http://127.0.0.1:8000/api/venues/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json"

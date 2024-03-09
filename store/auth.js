@@ -9,7 +9,7 @@ export const useAuthStore = defineStore({
   actions: {
     async submit({ name, email, password }) {
       try {
-        await fetch("http://localhost:8000/api/register", {
+        await fetch("http://127.0.0.1:8000/api/register", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -24,7 +24,7 @@ export const useAuthStore = defineStore({
     },
     async login({ email, password }) {
       try {
-        await fetch("http://localhost:8000/api/login", {
+        await fetch("http://127.0.0.1:8000/api/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -41,7 +41,7 @@ export const useAuthStore = defineStore({
     },
     async fetchUser() {
       try {
-        const response = await fetch("http://localhost:8000/api/user", {
+        const response = await fetch("http://127.0.0.1:8000/api/user", {
           headers: {
             "Content-Type": "application/json"
           },
@@ -55,7 +55,7 @@ export const useAuthStore = defineStore({
     },
     async logoutUser() {
       try {
-        await fetch("http://localhost:8000/api/logout", {
+        await fetch("http://127.0.0.1:8000/api/logout", {
           method: 'POST',
           headers: {'content-type': 'application/json'},
           credentials: "include",  

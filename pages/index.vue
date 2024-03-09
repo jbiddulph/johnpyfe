@@ -1,5 +1,6 @@
 <template>
 <div class="container mx-auto mt-8">
+  {{ user }}
   <div v-if="user.name">
     <p>
       Welcome {{ user.name }}

@@ -15,39 +15,51 @@
     </form>
   </div>
 </template>
+
 <script setup lang="ts">
+import { ref, onMounted, watchEffect, defineProps, defineEmits } from 'vue';
 import mapboxgl from 'mapbox-gl';
+import { useVenueStore } from "@/store/venue.js";
+
 const accessToken = ref('');
 const map = ref(null);
 const crosshair = ref(null);
-import { useVenueStore } from "@/store/venue.js";
-const venueStore = useVenueStore();
-const props = defineProps({
-  editing: Boolean,
-  venueid: Number
-})
-const emits = defineEmits(['closeModal']);
+const defaultLatitude = 50.8138122;
+const defaultLongitude = -0.3801088;
 const venue = ref({
   latitude: '',
   longitude: '',
 });
-// Fetch venue details if in edit mode
-onMounted(async () => {
+const props = defineProps({
+  editing: Boolean,
+  venueid: Number
+});
+const emits = defineEmits(['closeModal']);
+const venueStore = useVenueStore();
+
+onMounted(() => {
   createMap();
   if (props.editing && props.venueid > 0) {
-    try {
-      const venueDetails = await venueStore.fetchVenueDetails(props.venueid);
-      if (venueDetails) {
-        venue.value = venueDetails;
-      } else {
-        console.error("Failed to fetch venue details: Venue details are null or undefined.");
-      }
-    } catch (error) {
-      console.error("Error fetching venue details:", error);
-    }
+    fetchVenueDetails();
   }
 });
 
+watchEffect(() => {
+  updateMapCenter();
+});
+
+async function fetchVenueDetails() {
+  try {
+    const venueDetails = await venueStore.fetchVenueDetails(props.venueid);
+    if (venueDetails) {
+      venue.value = venueDetails;
+    } else {
+      console.error("Failed to fetch venue details: Venue details are null or undefined.");
+    }
+  } catch (error) {
+    console.error("Error fetching venue details:", error);
+  }
+}
 
 const submitVenue = async () => {
   try {
@@ -87,34 +99,41 @@ const submitVenue = async () => {
   }
   return false
 };
-const createMap = () => {
+function createMap() {
   accessToken.value = 'pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA';
   mapboxgl.accessToken = accessToken.value;
+
   map.value = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v11',
-    center: [-0.3801088, 50.8138122],
-    zoom: 12
+    center: [defaultLongitude, defaultLatitude],
+    zoom: 16
   });
-  // Add crosshair icon to the center of the map
+
   crosshair.value = document.createElement('div');
   crosshair.value.className = 'crosshair';
   map.value.getContainer().appendChild(crosshair.value);
 
-  // Listen to the moveend event to get the latitude and longitude of the center
   map.value.on('moveend', () => {
     const center = map.value.getCenter();
     console.log('Center Latitude:', center.lat);
     console.log('Center Longitude:', center.lng);
-    venue.value.latitude = center.lat
-    venue.value.longitude = center.lng
+    venue.value.latitude = center.lat;
+    venue.value.longitude = center.lng;
   });
-};
+}
+
+function updateMapCenter() {
+  if (venue.value.latitude && venue.value.longitude) {
+    map.value.setCenter([parseFloat(venue.value.longitude), parseFloat(venue.value.latitude)]);
+  }
+}
 </script>
 
 <style>
 #map {
   position: relative;
+  height: 200px;
 }
 .modal-content {
   min-height: 600px; /* Example max height for scrollbar */
