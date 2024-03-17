@@ -1,9 +1,9 @@
 <template>
 <div class="container mx-auto mt-8">
   {{ user }}
-  <div v-if="user.name">
+  <div v-if="loggedIn">
     <p>
-      Welcome {{ user.name }}
+      Welcome {{ user.username }}
     </p>
   </div>
   <div v-else>

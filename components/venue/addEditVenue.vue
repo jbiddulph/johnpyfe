@@ -34,7 +34,7 @@
     </form>
   </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { useVenueStore } from "@/store/venue.js";
 const venueStore = useVenueStore();
 const props = defineProps({
@@ -62,6 +62,7 @@ onMounted(async () => {
       const venueDetails = await venueStore.fetchVenueDetails(props.venueid);
       if (venueDetails) {
         venue.value = venueDetails;
+        console.log("VENUE VALUE: ", venue.value);
       } else {
         console.error("Failed to fetch venue details: Venue details are null or undefined.");
       }

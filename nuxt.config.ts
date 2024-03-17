@@ -1,8 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import axios from "axios";
 export default defineNuxtConfig({
-  serverMiddleware: [
-    { path: '/api', handler: '~/middleware/cors.js' } // Apply CORS middleware to '/api' routes
-  ],
+  // serverMiddleware: [
+  //   { path: '/api', handler: '~/middleware/cors.js' } // Apply CORS middleware to '/api' routes
+  // ],
   devtools: { enabled: true },
   modules: ["@pinia/nuxt", "@nuxt/ui", "@nuxtjs/color-mode", "nuxt-mapbox"],
   mapbox: {

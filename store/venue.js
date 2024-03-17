@@ -5,6 +5,9 @@ export const useVenueStore = defineStore({
   id: 'venue',
   state: () => ({
     venues: [],
+    towns: [],
+    counties: [],
+    names: [],
     venue: {}
   }),
   actions: {
@@ -41,6 +44,49 @@ export const useVenueStore = defineStore({
         console.error("Error fetching venue:", error);
       }
     },
+    async fetchTowns() {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/venues/towns", {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          credentials: "include",
+        });
+        const content = await response.json();
+        this.towns = content;
+      } catch (error) {
+        console.error("Error fetching towns:", error);
+      }
+    },
+    async fetchCounties() {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/venues/counties", {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          credentials: "include",
+        });
+        const content = await response.json();
+        this.counties = content;
+      } catch (error) {
+        console.error("Error fetching counties:", error);
+      }
+    },
+    async fetchNames(order) {
+      try {
+        // const order = "-venue_count"
+        const response = await fetch(`http://127.0.0.1:8000/api/venues/names?ordering=${order}`, {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          credentials: "include",
+        });
+        const content = await response.json();
+        this.names = content;
+      } catch (error) {
+        console.error("Error fetching counties:", error);
+      }
+    },
     async fetchVenueDetails(id) {
       try {
         const response = await fetch(`http://127.0.0.1:8000/api/venues/${id}`, {
@@ -54,6 +100,27 @@ export const useVenueStore = defineStore({
         }
         console.log("response: ", response);
         const content = await response.json();
+        this.venue = content;
+        return content;
+      } catch (error) {
+        console.error("Error fetching venue details:", error);
+        throw error;
+      }
+    },
+    async fetchVenueFSADetails(fsa_id) {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/venues/fsa/${fsa_id}`, {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          credentials: "include",
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch venue details');
+        }
+        console.log("response: ", response);
+        const content = await response.json();
+        this.venue = content;
         return content;
       } catch (error) {
         console.error("Error fetching venue details:", error);
@@ -92,5 +159,36 @@ export const useVenueStore = defineStore({
         console.error("Error creating venue:", error);
       }
     },
+    async addVenueNote(userId, venueId, note) {
+      try {
+        const token = localStorage.getItem("userToken");
+        const requestData = {
+          user: userId,
+          venue: venueId,
+          text: note
+        };
+    
+        const response = await fetch(`http://127.0.0.1:8000/api/venues/note/${venueId}/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Token ${token}`
+          },
+          credentials: "include",
+          body: JSON.stringify(requestData),
+        });
+    
+        if (response.ok) {
+          console.log("Note added successfully");
+          await navigateTo({ path: '/venues' });
+        } else {
+          // Handle the case when the server returns an error response
+          const errorMessage = await response.text();
+          throw new Error(`Failed to add note: ${errorMessage}`);
+        }
+      } catch (error) {
+        console.error("Error adding note for venue:", error);
+      }
+    }    
   }  
 });

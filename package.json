@@ -13,6 +13,8 @@
     "@nuxt/ui": "^2.14.1",
     "@nuxtjs/tailwindcss": "^6.11.4",
     "@pinia/nuxt": "^0.5.1",
+    "axios": "^1.6.7",
+    "cookie-universal-nuxt": "^2.2.2",
     "cors": "^2.8.5",
     "nuxt": "^3.10.3",
     "vue": "^3.4.19",

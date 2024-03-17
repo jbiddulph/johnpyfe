@@ -5,7 +5,12 @@
       <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
     </div>
     <div class="mt-8 pb-12">
-      <UPagination :ui="{ wrapper: 'justify-center'}" :model-value="currentPage" v-if="totalPages > 1" :page-count="5" :total="totalPages" @change="handlePageChange" />
+      <!-- Pagination controls -->
+      <div class="flex justify-center my-8">
+        <UButton label="Previous" v-if="currentPage > 1" @click="loadPage(currentPage - 1)" />
+        <span class="mx-4">{{ currentPage }} / {{ totalPages }}</span>
+        <UButton label="Next" v-if="currentPage < totalPages" @click="loadPage(currentPage + 1)" />
+      </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <li v-for="(venue, index) in paginatedVenues" :key="index">
           <UCard class="h-[250px]">
@@ -24,7 +29,6 @@
           </UCard>
         </li>
       </ul>
-      
     </div>
     <UModal v-model="isDetailsOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
@@ -66,9 +70,10 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 const toast = useToast();
 import { useVenueStore } from "@/store/venue.js";
+import axios from "axios";
 const venueStore = useVenueStore();
 const venueid = ref(null);
 const isDetailsOpen = ref(false)
@@ -77,8 +82,25 @@ const isMapOpen = ref(false)
 const isDeleteOpen = ref(false)
 const editMode = ref(false)
 const content = ref({});
-const currentPage = ref(1); // Current page
-const itemsPerPage = 8; // Number of items per page
+const currentPage = ref(1);
+const totalPages = ref(1);
+const paginatedVenues = ref([]);
+
+const PAGE_SIZE = 104; // Define the page size constant
+
+const loadPage = async (page) => {
+  try {
+    const response = await axios.get(`http://127.0.0.1:8000/api/venues/all/?page=${page}`);
+    paginatedVenues.value = response.data.results;
+    
+    // Calculate total pages
+    const totalPagesCount = Math.ceil(response.data.count / PAGE_SIZE);
+    currentPage.value = page;
+    totalPages.value = totalPagesCount;
+  } catch (error) {
+    console.error('Error loading venues:', error);
+  }
+};
 const openDetailsModal = (venue: object) => {
   isDetailsOpen.value = true
   content.value = venue
@@ -114,38 +136,7 @@ const handleCloseModal = () => {
   toast.add({ title: 'Deleted Venue!' })
   venueStore.fetchVenues()
 }
-// Watch for changes in currentPage and update paginatedVenues accordingly
-watch(currentPage, (newPage) => {
-  fetchVenues(newPage);
-});
 
-async function fetchVenues(page: number) {
-  await venueStore.fetchVenues(page, itemsPerPage);
-}
-
-// Fetch venues on component mount
-onMounted(async () => {
-  await fetchVenues(currentPage.value);
-});
-
-// Computed property to calculate paginated venues
-const paginatedVenues = computed(() => {
-  const venues = venueStore.venues?.venues; // Use optional chaining to access nested properties
-  if (!venues) return []; // Return an empty array if venues is undefined
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = currentPage.value * itemsPerPage;
-  return venues.slice(start, end);
-});
-
-// Computed property to calculate total number of pages
-const totalPages = computed(() => {
-  return Math.ceil(venueStore.venues.total / itemsPerPage);
-});
-
-// Method to handle page change
-function handlePageChange(page: number) {
-  currentPage.value = page;
-}
 watch(isAddEditOpen, (newValue: any) => {
   if (!newValue) {
     editMode.value = false;
@@ -158,6 +149,7 @@ watch(isMapOpen, (newValue: any) => {
 });
 onMounted( async() => {
   await venueStore.fetchVenues();
+  loadPage(currentPage.value);
 });
 </script>
 
