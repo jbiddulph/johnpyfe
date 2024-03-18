@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="pt-3 flex justify-center w-full text-xl">
+    <div class="pt-3 flex justify-evenly w-full text-xl">
       <!-- <div>
         {{ selectedCounty }}
         <USelect v-model="selectedCounty" :options="countyOptions" option-attribute="label" />

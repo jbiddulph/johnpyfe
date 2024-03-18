@@ -158,37 +158,6 @@ export const useVenueStore = defineStore({
       } catch (error) {
         console.error("Error creating venue:", error);
       }
-    },
-    async addVenueNote(userId, venueId, note) {
-      try {
-        const token = localStorage.getItem("userToken");
-        const requestData = {
-          user: userId,
-          venue: venueId,
-          text: note
-        };
-    
-        const response = await fetch(`http://127.0.0.1:8000/api/venues/note/${venueId}/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Token ${token}`
-          },
-          credentials: "include",
-          body: JSON.stringify(requestData),
-        });
-    
-        if (response.ok) {
-          console.log("Note added successfully");
-          await navigateTo({ path: '/venues' });
-        } else {
-          // Handle the case when the server returns an error response
-          const errorMessage = await response.text();
-          throw new Error(`Failed to add note: ${errorMessage}`);
-        }
-      } catch (error) {
-        console.error("Error adding note for venue:", error);
-      }
-    }    
+    }
   }  
 });

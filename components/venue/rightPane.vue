@@ -18,10 +18,12 @@
 </template>
 
 <script setup lang="ts">
-import { useVenueStore } from "@/store/venue.js";
 import { useAuthStore } from "@/store/auth.js";
-const venueStore = useVenueStore();
+import { useVenueStore } from "@/store/venue.js";
+import { useNoteStore } from "@/store/note.js";
 const authStore = useAuthStore();
+const venueStore = useVenueStore();
+const noteStore = useNoteStore();
 const props = defineProps({
   fsa_id: Number,
 })
@@ -72,7 +74,7 @@ const addNote = async (venueid: any) => {
       const userId = user.value.id; // Get the user ID from authentication context or store
       const venueId = venueid; // Get the venue ID from component state or props
 
-      await venueStore.addVenueNote(userId, venueId, state.textarea);
+      await noteStore.addVenueNote(userId, venueId, state.textarea);
       // If venue ID is not available in component state, make sure it's passed as a prop
     } catch (error) {
       console.log("Error in text area: ", error);
