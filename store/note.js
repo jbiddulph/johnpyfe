@@ -40,6 +40,24 @@ export const useNoteStore = defineStore({
       } catch (error) {
         console.error("Error adding note for venue:", error);
       }
+    },
+    async getVenueNotes(venueId) {
+      try {
+        const token = localStorage.getItem("userToken");
+        const csrfToken = useCookie("csrftoken");
+        const response = await fetch(`http://127.0.0.1:8000/api/notes/venue/${venueId}/`, {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Token ${token}`,
+            "X-CSRFToken": csrfToken
+          },
+          credentials: "include",
+        });
+        const content = await response.json();
+        this.notes = content;
+      } catch (error) {
+        console.error("Error adding note for venue:", error);
+      }
     }    
   }  
 });

@@ -1,10 +1,17 @@
 <template>
   <div>
     <h2 class="text-2xl font-bold">{{ venue.venuename }}</h2>
+    <div>ID: {{venue.id}}</div>
     <div>{{ venue.address }}</div>
     <div>{{ venue.town }}</div>
     <div>{{ venue.county }}</div>
     <div>{{ venue.postcode }}</div>
+    <h3>Notes</h3>
+    <ul>
+      <li v-for="note in noteStore.notes" :key="note.id">
+        {{ note.text }}
+      </li>
+    </ul>
     <UFormGroup name="textarea" label="Textarea">
       <UTextarea v-model="state.textarea" />
     </UFormGroup>
@@ -44,6 +51,7 @@ const venue = ref({
   created_at: '',
   updated_at: ''
 });
+const venueNotes = ref([]);
 const items = [{
   label: 'Details',
   content: "venue.venuename"
@@ -60,6 +68,9 @@ onMounted( async() => {
       console.log("venueDetails: ", venueDetails);
       if (venueDetails) {
         venue.value = venueDetails;
+        console.log("venueDetails: ", venueDetails.id);
+        // await getVenueNotes(venueDetails.id);
+        await noteStore.getVenueNotes(venueDetails.id);
       } else {
         console.error("Failed to fetch venue details: Venue details are null or undefined.");
       }
