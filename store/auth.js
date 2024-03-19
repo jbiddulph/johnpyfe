@@ -48,11 +48,12 @@ export const useAuthStore = defineStore({
     async fetchUser() {
       try {
         const token = localStorage.getItem("userToken");
-        
+        const csrfToken = useCookie("csrftoken");
         const response = await fetch("http://127.0.0.1:8000/get_user", {
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Token ${token}`
+            "Authorization": `Token ${token}`,
+            "X-CSRFToken": csrfToken
           },
           credentials: "include",
         });
@@ -66,11 +67,13 @@ export const useAuthStore = defineStore({
     async logoutUser() {
       try {
         const token = localStorage.getItem("userToken");
+        const csrfToken = useCookie("csrftoken");
         await fetch("http://127.0.0.1:8000/logout", {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
-            "Authorization": `Token ${token}`
+            "Authorization": `Token ${token}`,
+            "X-CSRFToken": csrfToken
           },
           credentials: "include",  
         });
