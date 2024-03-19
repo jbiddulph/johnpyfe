@@ -6,13 +6,15 @@
     <div>{{ venue.town }}</div>
     <div>{{ venue.county }}</div>
     <div>{{ venue.postcode }}</div>
-    <h3>Notes</h3>
-    <ul>
-      <li v-for="note in noteStore.notes" :key="note.id">
-        {{ note.text }}
-      </li>
-    </ul>
-    <UFormGroup name="textarea" label="Textarea">
+    <div class="mb-4">
+      <h3>Notes</h3>
+      <ul>
+        <li v-for="note in noteStore.notes" :key="note.id">
+          {{ note.text }}
+        </li>
+      </ul>
+    </div>
+    <UFormGroup name="textarea" label="Something short about this venue">
       <UTextarea v-model="state.textarea" />
     </UFormGroup>
     <UButton type="submit" class="mt-2" @click="addNote(venue.id)">
