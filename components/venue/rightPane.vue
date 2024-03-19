@@ -14,11 +14,11 @@
         </li>
       </ul>
     </div>
-    <UFormGroup name="textarea" label="Something short about this venue">
+    <UFormGroup name="textarea" label="Tell us something about this venue">
       <UTextarea v-model="state.textarea" />
     </UFormGroup>
-    <UButton type="submit" class="mt-2" @click="addNote(venue.id)">
-      Submit
+    <UButton type="submit" class="mt-2" :disabled="isTextareaBlank" @click="addNote(venue.id)">
+      Add
     </UButton>
     <div class="pb-4">
       <UTabs :items="items" :default-index="0" class="mt-4" />
@@ -37,7 +37,7 @@ const props = defineProps({
   fsa_id: Number,
 })
 const state = reactive({
-  textarea: undefined,
+  textarea: "",
 })
 const newID = ref("");
 const user = ref("");
@@ -80,6 +80,9 @@ onMounted( async() => {
       console.error("Error fetching venue details:", error);
     }
   }
+});
+const isTextareaBlank = computed(() => {
+  return state.textarea.trim() === '';
 });
 const addNote = async (venueid: any) => {
   if (state.textarea.length > 0) {
