@@ -1,7 +1,7 @@
 <template>
   <div>
     <h2 class="text-2xl font-bold">{{ venue.venuename }}</h2>
-    <div>ID: {{venue.id}}</div>
+    <div>Venue ID: {{venue.id}}</div>
     <div>{{ venue.address }}</div>
     <div>{{ venue.town }}</div>
     <div>{{ venue.county }}</div>
