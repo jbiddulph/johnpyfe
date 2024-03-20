@@ -21,9 +21,11 @@
             <template #footer>
               <div class="flex justify-center">
                 <UButton label="Details" class="mr-2" @click="openDetailsModal(venue)" />
-                <!-- <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(venue, venue.id)" />
-                <UButton label="<>" class="mr-2" color="blue" @click="openMapModal(venue, venue.id)" />
-                <UButton label="Delete" color="red" @click="openDeleteModal(venue, venue.id)" /> -->
+                <div v-if="authStore.user.id === 1">
+                  <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(venue, venue.id)" />
+                  <UButton label="<>" class="mr-2" color="blue" @click="openMapModal(venue, venue.id)" />
+                  <UButton label="Delete" color="red" @click="openDeleteModal(venue, venue.id)" />
+                </div>
               </div>
             </template>
           </UCard>
@@ -43,7 +45,7 @@
         <venueDetails class="h-48" :content="content" />
       </UCard>
     </UModal>
-    <!-- <UModal v-model="isAddEditOpen" prevent-close>
+    <UModal v-model="isAddEditOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEditOpen = false" />
@@ -66,7 +68,7 @@
         </div>
         <venue-deleteVenue class="h-48" :content="content" @closeModal="handleCloseModal" />
       </UCard>
-    </UModal> -->
+    </UModal>
   </div>
 </template>
 

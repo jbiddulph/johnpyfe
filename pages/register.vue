@@ -52,7 +52,7 @@ const email = ref("");
 const password = ref("");
 
 const handleSubmit = async () => {
-  await authStore.submit({ 
+  await authStore.signup({ 
     username: username.value, 
     email: email.value, 
     password: password.value 

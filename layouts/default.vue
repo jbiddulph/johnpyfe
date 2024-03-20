@@ -79,10 +79,10 @@ const toggleMenu = () => {
   showMenu.value = !showMenu.value; // Toggle the visibility of the menu
 }
 watch(authStore, (newValue: { user: any; }) => {
-  if (newValue.user) {
-    loggedIn.value = true
+  if (newValue && newValue.user) {
+    loggedIn.value = true;
   } else {
-    loggedIn.value = false
+    loggedIn.value = false;
   }
 });
 </script>
