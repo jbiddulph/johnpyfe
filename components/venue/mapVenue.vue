@@ -17,7 +17,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watchEffect, defineProps, defineEmits } from 'vue';
 import mapboxgl from 'mapbox-gl';
 import { useVenueStore } from "@/store/venue.js";
 
