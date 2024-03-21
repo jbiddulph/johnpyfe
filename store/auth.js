@@ -1,6 +1,5 @@
 // store/auth.js
 import { defineStore } from 'pinia'; // Import defineStore from 'pinia'
-
 export const useAuthStore = defineStore({
   id: 'auth',
   state: () => ({
@@ -9,7 +8,8 @@ export const useAuthStore = defineStore({
   actions: {
     async signup({ username, email, password }) {
       try {
-        await fetch("http://127.0.0.1:8000/signup", {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        await fetch(BASE_URL+"/signup", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -24,7 +24,8 @@ export const useAuthStore = defineStore({
     },
     async login({ username, password }) {
       try {
-        const response = await fetch("http://127.0.0.1:8000/login", {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(BASE_URL+"/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -49,7 +50,8 @@ export const useAuthStore = defineStore({
       try {
         const token = localStorage.getItem("userToken");
         const csrfToken = useCookie("csrftoken");
-        const response = await fetch("http://127.0.0.1:8000/get_user", {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(BASE_URL+"/get_user", {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Token ${token}`,
@@ -68,7 +70,8 @@ export const useAuthStore = defineStore({
       try {
         const token = localStorage.getItem("userToken");
         const csrfToken = useCookie("csrftoken");
-        await fetch("http://127.0.0.1:8000/logout", {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        await fetch(BASE_URL+"/logout", {
           method: 'POST',
           headers: {
             'content-type': 'application/json',

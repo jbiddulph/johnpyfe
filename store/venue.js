@@ -16,7 +16,8 @@ export const useVenueStore = defineStore({
       try {
         this.venue = newVenue
         console.log('The Venue: ', JSON.stringify(newVenue));
-        await fetch("http://127.0.0.1:8000/api/venues/add", {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        await fetch(BASE_URL+"/api/venues/add", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -32,7 +33,8 @@ export const useVenueStore = defineStore({
     },
     async fetchVenues() {
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/venues/all", {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(BASE_URL+"/api/venues/all", {
           headers: {
             "Content-Type": "application/json"
           },
@@ -46,7 +48,8 @@ export const useVenueStore = defineStore({
     },
     async fetchTowns() {
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/venues/towns", {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(BASE_URL+"/api/venues/towns", {
           headers: {
             "Content-Type": "application/json"
           },
@@ -60,7 +63,8 @@ export const useVenueStore = defineStore({
     },
     async fetchCounties() {
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/venues/counties", {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(BASE_URL+"/api/venues/counties", {
           headers: {
             "Content-Type": "application/json"
           },
@@ -75,7 +79,8 @@ export const useVenueStore = defineStore({
     async fetchNames(order) {
       try {
         // const order = "-venue_count"
-        const response = await fetch(`http://127.0.0.1:8000/api/venues/names?ordering=${order}`, {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(BASE_URL+`/api/venues/names?ordering=${order}`, {
           headers: {
             "Content-Type": "application/json"
           },
@@ -89,7 +94,8 @@ export const useVenueStore = defineStore({
     },
     async fetchVenueDetails(id) {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/venues/${id}`, {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(BASE_URL+`/api/venues/${id}`, {
           headers: {
             "Content-Type": "application/json"
           },
@@ -109,7 +115,8 @@ export const useVenueStore = defineStore({
     },
     async fetchVenueFSADetails(fsa_id) {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/venues/fsa/${fsa_id}`, {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(BASE_URL+`/api/venues/fsa/${fsa_id}`, {
           headers: {
             "Content-Type": "application/json"
           },
@@ -130,7 +137,8 @@ export const useVenueStore = defineStore({
     async editVenue(id, data) {
       try {
         console.log("The ID IS: ", id)
-        await fetch(`http://127.0.0.1:8000/api/venues/${id}`, {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        await fetch(BASE_URL+`/api/venues/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json"
@@ -147,7 +155,8 @@ export const useVenueStore = defineStore({
     async deleteVenue(id) {
       console.log("deleting: ", id);
       try {
-        await fetch(`http://127.0.0.1:8000/api/venues/${id}`, {
+        const BASE_URL = useRuntimeConfig().public.apiURL;
+        await fetch(BASE_URL+`/api/venues/${id}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
