@@ -1,12 +1,15 @@
 <template>
-<div class="container mx-auto mt-8">
-  {{ user }}
+<div class="container mx-auto">
+  <!-- {{ user }} -->
   <div v-if="loggedIn">
     <p>
-      Welcome {{ user.username }}
+      <!-- Welcome {{ user.username }} -->
     </p>
   </div>
-  <div v-else>
+</div>
+<div class="header-img"><img src="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg" alt=""></div>
+<div class="container mx-auto">
+  <div v-if="!loggedIn">
     You are currently not logged in
   </div>
 </div>
@@ -19,6 +22,7 @@ const user = ref({});
 const loggedIn = ref(false);
 
 onMounted(async () => {
+  authStore.fetchCsrfToken();
   try {
     user.value = authStore.user;
     loggedIn.value = true;
