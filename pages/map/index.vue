@@ -112,7 +112,7 @@ const searchPlaces = () => {
     .catch(error => console.error('Error searching places:', error));
 }
 
-watch(venueName, (newVenueName, oldVenueName) => {
+watch(venueName, (newVenueName: any, oldVenueName: any) => {
   if (map && newVenueName !== oldVenueName) {
     updateMapLayer(newVenueName);
   }
@@ -169,7 +169,7 @@ const updateMapLayer = (venueName: any) => {
   layersAdded.value.push(venueName);
 
   // Attach event listener for mouse enter
-  map.value.on("mouseenter", venueName, async e => {
+  map.value.on("mouseenter", venueName, async (e: { features: any[]; }) => {
     const feature = e.features[0];
     const coordinates = feature.geometry.coordinates.slice();
     if (!popup) {
@@ -181,7 +181,7 @@ const updateMapLayer = (venueName: any) => {
     }
 
     // Clear any existing timeout to close the popup
-    clearTimeout(popupTimeout);
+    // clearTimeout(popupTimeout);
   });
 
   // Attach event listener for mouse leave
@@ -195,7 +195,7 @@ const updateMapLayer = (venueName: any) => {
     }, 1000);
   });
 
-  map.value.on("click", venueName, async e => {
+  map.value.on("click", venueName, async (e: { features: { properties: { fsa_id: any; }; }[]; }) => {
     console.log("Clicked")
     // Close the popup if another marker is clicked
     if (popup) {
