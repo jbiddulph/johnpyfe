@@ -1,8 +1,8 @@
 <template>
   <div class="container mx-auto">
     <div class="flex w-full justify-between items-center">
-      <h1 class="text-4xl font-bold my-8">Venues</h1>
-      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
+      <h1 class="text-4xl font-bold my-8">Events</h1>
+      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(event)" />
     </div>
     <div class="mt-8 pb-12">
       <!-- Pagination controls -->
@@ -12,20 +12,19 @@
         <UButton label="Next" v-if="currentPage < totalPages" @click="loadPage(currentPage + 1)" />
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <li v-for="(venue, index) in paginatedVenues" :key="index">
+        <li v-for="(event, index) in paginatedEvents" :key="index">
           <UCard class="h-[250px]">
             <template #header>
-              <h3 class="font-bold">{{ venue.venuename }}</h3>
+              <h3 class="font-bold">{{ event.event }} at Venue: {{ event.venue }}</h3>
             </template>
-            <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
+            <div>{{ event.event_date }}, {{ event.time_start }}, {{ event.time_end }}</div> 
             <template #footer>
               <div class="flex justify-center">
-                <UButton label="Details" class="mr-2" @click="openDetailsModal(venue)" />
+                <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" />
                 <div v-if="authStore.user.id === 1">
-                  <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(venue, venue.id)" />
-                  <UButton label="<>" class="mr-2" color="blue" @click="openMapModal(venue, venue.id)" />
-                  <UButton label="Delete" color="red" @click="openDeleteModal(venue, venue.id)" />
-                  <UButton label="Event" color="green" @click="openAddEventModal(venue, venue.id)" />
+                  <!-- <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(event, event.id)" />
+                  <UButton label="Delete" color="red" @click="openDeleteModal(event, event.id)" />
+                  <UButton label="Event" color="green" @click="openAddEventModal(event, event.id)" /> -->
                 </div>
               </div>
             </template>
@@ -43,7 +42,7 @@
             <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isDetailsOpen = false" />
           </div>
         </template>
-        <venueDetails class="h-48" :content="content" />
+        <eventDetails class="h-48" :content="content" />
       </UCard>
     </UModal>
     <UModal v-model="isAddEditOpen" prevent-close>
@@ -54,7 +53,7 @@
         <venue-addEditVenue class="h-48" :venueid="venueid" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
-    <UModal v-model="isAddEventOpen" prevent-close>
+    <!-- <UModal v-model="isAddEventOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEventOpen = false" />
@@ -77,18 +76,19 @@
         </div>
         <venue-deleteVenue class="h-48" :content="content" @closeModal="handleCloseModal" />
       </UCard>
-    </UModal>
+    </UModal> -->
   </div>
 </template>
 
 <script lang="ts" setup>
 const toast = useToast();
-import { useVenueStore } from "@/store/venue.js";
+import { useEventStore } from "@/store/event.js";
 import { useAuthStore } from "@/store/auth.js";
 import axios from "axios";
-const venueStore = useVenueStore();
+const eventStore = useEventStore();
 const authStore = useAuthStore();
 const venueid = ref(null);
+const eventid = ref(null);
 const isDetailsOpen = ref(false)
 const isAddEditOpen = ref(false)
 const isAddEventOpen = ref(false)
@@ -98,14 +98,22 @@ const editMode = ref(false)
 const content = ref({});
 const currentPage = ref(1);
 const totalPages = ref(1);
-const paginatedVenues = ref([]);
+const paginatedEvents = ref([]);
 
 const PAGE_SIZE = 104; // Define the page size constant
 
-const loadPage = async (page) => {
+const loadPage = async (page: any) => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/api/venues/all/?page=${page}`);
-    paginatedVenues.value = response.data.results;
+    const token = localStorage.getItem("userToken");
+    const BASE_URL = useRuntimeConfig().public.apiURL;
+    const response = await axios.get(`http://127.0.0.1:8000/api/events/all/?page=${page}`, {
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Token ${token}`,
+          }
+        });
+    paginatedEvents.value = response.data.results;
     
     // Calculate total pages
     const totalPagesCount = Math.ceil(response.data.count / PAGE_SIZE);
@@ -115,40 +123,40 @@ const loadPage = async (page) => {
     console.error('Error loading venues:', error);
   }
 };
-const openDetailsModal = (venue: object) => {
+const openDetailsModal = (event: object) => {
   isDetailsOpen.value = true
-  content.value = venue
+  content.value = event
 }
-const editDetailsModal = (venue: object) => {
-  isDetailsOpen.value = true
-  content.value = venue
-}
-const openAddModal = (venue: object) => {
-  isAddEditOpen.value = true
-  content.value = venue
-}
-const openDeleteModal = (venue: object) => {
-  isDeleteOpen.value = true
-  content.value = venue
-}
-const openEditModal = (venue: object, id: Number) => {
-  isAddEditOpen.value = true
-  content.value = venue
-  editMode.value = true
-  venueid.value = id
-}
-const openAddEventModal = (venue: object, id: Number) => {
-  isAddEventOpen.value = true
-  content.value = venue
-  editMode.value = true
-  venueid.value = id
-}
-const openMapModal = (venue: object, id: Number) => {
-  isMapOpen.value = true
-  content.value = venue
-  editMode.value = true
-  venueid.value = id
-}
+// const editDetailsModal = (venue: object) => {
+//   isDetailsOpen.value = true
+//   content.value = venue
+// }
+// const openAddModal = (venue: object) => {
+//   isAddEditOpen.value = true
+//   content.value = venue
+// }
+// const openDeleteModal = (venue: object) => {
+//   isDeleteOpen.value = true
+//   content.value = venue
+// }
+// const openEditModal = (venue: object, id: Number) => {
+//   isAddEditOpen.value = true
+//   content.value = venue
+//   editMode.value = true
+//   venueid.value = id
+// }
+// const openAddEventModal = (venue: object, id: Number) => {
+//   isAddEventOpen.value = true
+//   content.value = venue
+//   editMode.value = true
+//   venueid.value = id
+// }
+// const openMapModal = (venue: object, id: Number) => {
+//   isMapOpen.value = true
+//   content.value = venue
+//   editMode.value = true
+//   venueid.value = id
+// }
 const handleCloseModal = () => {
   isMapOpen.value = false
   isAddEditOpen.value = false
@@ -169,7 +177,7 @@ watch(isMapOpen, (newValue: any) => {
   }
 });
 onMounted( async() => {
-  await venueStore.fetchVenues();
+  await eventStore.fetchAllEvents();
   loadPage(currentPage.value);
 });
 </script>
