@@ -13,9 +13,10 @@
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <li v-for="(event, index) in paginatedEvents" :key="index">
-          <UCard class="h-[250px]">
+          <UCard class="h-auto">
             <template #header>
-              <h3 class="font-bold">{{ event.event }} at Venue: {{ event.venue }}</h3>
+              <img :src="`http://127.0.0.1:8000/${event.photo}`" alt="Event image" />
+              <div class="details"><h3 class="font-bold">{{ event.event }} at Venue: {{ event.venue }}</h3></div>
             </template>
             <div>{{ event.event_date }}, {{ event.time_start }}, {{ event.time_end }}</div> 
             <template #footer>
