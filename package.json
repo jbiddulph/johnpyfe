@@ -16,6 +16,7 @@
     "axios": "^1.6.8",
     "cookie-universal-nuxt": "^2.2.2",
     "cors": "^2.8.5",
+    "h3-formidable": "^1.0.0",
     "nuxt": "^3.10.3",
     "vue": "^3.4.19",
     "vue-router": "^4.3.0"
