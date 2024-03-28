@@ -42,4 +42,3 @@ workflows:
       - run-cypress-tests:
           requires:
             - build-node
-
