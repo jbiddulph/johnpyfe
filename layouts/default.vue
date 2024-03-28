@@ -74,9 +74,9 @@ const authStore = useAuthStore();
 const loggedIn = ref(false);
 const showMenu = ref(false);
 
-onMounted(async () => {
-  await authStore.fetchUser()
-});
+// onMounted(async () => {
+//   await authStore.fetchUser()
+// });
 
 const logout = async () => {
   await authStore.logoutUser()
