@@ -36,7 +36,8 @@ jobs:
 workflows:
   build:
     jobs:
-      - build-node
       - run-cypress-tests:
           requires:
             - build-node
+      - build-node
+      
