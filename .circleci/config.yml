@@ -31,7 +31,7 @@ jobs:
       - run:
           name: Run Cypress tests
           command: |
-            $(npm bin)/cypress run --project cypress/e2e/ # Adjust this command according to your project setup
+            $(npm bin)/cypress run --project /cypress/e2e # Adjust this command according to your project setup
 
 workflows:
   build:
