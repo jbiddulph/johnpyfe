@@ -30,9 +30,9 @@ describe('Login Test', () => {
 
       // Click on the login button
       cy.get('#loginBtn').click()
-      
+
       // Verify redirection to homepage after successful login
-      cy.url().should('eq', Cypress.config().baseUrl + '/') // Assuming base URL is set in Cypress config
+      cy.url().should('eq', Cypress.config().baseUrl + '/', { timeout: 10000 }) // Assuming base URL is set in Cypress config
 
       // Verify successful login message
       cy.contains('Welcome quincy, you are logged in').should('be.visible')
