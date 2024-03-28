@@ -34,7 +34,7 @@ describe('Login Test', () => {
       // Verify redirection to homepage after successful login
       // cy.url().should('eq', Cypress.config().baseUrl + '/', { timeout: 10000 }) // Assuming base URL is set in Cypress config
       // cy.url().should('eq', Cypress.config().baseUrl + '/', { timeout: 70000 })
-      cy.visit('/')
+      cy.visit('https://lookwhatfound.me/')
       cy.url().should('eq', 'https://lookwhatfound.me/')
 
       // Verify successful login message
