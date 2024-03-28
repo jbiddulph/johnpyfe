@@ -5,6 +5,15 @@ orbs:
   cypress: cypress-io/cypress@3.3.1
 
 jobs:
+  run-cypress-tests:
+      executor: cypress/default
+      steps:
+        - checkout
+        - cypress/install
+        - run:
+            name: Run Cypress tests
+            command: |
+              $(npm bin)/cypress run --project cypress/e2e # Adjust this command according to your project setup
   build-node:
     executor: node/default
     steps:
@@ -22,16 +31,6 @@ jobs:
       - store_artifacts:
           path: ~/artifacts
           destination: node-build
-
-  run-cypress-tests:
-    executor: cypress/default
-    steps:
-      - checkout
-      - cypress/install
-      - run:
-          name: Run Cypress tests
-          command: |
-            $(npm bin)/cypress run --project /cypress/e2e # Adjust this command according to your project setup
 
 workflows:
   build:
