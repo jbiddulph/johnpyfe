@@ -7,13 +7,28 @@ orbs:
 jobs:
   run-cypress-tests:
       executor: cypress/default
+      # steps:
+      #   - checkout
+      #   - cypress/install
+      #   - run:
+      #       name: Run Cypress tests
+      #       command: |
+      #         $(npm bin)/cypress run --project cypress/e2e # Adjust this command according to your project setup
       steps:
-        - checkout
-        - cypress/install
-        - run:
-            name: Run Cypress tests
-            command: |
-              $(npm bin)/cypress run --project # Adjust this command according to your project setup
+      - cypress/install
+      - persist_to_workspace:
+          paths:
+            - .cache/Cypress
+            - project
+          root: ~/
+  run-tests-in-parallel:
+    executor: cypress/default
+    parallelism: 8
+    steps:
+      - attach_workspace:
+          at: ~/
+      - cypress/run-tests:
+          cypress-command: npx cypress run --component --parallel --record
   build-node:
     executor: node/default
     steps:
@@ -38,5 +53,6 @@ workflows:
       - run-cypress-tests:
           requires:
             - build-node
+      - run-tests-in-parallel
       - build-node
       
