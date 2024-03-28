@@ -22,7 +22,6 @@ const user = ref({});
 const loggedIn = ref(false);
 
 onMounted(async () => {
-  authStore.fetchCsrfToken();
   try {
     user.value = authStore.user;
     loggedIn.value = true;
