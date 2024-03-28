@@ -30,9 +30,10 @@ jobs:
     steps:
       - checkout
       - cypress/install
-      - cypress/run:
-          working-directory: cypress/e2e/
-          start: npm start # Adjust this command if your Cypress tests require a different start command
+      - run:
+          name: Run Cypress tests
+          command: |
+            $(npm bin)/cypress run --project cypress/e2e/ # Adjust this command according to your project setup
 
 workflows:
   build:
