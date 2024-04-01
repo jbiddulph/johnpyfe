@@ -102,7 +102,7 @@ const paginatedVenues = ref([]);
 
 const PAGE_SIZE = 104; // Define the page size constant
 
-const loadPage = async (page) => {
+const loadPage = async (page: any) => {
   try {
     const response = await axios.get(`http://127.0.0.1:8000/api/venues/all/?page=${page}`);
     paginatedVenues.value = response.data.results;
@@ -169,7 +169,7 @@ watch(isMapOpen, (newValue: any) => {
   }
 });
 onMounted( async() => {
-  await venueStore.fetchVenues();
+  // await venueStore.fetchVenues();
   loadPage(currentPage.value);
 });
 </script>

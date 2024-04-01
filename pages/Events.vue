@@ -15,7 +15,7 @@
         <li v-for="(event, index) in paginatedEvents" :key="index">
           <UCard class="h-auto">
             <template #header>
-              <img :src="`http://127.0.0.1:8000/${event.photo}`" alt="Event image" />
+              <img :src="`http://127.0.0.1:8000/${imageUrl(event.photo)}`" alt="Event image" />
               <div class="details"><h3 class="font-bold">{{ event.event }} at Venue: {{ event.venue }}</h3></div>
             </template>
             <div>{{ event.event_date }}, {{ event.time_start }}, {{ event.time_end }}</div> 
@@ -103,10 +103,14 @@ const paginatedEvents = ref([]);
 
 const PAGE_SIZE = 104; // Define the page size constant
 
+const imageUrl = (photoUrl) => {
+  return photoUrl.replace('/media/', '');
+};
+
 const loadPage = async (page: any) => {
   try {
     const token = localStorage.getItem("userToken");
-    const BASE_URL = useRuntimeConfig().public.apiURL;
+    // const BASE_URL = useRuntimeConfig().public.apiURL;
     const response = await axios.get(`http://127.0.0.1:8000/api/events/all/?page=${page}`, {
           headers: {
             "Content-Type": "application/json",
