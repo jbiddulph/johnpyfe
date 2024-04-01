@@ -98,7 +98,7 @@ async function flyToCounty(countyName: any) {
 }
 const searchPlaces = () => {
   if (!map.value) return; // Ensure map is initialized
-  accessToken.value = "pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA";
+  accessToken.value = useRuntimeConfig().public.mapbox_token;
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery.value)}.json?access_token=${accessToken.value}`;
   
   fetch(url)
@@ -125,7 +125,7 @@ const createMap = async () => {
   await venueStore.fetchTowns();
   await venueStore.fetchCounties();
   await venueStore.fetchNames(order);
-  accessToken.value = "pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA";
+  accessToken.value = useRuntimeConfig().public.mapbox_token;
   mapboxgl.accessToken = accessToken.value;
   map.value = new mapboxgl.Map({
     container: "mainmap",

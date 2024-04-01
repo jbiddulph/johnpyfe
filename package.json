@@ -24,6 +24,7 @@
   "devDependencies": {
     "cypress": "^13.7.1",
     "mapbox-gl": "^3.2.0",
-    "nuxt-mapbox": "^1.5.9"
+    "nuxt-mapbox": "^1.5.9",
+    "sass": "^1.72.0"
   }
 }

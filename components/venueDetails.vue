@@ -19,8 +19,7 @@ onMounted(() => {
   createMap();
 });
 function createMap() {
-  accessToken.value = 'pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA';
-  mapboxgl.accessToken = accessToken.value;
+  mapboxgl.accessToken = useRuntimeConfig().public.mapbox_token;
 
   map.value = new mapboxgl.Map({
     container: 'map',
