@@ -1,5 +1,7 @@
 // store/auth.js
 import { defineStore } from 'pinia'; // Import defineStore from 'pinia'
+import Cookies from "js-cookie";
+
 export const useAuthStore = defineStore({
   id: 'auth',
   state: () => ({
@@ -36,9 +38,9 @@ export const useAuthStore = defineStore({
         // Parse and log the response body as JSON
         const content = await response.json();
         console.log('check entire response object: ', content);
-        localStorage.setItem("userToken", content.token);
+        // localStorage.setItem("userToken", content.token);
         console.log("User logged in successfully");
-    
+        Cookies.set('userToken', content.token);
         // Update user object after login
         await this.fetchUser();
         await navigateTo({ path: '/' });
@@ -48,16 +50,17 @@ export const useAuthStore = defineStore({
     },
     async fetchUser() {
       try {
-        const token = localStorage.getItem("userToken");
-        const csrfToken = useCookie("csrftoken");
+        // const token = localStorage.getItem("userToken");
+        const token = Cookies.get('userToken');
+        // const csrfToken = useCookie("csrftoken");
         const BASE_URL = useRuntimeConfig().public.apiURL;
         const response = await fetch(BASE_URL+"/get_user", {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Token ${token}`,
-            "X-CSRFToken": csrfToken
+            // "X-CSRFToken": csrfToken
           },
-          credentials: "include",
+          // credentials: "include",
         });
         const content = await response.json();
         console.log("Content: ", content);
@@ -68,7 +71,9 @@ export const useAuthStore = defineStore({
     },    
     async logoutUser() {
       try {
+        console.log("here I am logging out");
         const token = localStorage.getItem("userToken");
+        Cookies.remove('userToken');
         const csrfToken = useCookie("csrftoken");
         const BASE_URL = useRuntimeConfig().public.apiURL;
         await fetch(BASE_URL+"/logout", {
