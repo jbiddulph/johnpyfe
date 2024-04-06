@@ -13,11 +13,11 @@
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <li v-for="(event, index) in paginatedEvents" :key="index">
-        <div class="flex items-center bg-white"> <!-- Flex container to align items horizontally -->
-            <img class="w-250 h-auto mr-4" :src="`http://127.0.0.1:8000/${imageUrl(event.photo)}`" alt="Event image" width="250px" /> <!-- Image -->
-            <div> <!-- Description -->
-                <h3 class="font-bold">{{ event.event }} at Venue: {{ event.venue }}</h3>
-                <div>{{ event.event_date }}, {{ event.time_start }}, {{ event.time_end }}</div>
+        <div class="flex items-center bg-white dark:bg-gray-900"> <!-- Flex container to align items horizontally -->
+          <img class="w-250 h-auto mr-4" :src="`http://127.0.0.1:8000/${imageUrl(event.photo)}`" alt="Event image" width="250px" /> <!-- Image -->
+          <div class="flex content-between flex-wrap"> <!-- Description -->
+              <h3 class="font-bold text-black dark:text-white">{{ event.event }} at Venue: {{ event.venue }}</h3>
+                <div class="text-black dark:text-white">{{ event.event_date }}, {{ event.time_start }}, {{ event.time_end }}</div>
                 <div class="flex justify-center">
                     <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" />
                     <div v-if="authStore.user.id === 1">

@@ -38,7 +38,7 @@ export const useAuthStore = defineStore({
         // Parse and log the response body as JSON
         const content = await response.json();
         console.log('check entire response object: ', content);
-        // localStorage.setItem("userToken", content.token);
+        localStorage.setItem("userToken", content.token);
         console.log("User logged in successfully");
         Cookies.set('userToken', content.token);
         // Update user object after login

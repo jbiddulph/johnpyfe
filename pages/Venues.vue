@@ -7,9 +7,11 @@
     <div class="mt-8 pb-12">
       <!-- Pagination controls -->
       <div class="flex justify-center my-8">
+        <UButton label="First" v-if="currentPage > 1" @click="loadPage(currentPage = 1)" />
         <UButton label="Previous" v-if="currentPage > 1" @click="loadPage(currentPage - 1)" />
         <span class="mx-4">{{ currentPage }} / {{ totalPages }}</span>
         <UButton label="Next" v-if="currentPage < totalPages" @click="loadPage(currentPage + 1)" />
+        <UButton label="Last" v-if="currentPage > 1 && currentPage !== totalPages" @click="loadPage(currentPage = totalPages)" />
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <li v-for="(venue, index) in paginatedVenues" :key="index">
