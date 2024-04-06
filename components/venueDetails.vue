@@ -1,7 +1,16 @@
 <template>
-  <div class="modal-content">
-    Edit mode: {{ editing }}
-    <div id="map"></div>
+  <div class="modal-content d-flex wrap">
+    Edit mode: {{ editing }} {{ content.id }}
+    <div class="d-flex w-auto">
+      <p><strong>Venue:</strong> {{ content.venuename }}</p>
+      <p><strong>Venue type:</strong> {{ content.venuetype }}</p>
+      <p><strong>address:</strong> {{ content.address }}</p>
+      <p><strong>Town:</strong> {{ content.town }}</p>
+      <p><strong>County:</strong> {{ content.county }}</p>
+      <p><strong>postCode:</strong> {{ content.postcode }}</p>
+      <p><strong>Local Authority:</strong> {{ content.local_authority }}</p>
+    </div>
+    <div id="map" class="d-flex w-auto"></div>
   </div>
 </template>
 
@@ -51,8 +60,14 @@ function createMap() {
 
 <style scoped>
 .modal-content {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
   min-height: 600px; /* Example max height for scrollbar */
   overflow-y: auto; /* Enable vertical scrollbar if content exceeds max height */
   padding: 20px; /* Example padding */
+}
+#map {
+  width: 800px;
 }
 </style>
