@@ -2,7 +2,7 @@
   <div class="container mx-auto">
     <div class="flex w-full justify-between items-center">
       <h1 class="text-4xl font-bold my-8">Events</h1>
-      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(event)" />
+      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddEventModal()" />
     </div>
     <div class="mt-8 pb-12">
       <!-- Pagination controls -->
@@ -11,27 +11,26 @@
         <span class="mx-4">{{ currentPage }} / {{ totalPages }}</span>
         <UButton label="Next" v-if="currentPage < totalPages" @click="loadPage(currentPage + 1)" />
       </div>
-      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <li v-for="(event, index) in paginatedEvents" :key="index">
-          <UCard class="h-auto">
-            <template #header>
-              <img :src="`http://127.0.0.1:8000/${imageUrl(event.photo)}`" alt="Event image" />
-              <div class="details"><h3 class="font-bold">{{ event.event }} at Venue: {{ event.venue }}</h3></div>
-            </template>
-            <div>{{ event.event_date }}, {{ event.time_start }}, {{ event.time_end }}</div> 
-            <template #footer>
-              <div class="flex justify-center">
-                <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" />
-                <div v-if="authStore.user.id === 1">
-                  <!-- <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(event, event.id)" />
-                  <UButton label="Delete" color="red" @click="openDeleteModal(event, event.id)" />
-                  <UButton label="Event" color="green" @click="openAddEventModal(event, event.id)" /> -->
+      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <li v-for="(event, index) in paginatedEvents" :key="index">
+        <div class="flex items-center bg-white"> <!-- Flex container to align items horizontally -->
+            <img class="w-250 h-auto mr-4" :src="`http://127.0.0.1:8000/${imageUrl(event.photo)}`" alt="Event image" width="250px" /> <!-- Image -->
+            <div> <!-- Description -->
+                <h3 class="font-bold">{{ event.event }} at Venue: {{ event.venue }}</h3>
+                <div>{{ event.event_date }}, {{ event.time_start }}, {{ event.time_end }}</div>
+                <div class="flex justify-center">
+                    <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" />
+                    <div v-if="authStore.user.id === 1">
+                        <!-- <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(event, event.id)" />
+                        <UButton label="Delete" color="red" @click="openDeleteModal(event, event.id)" />
+                        <UButton label="Event" color="green" @click="openAddEventModal(event, event.id)" /> -->
+                    </div>
                 </div>
-              </div>
-            </template>
-          </UCard>
-        </li>
-      </ul>
+            </div>
+        </div>
+    </li>
+</ul>
+
     </div>
     <UModal v-model="isDetailsOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
@@ -54,7 +53,7 @@
         <venue-addEditVenue class="h-48" :venueid="venueid" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
-    <!-- <UModal v-model="isAddEventOpen" prevent-close>
+    <UModal v-model="isAddEventOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEventOpen = false" />
@@ -62,7 +61,7 @@
         <event-addEvent :editing="editMode" :venueid="venueid" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
-    <UModal v-model="isMapOpen" prevent-close>
+    <!-- <UModal v-model="isMapOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isMapOpen = false" />
@@ -150,12 +149,11 @@ const openDetailsModal = (event: object) => {
 //   editMode.value = true
 //   venueid.value = id
 // }
-// const openAddEventModal = (venue: object, id: Number) => {
-//   isAddEventOpen.value = true
-//   content.value = venue
-//   editMode.value = true
-//   venueid.value = id
-// }
+const openAddEventModal = () => {
+  console.log("clicked");
+  isAddEventOpen.value = true
+  editMode.value = true
+}
 // const openMapModal = (venue: object, id: Number) => {
 //   isMapOpen.value = true
 //   content.value = venue

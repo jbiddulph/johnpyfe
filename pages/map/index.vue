@@ -13,9 +13,10 @@
     </div>
     <div class="bg-gray-100 border-t">
       <venue-namesList class="h-full" :venuenames="venueStore.names" @venue-name="venueNameSelected" />
+      
     </div>
     <div id="mainmap"></div>
-    <USlideover v-model="isOpenRight.slideover" transition="true">
+    <USlideover v-model="isOpenRight.slideover" :transition="true">
       <div class="p-4 flex-1">
         <venue-rightPane class="h-full" :fsa_id="isOpenRight.featureId" :venuenames="venueStore.names" @venue-name="venueNameSelected" />
       </div>
@@ -134,7 +135,10 @@ const createMap = async () => {
     center: [-3.0665894, 53.9012106],
   });
   map.value.on('load', () => {
-    updateMapLayer(venueName.value.toUpperCase());
+    // Ensure that the map is fully loaded before calling updateMapLayer
+    map.value.once('render', () => {
+      updateMapLayer(venueName.value.toUpperCase());
+    });
   });
 }
 

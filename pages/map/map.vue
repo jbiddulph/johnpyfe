@@ -37,10 +37,10 @@ onMounted(() => {
           paint: {
             "circle-color": [
               "step",
-              ["get", "is_live"],
-              "#FF0000",
-              1,
-              "#FF0000",
+              ["get", "id"],
+              "#3366ff",
+              28596,
+              "#669900",
             ],
             "circle-radius": [
               "case",

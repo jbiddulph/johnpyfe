@@ -21,7 +21,10 @@
 import { ref } from 'vue';
 const emit = defineEmits(["venueName"])
 const props = defineProps({
-  venuenames: Array,
+  venuenames: {
+    type: Array,
+    required: true
+  }
 })
 const showList = ref(false);
 
