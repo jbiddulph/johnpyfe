@@ -21,9 +21,10 @@
             </template>
             <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
             <template #footer>
+              
               <div class="flex justify-center">
                 <UButton label="Details" class="mr-2" @click="openDetailsModal(venue)" />
-                <div v-if="authStore.user.id === 1">
+                <div v-if="userName === user.user_metadata.name">
                   <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(venue, venue.id)" />
                   <UButton label="<>" class="mr-2" color="blue" @click="openMapModal(venue, venue.id)" />
                   <UButton label="Delete" color="red" @click="openDeleteModal(venue, venue.id)" />
@@ -101,12 +102,13 @@ const content = ref({});
 const currentPage = ref(1);
 const totalPages = ref(1);
 const paginatedVenues = ref([]);
-
+const user = useSupabaseUser();
 // NEW STUFF
 const itemsPerPage = ref(104);
 const totalItems = ref(0);
 const venues = ref([]);
-
+const userName = ref('');
+const userID = process.env.USER_ID;
 const PAGE_SIZE = 104; // Define the page size constant
 const prevPage = () => {
   if (currentPage.value > 1) {
@@ -186,11 +188,12 @@ watch(isMapOpen, (newValue: any) => {
     editMode.value = false;
   }
 });
-onMounted( async() => {
-  // await venueStore.fetchVenues();
+
+onMounted(async () => {
   fetchAllVenues();
-  // loadPage(currentPage.value);
+  userName.value = process.env.USER_NAME;
 });
+
 </script>
 
 <style lang="scss" scoped>

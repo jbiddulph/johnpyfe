@@ -34,7 +34,7 @@
                         </div>
                         <a href="#" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500">Forgot password?</a>
                     </div> -->
-                    <button @click="handleLogin" id="loginBtn" class="w-full text-blue-300 bg-blue-600  hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Login</button>
+                    <!-- <button @click="handleLogin" id="loginBtn" class="w-full text-blue-300 bg-blue-600  hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Login</button> -->
                     <p class="text-sm font-light text-gray-500 dark:text-gray-400">
                         Don’t have an account yet? <NuxtLink to="/register" class="font-medium text-primary-600 hover:underline dark:text-primary-500">Register</NuxtLink>
                     </p>
@@ -59,10 +59,10 @@ const handleGoogleLogin = async () => {
     console.log("there was an error logging in: ", err);
   }
 }
-const handleLogin = async () => {
-  await authStore.login({  
-    username: username.value, 
-    password: password.value 
-  });
-};
+// const handleLogin = async () => {
+//   await authStore.login({  
+//     username: username.value, 
+//     password: password.value 
+//   });
+// };
 </script>
