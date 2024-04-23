@@ -1,19 +1,19 @@
 
-// describe('The Home Page', () => {
-//   it('successfully loads', () => {
-//     cy.visit('/')
-//     cy.contains('Home').click()
-//     cy.url().should('include', '/')
-//     cy.contains('Login').click()
-//     cy.url().should('include', '/login')
+describe('The Home Page', () => {
+  it('successfully loads', () => {
+    cy.visit('/')
+    cy.contains('Home').click()
+    // cy.url().should('include', '/')
+    // cy.contains('Login').click()
+    // cy.url().should('include', '/login')
     // Get an input, type into it
-   // cy.get('#username').type('quincy@quincy.com')
+    // cy.get('#username').type('quincy@quincy.com')
     //  Verify that the value has been updated
-//     cy.get('#username').should('have.value', 'quincy@quincy.com')
-//     cy.contains('Register').click()
-//     cy.url().should('include', '/register')
-//   })
-// })
+    // cy.get('#username').should('have.value', 'quincy@quincy.com')
+    // cy.contains('Register').click()
+    // cy.url().should('include', '/register')
+  })
+})
 // Login test
 // describe('Login Test', () => {
 //   it('Logs in successfully', () => {
@@ -41,5 +41,5 @@
 
       // Verify successful login message
       // cy.contains('Welcome quincy, you are logged in').should('be.visible')
-  })
-})
+//   })
+// })
