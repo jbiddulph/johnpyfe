@@ -10,6 +10,10 @@
                 <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
                     Login
                 </h1>
+                
+                <div class="mt-10">
+                  <button class="bg-red-400 p-3 rounded text-white font-bold" @click="handleGoogleLogin">Login with Google</button>
+                </div>
                 <div class="space-y-4 md:space-y-6">
                     <div>
                         <label for="username" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Your Username</label>
@@ -46,7 +50,15 @@ import { useAuthStore } from "@/store/auth.js";
 const authStore = useAuthStore();
 const username = ref("");
 const password = ref("");
-
+const supabase = useSupabaseClient()
+const handleGoogleLogin = async () => {
+  const {err} = supabase.auth.signInWithOAuth({
+    provider: "google"
+  })
+  if(err) {
+    console.log("there was an error logging in: ", err);
+  }
+}
 const handleLogin = async () => {
   await authStore.login({  
     username: username.value, 

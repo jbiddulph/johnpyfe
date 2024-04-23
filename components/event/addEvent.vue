@@ -1,6 +1,19 @@
 <template>
   <div>
-    <h3>Add Event</h3>
+    <h3>Add Event for venue: {{venueid}}</h3>
+    <div v-if="venueid === null">
+      <USelectMenu
+        v-model="selected"
+        :loading="loading"
+        :searchable="search"
+        placeholder="Search for a venue..."
+        option-attribute="concatenatedName"
+        option-id-attribute="id"
+        trailing
+        by="id"
+      />
+
+    </div>
     <form @submit.prevent="submitForm" enctype="multipart/form-data">
       <div>
         <UInput v-model="formData.venue" type="hidden" id="venue" required disabled />
@@ -82,6 +95,18 @@ const emits = defineEmits(['closeModal']);
 const props = defineProps({
   venueid: Number
 })
+const loading = ref(false)
+const selected = ref([])
+async function search(q: string) {
+  loading.value = true;
+  const BASE_URL = useRuntimeConfig().public.apiURL;
+  const response = await $fetch<any[]>(BASE_URL + `/api/venues/search/`, { params: { q } });
+  loading.value = false;
+  response.forEach(venue => {
+    venue.concatenatedName = `${venue.venuename}, ${venue.town}`;
+  });
+  return response;
+}
 const formData = ref({
   venue: props.venueid,
   userId: authStore.user.id,
@@ -126,14 +151,15 @@ const submitForm = async () => {
     // Append file to FormData
     formDataObj.append('photo', formData.photo);
     // formDataObj.append('photo', formData.value.photo);
-
+console.log('formDataObj: ', formDataObj);
+console.log('Venue ID:', props.venueid);
+console.log('User ID:', authStore.user.id);
+console.log('Event:', formData.event);
     await eventStore.addEvent(formDataObj, props.venueid); // Pass formDataObj to addEvent function
+    
     // console.log("Event added successfully:", formDataObj);
     console.log("Formatted Event Date:", formattedEventDate.value);
     emits('closeModal');
-    console.log(formDataObj.get('event_date'))
-    console.log("form: ", formDataObj);
-    console.log("form data: ", formData);
   } catch (error) {
     console.log("error: ", error);
   }
