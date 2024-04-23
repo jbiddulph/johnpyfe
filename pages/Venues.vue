@@ -21,7 +21,6 @@
             </template>
             <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
             <template #footer>
-              
               <div class="flex justify-center">
                 <UButton label="Details" class="mr-2" @click="openDetailsModal(venue)" />
                 <div v-if="userName === user.user_metadata.name">
