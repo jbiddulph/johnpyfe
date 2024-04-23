@@ -1,4 +1,3 @@
-import venues from "@/data/venues.json";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient()
