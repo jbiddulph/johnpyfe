@@ -20,11 +20,12 @@ export const useEventStore = defineStore({
         const response = await fetch(BASE_URL+`/api/events/venue/${venueID}/`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            // "Content-Type": "multipart/form-data",
             "Accept": "application/json",
             "Authorization": `Token ${token}`,
           },
-          body: JSON.stringify(newEvent)
+          // body: JSON.stringify(newEvent)
+          body: newEvent
         });
         console.log("response: ", response);
         console.log("Event created successfully");

@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Venue {
+  id                  Int     @id @default(autoincrement())
+  fsa_id              Int
+  venuename           String
+  slug                String
+  venuetype           String
+  address             String
+  address2            String
+  town                String
+  county              String
+  postcode            String
+  postalsearch        String
+  telephone           String
+  easting             String
+  northing            String
+  latitude            String
+  longitude           String
+  local_authority     String
+  website             String
+  photo               String
+  is_live             String
+  created_at          String
+  updated_at          String
+  notes               Note[]
+  events              Event[]
+}
+
+model Event {
+  id                  Int     @id @default(autoincrement())
+  event               String
+  description         String
+  cost                String
+  duration            String
+  event_start         DateTime
+  category            String
+  photo               String
+  website             String
+  created_at          DateTime
+  user_id             String
+  venue_id            Int
+  listingId           Int
+  listing             Venue @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model Note {
+  id                  Int     @id @default(autoincrement())
+  text                String
+  created_at          DateTime
+  user_id             String
+  venue_id            Int
+  listingId           Int
+  listing             Venue @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}

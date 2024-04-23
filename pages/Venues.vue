@@ -7,14 +7,14 @@
     <div class="mt-8 pb-12">
       <!-- Pagination controls -->
       <div class="flex justify-center my-8">
-        <UButton label="First" v-if="currentPage > 1" @click="loadPage(currentPage = 1)" />
-        <UButton label="Previous" v-if="currentPage > 1" @click="loadPage(currentPage - 1)" />
-        <span class="mx-4">{{ currentPage }} / {{ totalPages }}</span>
-        <UButton label="Next" v-if="currentPage < totalPages" @click="loadPage(currentPage + 1)" />
-        <UButton label="Last" v-if="currentPage > 1 && currentPage !== totalPages" @click="loadPage(currentPage = totalPages)" />
+        <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
+        <UButton label="Previous" @click="prevPage(currentPage.value - 1)" />
+        <span class="mx-4">{{ currentPage }}</span>
+        <UButton label="Next" @click="nextPage(currentPage + 1)" />
+        <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <li v-for="(venue, index) in paginatedVenues" :key="index">
+        <li v-for="(venue, index) in venues" :key="index">
           <UCard class="h-[250px]">
             <template #header>
               <h3 class="font-bold">{{ venue.venuename }}</h3>
@@ -102,16 +102,32 @@ const currentPage = ref(1);
 const totalPages = ref(1);
 const paginatedVenues = ref([]);
 
-const PAGE_SIZE = 104; // Define the page size constant
+// NEW STUFF
+const itemsPerPage = ref(104);
+const totalItems = ref(0);
+const venues = ref([]);
 
-const loadPage = async (page: any) => {
+const PAGE_SIZE = 104; // Define the page size constant
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    fetchAllVenues();
+  }
+}
+const nextPage = () => {
+  // if (currentPage.value * itemsPerPage.value < totalItems.value) {
+    currentPage.value++;
+    fetchAllVenues();
+  // }
+}
+const fetchAllVenues = async () => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/api/venues/all/?page=${page}`);
-    paginatedVenues.value = response.data.results;
-    
-    // Calculate total pages
-    const totalPagesCount = Math.ceil(response.data.count / PAGE_SIZE);
-    currentPage.value = page;
+    const skip = (currentPage.value - 1) * itemsPerPage.value;
+    const response = await fetch(`http://localhost:3000/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
+    const data = await response.json();
+    venues.value = data;
+    totalItems.value = data.length;
+    const totalPagesCount = Math.ceil(totalItems.value / itemsPerPage.value);
     totalPages.value = totalPagesCount;
   } catch (error) {
     console.error('Error loading venues:', error);
@@ -172,7 +188,8 @@ watch(isMapOpen, (newValue: any) => {
 });
 onMounted( async() => {
   // await venueStore.fetchVenues();
-  loadPage(currentPage.value);
+  fetchAllVenues();
+  // loadPage(currentPage.value);
 });
 </script>
 

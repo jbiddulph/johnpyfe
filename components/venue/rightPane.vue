@@ -20,9 +20,18 @@
     <UButton type="submit" class="mt-2" :disabled="isTextareaBlank" @click="addNote(venue.id)">
       Add
     </UButton>
+    <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddEventModal(venue.id)" />
     <div class="pb-4">
       <UTabs :items="items" :default-index="0" class="mt-4" />
     </div>
+    <UModal v-model="isAddEventOpen" prevent-close>
+      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <div class="flex justify-end">
+          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEventOpen = false" />
+        </div>
+        <event-addEvent :editing="editMode" :venueid="venue.id" @closeModal="handleCloseModal" />
+      </UCard>
+    </UModal>
   </div>
 </template>
 
@@ -41,6 +50,7 @@ const state = reactive({
 })
 const newID = ref("");
 const user = ref("");
+const isAddEventOpen = ref(false)
 const venue = ref({
   venuename: '',
   slug: '',
@@ -81,6 +91,10 @@ onMounted( async() => {
     }
   }
 });
+const openAddEventModal = (venue) => {
+  console.log("clicked: ", venue);
+  isAddEventOpen.value = true
+}
 const isTextareaBlank = computed(() => {
   return state.textarea.trim() === '';
 });
