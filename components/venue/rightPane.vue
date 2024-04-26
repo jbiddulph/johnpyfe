@@ -79,10 +79,10 @@ onMounted( async() => {
       const venueDetails = await venueStore.fetchVenueFSADetails(props.fsa_id.toString());
       console.log("venueDetails: ", venueDetails);
       if (venueDetails) {
-        venue.value = venueDetails;
-        console.log("venueDetails: ", venueDetails.id);
+        venue.value = venueDetails[0];
+        console.log("venueDetails: ", venueDetails[0].id);
         // await getVenueNotes(venueDetails.id);
-        await noteStore.getVenueNotes(venueDetails.id);
+        await noteStore.getVenueNotes(venueDetails[0].id);
       } else {
         console.error("Failed to fetch venue details: Venue details are null or undefined.");
       }

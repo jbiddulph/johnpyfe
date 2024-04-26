@@ -9,7 +9,7 @@
       <div class="flex justify-center my-8">
         <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
         <UButton label="Previous" @click="prevPage(currentPage.value - 1)" />
-        <span class="mx-4">{{ currentPage }}</span>
+        <UButton :label="currentPage" class="mx-4" variant="soft" />
         <UButton label="Next" @click="nextPage(currentPage + 1)" />
         <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
       </div>
@@ -22,12 +22,16 @@
             <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
             <template #footer>
               <div class="flex justify-center">
-                <UButton label="Details" class="mr-2" @click="openDetailsModal(venue)" />
-                <div v-if="userName === user.user_metadata.name">
-                  <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(venue, venue.id)" />
-                  <UButton label="<>" class="mr-2" color="blue" @click="openMapModal(venue, venue.id)" />
-                  <UButton label="Delete" color="red" @click="openDeleteModal(venue, venue.id)" />
-                  <UButton label="Event" color="green" @click="openAddEventModal(venue, venue.id)" />
+                  
+                <div v-if="userName === user.user_metadata.name" class="controls">
+                  <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" @click="openDetailsModal(venue)" />
+                  <UButton icon="i-heroicons-pencil-square" class="mr-1 text-xs" size="sm" color="amber" @click="openEditModal(venue, venue.id)" />
+                  <UButton icon="i-heroicons-map-pin" class="mr-1 text-xs" size="sm" color="blue" @click="openMapModal(venue, venue.id)" />
+                  <UButton icon="i-heroicons-calendar" class="mr-1 text-xs" size="sm" color="violet" @click="openAddEventModal(venue, venue.id)" />
+                  <UButton icon="i-heroicons-trash" class="text-xs" size="sm" color="red" @click="openDeleteModal(venue, venue.id)" />
+                </div>
+                <div v-else>
+                  <UButton label="Details" class="mr-1 text-xs" size="sm" @click="openDetailsModal(venue)" />
                 </div>
               </div>
             </template>
@@ -174,7 +178,8 @@ const handleCloseModal = () => {
   isDeleteOpen.value = false
   isAddEventOpen.value = false
   toast.add({ title: 'Deleted Venue!' })
-  venueStore.fetchVenues()
+  //fetch venues again
+  // venueStore.fetchVenues()
 }
 
 watch(isAddEditOpen, (newValue: any) => {
@@ -190,11 +195,14 @@ watch(isMapOpen, (newValue: any) => {
 
 onMounted(async () => {
   fetchAllVenues();
-  userName.value = process.env.USER_NAME;
+  // userName.value = process.env.USER_NAME;
+  userName.value = "John Biddulph";
 });
 
 </script>
 
 <style lang="scss" scoped>
-
+.controls button span{
+  font-size: 0.8em!important;
+}
 </style>

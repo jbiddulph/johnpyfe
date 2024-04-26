@@ -31,21 +31,21 @@ export const useVenueStore = defineStore({
         console.error("Error creating venue:", error);
       }
     },
-    async fetchVenues() {
-      try {
-        const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(BASE_URL+"/api/venues/all", {
-          headers: {
-            "Content-Type": "application/json"
-          },
-          credentials: "include",
-        });
-        const content = await response.json();
-        this.venues = content;
-      } catch (error) {
-        console.error("Error fetching venue:", error);
-      }
-    },
+    // async fetchVenues() {
+    //   try {
+    //     const BASE_URL = useRuntimeConfig().public.apiURL;
+    //     const response = await fetch(BASE_URL+"/api/venues/all", {
+    //       headers: {
+    //         "Content-Type": "application/json"
+    //       },
+    //       credentials: "include",
+    //     });
+    //     const content = await response.json();
+    //     this.venues = content;
+    //   } catch (error) {
+    //     console.error("Error fetching venue:", error);
+    //   }
+    // },
     async fetchTowns() {
       try {
         const BASE_URL = useRuntimeConfig().public.apiURL;
@@ -115,8 +115,9 @@ export const useVenueStore = defineStore({
     },
     async fetchVenueFSADetails(fsa_id) {
       try {
-        const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(BASE_URL+`/api/venues/fsa/${fsa_id}`, {
+        // const BASE_URL = useRuntimeConfig().public.apiURL;
+        // const response = await fetch(BASE_URL+`/api/venues/fsa/${fsa_id}`, {
+        const response = await fetch(`http://localhost:3000/api/venues/fsa/${fsa_id}`, {
           headers: {
             "Content-Type": "application/json"
           },
