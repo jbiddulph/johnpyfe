@@ -122,7 +122,6 @@ watch(venueName, (newVenueName: any, oldVenueName: any) => {
 const createMap = async () => {
   // Previous code remains unchanged
   const order = "-venue_count"
-  await venueStore.fetchVenues();
   await venueStore.fetchTowns();
   await venueStore.fetchCounties();
   await venueStore.fetchNames(order);

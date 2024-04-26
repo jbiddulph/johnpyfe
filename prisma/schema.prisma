@@ -42,7 +42,7 @@ model Venue {
 
 model Event {
   id                  Int     @id @default(autoincrement())
-  event               String
+  event_title         String
   description         String
   cost                String
   duration            String

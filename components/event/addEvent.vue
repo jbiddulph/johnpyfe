@@ -15,62 +15,55 @@
 
     </div>
     <form @submit.prevent="submitForm" enctype="multipart/form-data">
+      <!-- <div>
+        <UInput v-model="formData.venue" type="text" id="venue" required disabled />
+      </div> -->
+      <h2>{{ formData.event_title }}</h2>
       <div>
-        <UInput v-model="formData.venue" type="hidden" id="venue" required disabled />
+        <UInput v-model="user.id" type="hidden" id="use_id" name="user_id" disabled />
       </div>
       <div>
-        <UInput v-model="formData.userId" type="hidden" id="user" name="user" required disabled />
-      </div>
-      <div>
-        <label for="event">Event Name:</label>
-        {{ formData.event }}
-        <UInput v-model="formData.event" type="text" id="event" name="event" required />
+        <p for="event_title">Event Name:</p>
+        <UInput v-model="formData.event_title" type="text" id="event_title" name="event_title" />
       </div>  
       <div>
-        <label for="description">Description:</label><br />
-        {{ formData.description }}
+        <p for="description">Description (max 20 chars):</p><br />
         <UTextarea v-model="formData.description" id="description" name="description" rows="4" cols="50"></UTextarea>
       </div>
       <div>
-        <label for="cost">Cost:</label>
-        {{ formData.cost }}
+        <p for="cost">Cost:</p>
         <UInput v-model="formData.cost" type="text" id="cost" name="cost" step="0.01" required />
       </div>
       <div>
-        <label for="duration">Duration (in minutes):</label>
-        {{ formData.duration }}
+        <p for="duration">Duration (in minutes):</p>
         <UInput v-model="formData.duration" type="text" id="duration" name="duration" required />
       </div>
       <div>
-        <label for="event_date">Event Date:</label>
-        {{ formData.event_date }}
-        <!-- <UInput v-model="formData.event_date" type="text" id="event_date" name="event_date" required /> -->
-        <UInput v-model="formattedEventDate" type="date" id="event_date" name="event_date" required />
+        <p for="event_start">Event Date:</p>
+        <UInput v-model="formData.event_start" type="text" id="event_start" name="event_start" required />
+        <!-- <UInput v-model="event_start" type="date" id="event_start" name="event_start" required /> -->
       </div>
-      <div>
-        <label for="time_start">Start Time:</label>
+      <!-- <div>
+        <p for="time_start">Start Time:</p>
         {{ formData.time_start }}
         <UInput v-model="formData.time_start" type="time" id="time_start" name="time_start" required />
       </div>
       <div>
-        <label for="time_end">End Time:</label>
+        <p for="time_end">End Time:</p>
         {{ formData.time_end }}
         <UInput v-model="formData.time_end" type="time" id="time_end" name="time_end" required />
-      </div>
+      </div> -->
       <div>
-        <label for="category">Category:</label>
-        {{ formData.category }}
+        <p for="category">Category:</p>
         <UInput v-model="formData.category" type="text" id="category" name="category" />
       </div>
       <div>
-        <label for="photo">Photo URL:</label>
-        {{ formData.photo }}
+        <p for="photo">Photo URL:</p>
         <!-- <u-input v-model="formData.photo" id="photo" name="photo" type="file" /> -->
         <UInput v-model="formData.photo" type="file" id="photo" name="photo" accept="image/*" @change="handleFileUpload" />
       </div>
       <div>
-        <label for="website">Website URL:</label>
-        {{ formData.website }}
+        <p for="website">Website URL:</p>
         <UInput v-model="formData.website" type="text" id="website" name="website" />
       </div>
       <UButton
@@ -97,79 +90,77 @@ const props = defineProps({
 })
 const loading = ref(false)
 const selected = ref([])
+const supabase = useSupabaseClient();
+const user = useSupabaseUser();
+const userId = user && user.id ? user.id.toString() : '';
 async function search(q: string) {
   loading.value = true;
   const BASE_URL = useRuntimeConfig().public.apiURL;
-  const response = await $fetch<any[]>(BASE_URL + `/api/venues/search/`, { params: { q } });
+  // const response = await $fetch<any[]>(BASE_URL + `/api/venues/search/`, { params: { q } });
+  const response = await $fetch<any[]>(`http://localhost:3000/api/venues/search/`, { params: { q } });
   loading.value = false;
   response.forEach(venue => {
     venue.concatenatedName = `${venue.venuename}, ${venue.town}`;
   });
   return response;
 }
+const date = new Date();
+const formattedDate = date.toISOString().slice(0, 19) + ".000Z";
 const formData = ref({
-  venue: props.venueid,
-  userId: authStore.user.id,
-  event: null,
+  venue_id: parseInt(props.venueid),
+  user_id: "",
+  // listingId: parseInt(props.venueid),
+  event_title: null,
   description: null,
   cost: null,
   duration: null,
-  event_date: null,
-  time_start: null,
-  time_end: null,
+  event_start: formattedDate,
   category: null,
   photo: null,
   website: null,
 });
-// const handleFileUpload = (event: { target: { files: any[]; }; }) => {
-//   const file = event.target.files[0];
-//   formData.value.photo = file;
-// };
-const handleFileUpload = (event) => {
+console.log("Formdata: ", formData);
+const handleFileUpload = (event: { target: { files: any[]; }; }) => {
   const file = event.target.files[0];
   formData.photo = file;
 };
+
 const submitForm = async () => {
+  console.log("form is being submitted");
+  const fileName = Math.floor(Math.random() * 10000000000000000);
+  const { data, error } = await supabase.storage.from("event_images").upload("public/" + fileName, formData.photo)
   try {
-    console.log("formattedEventDate: ", formattedEventDate);
-
-    const formDataObj = new FormData();
-
-    // Append form fields to FormData
-    formDataObj.append('venue', props.venueid);
-    formDataObj.append('userId', authStore.user.id);
-    formDataObj.append('event', formData.event);
-    formDataObj.append('description', formData.description);
-    formDataObj.append('cost', formData.cost);
-    formDataObj.append('duration', formData.duration);
-    formDataObj.append('event_date', formattedEventDate.value);
-    formDataObj.append('time_start', formData.time_start);
-    formDataObj.append('time_end', formData.time_end);
-    formDataObj.append('category', formData.category);
-    formDataObj.append('website', formData.website);
+    const formDataObj = {
+      venue_id: props.venueid,
+      user_id: "68649039-146c-414a-a7f1-71304530cabb",
+      listingId: parseInt(props.venueid),
+      event_title: formData.value.event_title,
+      description: formData.value.description,
+      cost: formData.value.cost,
+      duration: formData.value.duration,
+      event_start: formData.value.event_start,
+      category: formData.value.category,
+      website: formData.value.website,
+      created_at: new Date(),
+      photo: data.path // Assuming data.path is the URL of the uploaded photo
+    };
     
-    // Append file to FormData
-    formDataObj.append('photo', formData.photo);
-    // formDataObj.append('photo', formData.value.photo);
-console.log('formDataObj: ', formDataObj);
-console.log('Venue ID:', props.venueid);
-console.log('User ID:', authStore.user.id);
-console.log('Event:', formData.event);
-    await eventStore.addEvent(formDataObj, props.venueid); // Pass formDataObj to addEvent function
+    await eventStore.addEvent(formDataObj, props.venueid);
     
-    // console.log("Event added successfully:", formDataObj);
-    console.log("Formatted Event Date:", formattedEventDate.value);
+    console.log("Event added successfully:", formDataObj);
     emits('closeModal');
   } catch (error) {
-    console.log("error: ", error);
+    await supabase.storage.from("event_images").remove(data.path)  
   }
 };
+
+
 const formattedEventDate = computed(() => {
-  // Check if formData.event_date is defined and not null
-  console.log("formData.event_date:", formData.event_date); // Log the value of formData.event_date
-  if (formData.event_date != null) {
-    // Assuming formData.event_date is in "dd/mm/yyyy" format
-    const dateParts = formData.event_date.split('/');
+  // Check if formData.event_start is defined and not null
+  console.log("formData.event_start:", formData.event_start); // Log the value of formData.event_start
+  if (formData.event_start != null) {
+    // Assuming formData.event_start is in "dd/mm/yyyy" format
+    const dateParts = formData.event_start.split('/');
     console.log("dateParts:", dateParts); // Log the value of dateParts
     if (dateParts.length === 3) {
       const [day, month, year] = dateParts;
@@ -182,7 +173,7 @@ const formattedEventDate = computed(() => {
       return '';
     }
   } else {
-    // Handle case where formData.event_date is undefined or null
+    // Handle case where formData.event_start is undefined or null
     return '';
   }
 });

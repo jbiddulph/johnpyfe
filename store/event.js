@@ -13,27 +13,39 @@ export const useEventStore = defineStore({
   actions: {
     async addEvent(newEvent, venueID) {
       console.log("newEvent: ", newEvent);
-      try {
-        const token = localStorage.getItem("userToken");
-        console.log('The Event: ', JSON.stringify(newEvent));
-        const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(BASE_URL+`/api/events/venue/${venueID}/`, {
-          method: "POST",
-          headers: {
-            // "Content-Type": "multipart/form-data",
-            "Accept": "application/json",
-            "Authorization": `Token ${token}`,
-          },
-          // body: JSON.stringify(newEvent)
-          body: newEvent
-        });
-        console.log("response: ", response);
-        console.log("Event created successfully");
-        await navigateTo({ path: '/venues' });
-      } catch (error) {
-        console.error("Error creating event:", error);
-      }
-    },
+      
+        // const token = localStorage.getItem("userToken");
+        // console.log('The Event: ', JSON.stringify(newEvent));
+        // const BASE_URL = useRuntimeConfig().public.apiURL;
+        // const response = await fetch(BASE_URL+`/api/events/venue/${venueID}/`, {
+          console.log("newEvent: ", newEvent);
+          try {
+            let requestBody;
+            if (newEvent instanceof FormData) {
+              requestBody = {};
+              newEvent.forEach((value, key) => {
+                requestBody[key] = value;
+              });
+            } else {
+              requestBody = newEvent;
+            }
+        
+            const response = await fetch(`http://localhost:3000/api/events/add/`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json", // Specify content type as JSON
+                "Accept": "application/json",
+              },
+              body: JSON.stringify(requestBody), // Convert FormData to JSON
+            });
+        
+            console.log("response: ", response);
+            console.log("Event created successfully");
+            await navigateTo({ path: '/venues' });
+          } catch (error) {
+            console.error("Error creating event:", error);
+          }
+        },
     async fetchAllEvents() {
       try {
         const token = localStorage.getItem("userToken");

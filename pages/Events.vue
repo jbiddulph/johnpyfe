@@ -7,16 +7,21 @@
     <div class="mt-8 pb-12">
       <!-- Pagination controls -->
       <div class="flex justify-center my-8">
-        <UButton label="Previous" v-if="currentPage > 1" @click="loadPage(currentPage - 1)" />
-        <span class="mx-4">{{ currentPage }} / {{ totalPages }}</span>
-        <UButton label="Next" v-if="currentPage < totalPages" @click="loadPage(currentPage + 1)" />
+        <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
+        <UButton label="Previous" @click="prevPage(currentPage.value - 1)" />
+        <UButton :label="currentPage" class="mx-4" variant="soft" />
+        <UButton label="Next" @click="nextPage(currentPage + 1)" />
+        <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <li v-for="(event, index) in paginatedEvents" :key="index">
+    <!-- <li v-for="(event, index) in paginatedEvents" :key="index"> -->
+      <li v-for="(event, index) in events" :key="index">
+        {{ event }}
+        
         <div class="flex items-center bg-white dark:bg-gray-900"> <!-- Flex container to align items horizontally -->
-          <img class="w-250 h-auto mr-4" :src="`http://127.0.0.1:8000/${imageUrl(event.photo)}`" alt="Event image" width="250px" /> <!-- Image -->
+          <img class="w-250 h-auto mr-4" :src="`${config.public.supabase.url}/storage/v1/object/public/event_images/${event.photo}`" alt="Event image" width="250px" /> <!-- Image -->
           <div class="flex content-between flex-wrap"> <!-- Description -->
-              <h3 class="font-bold text-black dark:text-white">{{ event.event }} at Venue: {{ event.venue }}</h3>
+              <h3 class="font-bold text-black dark:text-white">{{ event.event_title }} at Venue: {{ event.venue }}</h3>
                 <div class="text-black dark:text-white">{{ event.event_date }}, {{ event.time_start }}, {{ event.time_end }}</div>
                 <div class="flex justify-center">
                     <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" />
@@ -99,29 +104,37 @@ const content = ref({});
 const currentPage = ref(1);
 const totalPages = ref(1);
 const paginatedEvents = ref([]);
-
+const itemsPerPage = ref(104);
+const totalItems = ref(0);
+const venues = ref([]);
+const events = ref([]);
 const PAGE_SIZE = 104; // Define the page size constant
-
+const config = useRuntimeConfig()
 const imageUrl = (photoUrl) => {
   return photoUrl.replace('/media/', '');
 };
-
-const loadPage = async (page: any) => {
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    fetchAllEvents();
+  }
+}
+const nextPage = () => {
+  // if (currentPage.value * itemsPerPage.value < totalItems.value) {
+    currentPage.value++;
+    fetchAllEvents();
+  // }
+}
+const fetchAllEvents = async () => {
   try {
-    const token = localStorage.getItem("userToken");
     // const BASE_URL = useRuntimeConfig().public.apiURL;
-    const response = await axios.get(`http://127.0.0.1:8000/api/events/all/?page=${page}`, {
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Authorization": `Token ${token}`,
-          }
-        });
-    paginatedEvents.value = response.data.results;
-    
-    // Calculate total pages
-    const totalPagesCount = Math.ceil(response.data.count / PAGE_SIZE);
-    currentPage.value = page;
+    const skip = (currentPage.value - 1) * itemsPerPage.value;
+    const response = await fetch(`http://localhost:3000/api/events?skip=${skip}&take=${itemsPerPage.value}`);
+    const data = await response.json();
+    events.value = data;
+    console.log("events.value: ", events.value);
+    totalItems.value = data.length;
+    const totalPagesCount = Math.ceil(totalItems.value / itemsPerPage.value);
     totalPages.value = totalPagesCount;
   } catch (error) {
     console.error('Error loading venues:', error);
@@ -166,7 +179,8 @@ const handleCloseModal = () => {
   isDeleteOpen.value = false
   isAddEventOpen.value = false
   toast.add({ title: 'Deleted Venue!' })
-  venueStore.fetchVenues()
+  // fetch venues again
+  // venueStore.fetchVenues()
 }
 
 watch(isAddEditOpen, (newValue: any) => {
@@ -180,8 +194,8 @@ watch(isMapOpen, (newValue: any) => {
   }
 });
 onMounted( async() => {
-  await eventStore.fetchAllEvents();
-  loadPage(currentPage.value);
+  // await eventStore.fetchAllEvents();
+  fetchAllEvents();
 });
 </script>
 
