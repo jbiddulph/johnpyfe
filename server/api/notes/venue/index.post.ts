@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const schema = Joi.object({
-  text: Joi.string().required().min(20),
+  text: Joi.string().required().min(10),
   created_at: Joi.date().required(),
   user_id: Joi.string().required(),
   venue_id: Joi.number().required().min(0),

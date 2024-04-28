@@ -97,10 +97,10 @@ async function search(q: string) {
   loading.value = true;
   const BASE_URL = useRuntimeConfig().public.apiURL;
   // const response = await $fetch<any[]>(BASE_URL + `/api/venues/search/`, { params: { q } });
-  const response = await $fetch<any[]>(`http://localhost:3000/api/venues/search/`, { params: { q } });
+  const response = await $fetch<any[]>(`http://lookwhatfound.me:3000/api/venues/search/`, { params: { q } });
   loading.value = false;
   response.forEach(venue => {
-    venue.concatenatedName = `${venue.venuename}, ${venue.town}`;
+    venue.concatenatedName = `${venue.venuename}, of ${venue.town} (${venue.id})`;
   });
   return response;
 }
@@ -131,8 +131,8 @@ const submitForm = async () => {
   const { data, error } = await supabase.storage.from("event_images").upload("public/" + fileName, formData.photo)
   try {
     const formDataObj = {
-      venue_id: props.venueid,
-      user_id: "68649039-146c-414a-a7f1-71304530cabb",
+      venue_id: parseInt(props.venueid),
+      user_id: user.id.toString(),
       listingId: parseInt(props.venueid),
       event_title: formData.value.event_title,
       description: formData.value.description,
@@ -175,6 +175,20 @@ const formattedEventDate = computed(() => {
   } else {
     // Handle case where formData.event_start is undefined or null
     return '';
+  }
+});
+watch(selected, (newValue: { id: number }) => {
+  if (newValue && newValue.id) {
+    formData.value.venue_id = newValue.id;
+  } else if (!isNaN(props.venueid)) {
+    // If no venue is selected or selected venue doesn't have a valid id,
+    // and props.venueid is a valid number, fallback to props.venueid
+    formData.value.venue_id = props.venueid;
+    formData.value.listingId =props.venueidx;
+  } else {
+    // If neither newValue.id nor props.venueid is a valid number, set venue_id to null or a default value
+    formData.value.venue_id = null; // Or provide a default value like 0
+    formData.value.listingId = null; // Or provide a default value like 0
   }
 });
 

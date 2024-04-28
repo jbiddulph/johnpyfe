@@ -30,7 +30,7 @@ export const useEventStore = defineStore({
               requestBody = newEvent;
             }
         
-            const response = await fetch(`http://localhost:3000/api/events/add/`, {
+            const response = await fetch(`http://lookwhatfound.me:3000/api/events/add/`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json", // Specify content type as JSON
