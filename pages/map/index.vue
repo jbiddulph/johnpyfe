@@ -1,15 +1,8 @@
 <template>
   <div>
     <div class="pt-3 flex justify-evenly w-full text-xl">
-      <!-- <div>
-        {{ selectedCounty }}
-        <USelect v-model="selectedCounty" :options="countyOptions" option-attribute="label" />
-      </div> -->
       {{ venueName }}
-      
       <input type="text" v-model="searchQuery" @input="searchPlaces" class="capitalize text-center p-2 rounded-t-lg border-t-2 border-l-2 border-r-2 border-white" placeholder="Search UK places...">
-      {{ selected }}
-      <USelectMenu v-model="selected" :options="districts" multiple placeholder="Select areas" />
     </div>
     <div class="bg-gray-100 border-t">
       <venue-namesList class="h-full" :venuenames="venueStore.names" @venue-name="venueNameSelected" />

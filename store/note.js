@@ -9,24 +9,23 @@ export const useNoteStore = defineStore({
   }),
   actions: {
     async addVenueNote(userId, venueId, note) {
+      console.log("userId: ", userId)
       try {
-        const token = localStorage.getItem("userToken");
-        const csrfToken = useCookie("csrftoken");
         const requestData = {
-          user: userId,
-          venue: venueId,
-          text: note
+          user_id: userId.toString(),
+          venue_id: venueId,
+          text: note,
+          created_at: new Date(),
+          listingId: venueId,
         };
+        console.log("request data: ", requestData);
         // const BASE_URL = useRuntimeConfig().public.apiURL;
         // const response = await fetch(BASE_URL+`/api/notes/venue/${venueId}/`, {
-        const response = await fetch(`http://localhost:3000/api/notes/venue/${venueId}/`, {
+        const response = await fetch(`http://lookwhatfound.me:3000/api/notes/venue`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Token ${token}`,
-            "X-CSRFToken": csrfToken
           },
-          credentials: "include",
           body: JSON.stringify(requestData),
         });
     
@@ -48,7 +47,7 @@ export const useNoteStore = defineStore({
         const csrfToken = useCookie("csrftoken");
         // const BASE_URL = useRuntimeConfig().public.apiURL;
         // const response = await fetch(BASE_URL+`/api/notes/venue/${venueId}/`, {
-        const response = await fetch(`http://localhost:3000/api/notes/venue/${venueId}/`, {
+        const response = await fetch(`http://lookwhatfound.me:3000/api/notes/venue/${venueId}/`, {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Token ${token}`,

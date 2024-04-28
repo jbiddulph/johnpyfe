@@ -117,7 +117,7 @@ export const useVenueStore = defineStore({
       try {
         // const BASE_URL = useRuntimeConfig().public.apiURL;
         // const response = await fetch(BASE_URL+`/api/venues/fsa/${fsa_id}`, {
-        const response = await fetch(`http://localhost:3000/api/venues/fsa/${fsa_id}`, {
+        const response = await fetch(`http://lookwhatfound.me:3000/api/venues/fsa/${fsa_id}`, {
           headers: {
             "Content-Type": "application/json"
           },

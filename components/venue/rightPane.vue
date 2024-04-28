@@ -36,10 +36,8 @@
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from "@/store/auth.js";
 import { useVenueStore } from "@/store/venue.js";
 import { useNoteStore } from "@/store/note.js";
-const authStore = useAuthStore();
 const venueStore = useVenueStore();
 const noteStore = useNoteStore();
 const props = defineProps({
@@ -49,7 +47,7 @@ const state = reactive({
   textarea: "",
 })
 const newID = ref("");
-const user = ref("");
+const user = useSupabaseUser();
 const isAddEventOpen = ref(false)
 const venue = ref({
   venuename: '',
@@ -103,8 +101,8 @@ const addNote = async (venueid: any) => {
     try {
       const userId = user.value.id; // Get the user ID from authentication context or store
       const venueId = venueid; // Get the venue ID from component state or props
-
-      await noteStore.addVenueNote(userId, venueId, state.textarea);
+  console.log("xxuserId:", userId);
+      await noteStore.addVenueNote(userId.toString(), venueId, state.textarea);
       // If venue ID is not available in component state, make sure it's passed as a prop
     } catch (error) {
       console.log("Error in text area: ", error);
