@@ -127,9 +127,9 @@ const nextPage = () => {
 }
 const fetchAllEvents = async () => {
   try {
-    // const BASE_URL = useRuntimeConfig().public.apiURL;
+    const BASE_URL = useRuntimeConfig().public.apiURL;
     const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const response = await fetch(`http://lookwhatfound.me:3000/api/events?skip=${skip}&take=${itemsPerPage.value}`);
+    const response = await fetch(BASE_URL + `/api/events?skip=${skip}&take=${itemsPerPage.value}`);
     const data = await response.json();
     events.value = data;
     console.log("events.value: ", events.value);

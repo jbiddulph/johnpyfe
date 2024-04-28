@@ -96,8 +96,7 @@ const userId = user && user.id ? user.id.toString() : '';
 async function search(q: string) {
   loading.value = true;
   const BASE_URL = useRuntimeConfig().public.apiURL;
-  // const response = await $fetch<any[]>(BASE_URL + `/api/venues/search/`, { params: { q } });
-  const response = await $fetch<any[]>(`http://lookwhatfound.me:3000/api/venues/search/`, { params: { q } });
+  const response = await $fetch<any[]>(BASE_URL + `/api/venues/search/`, { params: { q } });
   loading.value = false;
   response.forEach(venue => {
     venue.concatenatedName = `${venue.venuename}, of ${venue.town} (${venue.id})`;
