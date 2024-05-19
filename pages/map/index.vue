@@ -11,15 +11,19 @@
     <div id="mainmap"></div>
     <USlideover v-model="isOpenRight.slideover" :transition="true">
       <div class="p-4 flex-1">
+        <UButton label="Events" @click="showVenueEvents" />
         <venue-rightPane class="h-full" :fsa_id="isOpenRight.featureId" :venuenames="venueStore.names" @venue-name="venueNameSelected" />
       </div>
     </USlideover>
-    <UButton label="Open" @click="isOpenLeft.slideover = true" />
-    <USlideover v-model="isOpenLeft.slideover" side="left" transition="true">
+    
+    
+    <USlideover v-model="isOpenLeft.slideover" side="left">
       <div class="p-4 flex-1">
-        <venue-mapFilters class="h-full" :fsa_id="isOpenLeft.featureId" :venuecounties="venueStore.counties" />
+        <venue-eventList class="h-full" :venue-id="venueStore.venue[0].id" />
       </div>
     </USlideover>
+    
+
   </div>
 </template>
 
@@ -45,7 +49,6 @@ const venue = ref({});
 const map = ref(null);
 let popup: mapboxgl.Popup|null = null;
 let popupTimeout: string|number|NodeJS.Timeout|null|undefined = null;
-const selectedVenue = ref({});
 const layersAdded = ref([]);
 onMounted(() => {
   venueName.value = 'VENUES';
@@ -65,7 +68,10 @@ watch(selectedCounty, (newCounty: any) => {
     flyToCounty(newCounty);
   }
 });
-
+const showVenueEvents = (venueId: any) => {
+  console.log("the venueId: ", venueId);
+  isOpenLeft.slideover = true
+}
 async function flyToCounty(countyName: any) {
   const county = venueStore.counties.find((county: { county: any; }) => county.county === countyName);
   if (county) {
@@ -220,4 +226,5 @@ const updateMapLayer = (venueName: any) => {
 .mapboxgl-popup-content {
   color: #333333!important;
 }
+
 </style>

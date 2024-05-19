@@ -18,8 +18,8 @@ export const useNoteStore = defineStore({
           created_at: new Date(),
           listingId: venueId,
         };
-        const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(BASE_URL + `/api/notes/venue`, {
+        // const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(`https://lookwhatfound.me/api/notes/venue`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -43,8 +43,8 @@ export const useNoteStore = defineStore({
       try {
         const token = localStorage.getItem("userToken");
         const csrfToken = useCookie("csrftoken");
-        const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(BASE_URL + `/api/notes/venue/${venueId}/`, {
+        // const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch(`https://lookwhatfound.me/api/notes/venue/${venueId}/`, {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Token ${token}`,
