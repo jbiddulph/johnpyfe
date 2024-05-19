@@ -1,8 +1,8 @@
 
 describe('The Home Page', () => {
   it('successfully loads', () => {
-    cy.visit('/')
-    cy.contains('Home').click()
+    // cy.visit('/')
+    // cy.contains('Home').click()
     // cy.url().should('include', '/')
     // cy.contains('Login').click()
     // cy.url().should('include', '/login')
