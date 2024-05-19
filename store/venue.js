@@ -17,7 +17,7 @@ export const useVenueStore = defineStore({
         this.venue = newVenue
         console.log('The Venue: ', JSON.stringify(newVenue));
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        await fetch("https://lookwhatfound.me/api/venues/add", {
+        await fetch("http://localhost:3000/api/venues/add", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -49,7 +49,7 @@ export const useVenueStore = defineStore({
     async fetchTowns() {
       try {
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch("https://lookwhatfound.me/api/venues/towns", {
+        const response = await fetch("http://localhost:3000/api/venues/towns", {
           headers: {
             "Content-Type": "application/json"
           },
@@ -64,7 +64,7 @@ export const useVenueStore = defineStore({
     async fetchCounties() {
       try {
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch("https://lookwhatfound.me/api/venues/counties", {
+        const response = await fetch("http://localhost:3000/api/venues/counties", {
           headers: {
             "Content-Type": "application/json"
           },
@@ -80,7 +80,7 @@ export const useVenueStore = defineStore({
       try {
         // const order = "-venue_count"
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(`https://lookwhatfound.me/api/venues/names?ordering=${order}`, {
+        const response = await fetch(`http://localhost:3000/api/venues/names?ordering=${order}`, {
           headers: {
             "Content-Type": "application/json"
           },
@@ -95,7 +95,7 @@ export const useVenueStore = defineStore({
     async fetchVenueDetails(id) {
       try {
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(`https://lookwhatfound.me/api/venues/${id}`, {
+        const response = await fetch(`http://localhost:3000/api/venues/${id}`, {
           headers: {
             "Content-Type": "application/json"
           },
@@ -116,7 +116,7 @@ export const useVenueStore = defineStore({
     async fetchVenueFSADetails(fsa_id) {
       try {
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(`https://lookwhatfound.me/api/venues/fsa/${fsa_id}`, {
+        const response = await fetch(`http://localhost:3000/api/venues/fsa/${fsa_id}`, {
           headers: {
             "Content-Type": "application/json"
           },
@@ -138,7 +138,7 @@ export const useVenueStore = defineStore({
       try {
         console.log("Editing ID IS: ", id)
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        await fetch(`https://lookwhatfound.me/api/venues/coords/${id}`, {
+        await fetch(`http://localhost:3000/api/venues/coords/${id}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json"
@@ -156,7 +156,7 @@ export const useVenueStore = defineStore({
       console.log("deleting: ", id);
       try {
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        await fetch(`https://lookwhatfound.me/api/venues/${id}`, {
+        await fetch(`http://localhost:3000/api/venues/${id}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",

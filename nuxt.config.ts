@@ -7,7 +7,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       appURL: process.env.NUXT_PUBLIC_APP_URL ?? "http://lookwhatfound.me",
-      apiURL: process.env.NUXT_PUBLIC_API_URL ?? "https://lookwhatfound.me",
+      apiURL: process.env.NUXT_PUBLIC_API_URL ?? "http://localhost:3000",
       googleMaps: {
         key: 'AIzaSyBWiPC71sMkSoaa0TNrioE8CP1Ll5HmpZ4'
       },
