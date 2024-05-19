@@ -11,7 +11,7 @@ export const useAuthStore = defineStore({
     async signup({ username, email, password }) {
       try {
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        await fetch("https://lookwhatfound.me/signup", {
+        await fetch("http://localhost:3000/signup", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -27,7 +27,7 @@ export const useAuthStore = defineStore({
     async login({ username, password }) {
       try {
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch("https://lookwhatfound.me/login", {
+        const response = await fetch("http://localhost:3000/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -54,7 +54,7 @@ export const useAuthStore = defineStore({
         const token = Cookies.get('userToken');
         // const csrfToken = useCookie("csrftoken");
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch("https://lookwhatfound.me/get_user", {
+        const response = await fetch("http://localhost:3000/get_user", {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Token ${token}`,
@@ -76,7 +76,7 @@ export const useAuthStore = defineStore({
         Cookies.remove('userToken');
         const csrfToken = useCookie("csrftoken");
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        await fetch("https://lookwhatfound.me/logout", {
+        await fetch("http://localhost:3000/logout", {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
