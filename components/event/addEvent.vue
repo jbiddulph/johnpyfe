@@ -84,7 +84,7 @@ const user = useSupabaseUser();
 const userId = ref(user.value.id); // Initialize userId with the current user's ID
 async function search(q: string) {
   loading.value = true;
-  const response = await $fetch<any[]>(`http://localhost:3000/api/venues/search/`, { params: { q } });
+  const response = await $fetch<any[]>(`https://lookwhatfound.me/api/venues/search/`, { params: { q } });
   loading.value = false;
   response.forEach(venue => {
     venue.concatenatedName = `${venue.venuename}, of ${venue.town} (${venue.id})`;
