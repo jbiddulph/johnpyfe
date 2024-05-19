@@ -22,8 +22,7 @@
             <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
             <template #footer>
               <div class="flex justify-center">
-                  
-                <div v-if="userName === user.user_metadata.name" class="controls">
+                <div v-if="userName === user.user_metadata.email" class="controls">
                   <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" @click="openDetailsModal(venue)" />
                   <UButton icon="i-heroicons-pencil-square" class="mr-1 text-xs" size="sm" color="amber" @click="openEditModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-map-pin" class="mr-1 text-xs" size="sm" color="blue" @click="openMapModal(venue, venue.id)" />
@@ -196,7 +195,7 @@ watch(isMapOpen, (newValue: any) => {
 onMounted(async () => {
   fetchAllVenues();
   // userName.value = process.env.USER_NAME;
-  userName.value = "John Biddulph";
+  userName.value = useRuntimeConfig().public.admin;
 });
 
 </script>
