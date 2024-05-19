@@ -121,9 +121,9 @@ watch(venueName, (newVenueName: any, oldVenueName: any) => {
 const createMap = async () => {
   // Previous code remains unchanged
   const order = "-venue_count"
-  await venueStore.fetchTowns();
-  await venueStore.fetchCounties();
-  await venueStore.fetchNames(order);
+  // await venueStore.fetchTowns();
+  // await venueStore.fetchCounties();
+  // await venueStore.fetchNames(order);
   accessToken.value = useRuntimeConfig().public.mapbox_token;
   mapboxgl.accessToken = accessToken.value;
   map.value = new mapboxgl.Map({
