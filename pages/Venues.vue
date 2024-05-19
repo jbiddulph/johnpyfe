@@ -57,7 +57,7 @@
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEditOpen = false" />
         </div>
-        <venue-addEditVenue class="h-48" :venueid="venueid" @closeModal="handleCloseModal" />
+        <venue-addEditVenue :editing="editMode" class="h-48" :venueid="venueid" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
     <UModal v-model="isAddEventOpen" prevent-close>
@@ -65,7 +65,7 @@
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEventOpen = false" />
         </div>
-        <event-addEvent :editing="editMode" :venueid="venueid" @closeModal="handleCloseModal" />
+        <event-addEvent :editing="editMode" :venue="venue" :venueid="venueid" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
     <UModal v-model="isMapOpen" prevent-close>
@@ -127,9 +127,8 @@ const nextPage = () => {
 }
 const fetchAllVenues = async () => {
   try {
-    const BASE_URL = useRuntimeConfig().public.apiURL;
     const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const response = await fetch(BASE_URL + `/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
+    const response = await fetch(`https://lookwhatfound.me/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
     const data = await response.json();
     venues.value = data;
     totalItems.value = data.length;
@@ -164,7 +163,7 @@ const openEditModal = (venue: object, id: Number) => {
 const openAddEventModal = (venue: object, id: Number) => {
   isAddEventOpen.value = true
   content.value = venue
-  editMode.value = true
+  // editMode.value = true
   venueid.value = id
 }
 const openMapModal = (venue: object, id: Number) => {

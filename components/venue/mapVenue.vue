@@ -66,7 +66,7 @@ const submitVenue = async () => {
     const formData = new FormData();
     formData.append('latitude', venue.value.latitude);
     formData.append('longitude', venue.value.longitude);
-    
+    formData.append('updated_at', new Date().toISOString())
     console.log("FormData:", formData); // Check FormData object before sending
     const venueData = {};
     const formDataEntries = [...formData.entries()];
@@ -86,10 +86,9 @@ const submitVenue = async () => {
       // }
     }
     if (props.venueid !== null) {
-      venueData.id = props.venueid; // Add venueId to the venueData if it's available
       console.log("venue Data: ", venueData);
-      await venueStore.editVenue(venueData.id, venueData); // Pass formData to addVenue function
-      console.log("Venue edited successfully:", venueData);
+      await venueStore.editVenueCoords(props.venueid, venueData); // Pass formData to addVenue function
+      console.log("Venue coordinates edited successfully:", venueData);
       emits('closeModal');
     }
 

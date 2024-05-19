@@ -10,8 +10,8 @@ export const useAuthStore = defineStore({
   actions: {
     async signup({ username, email, password }) {
       try {
-        const BASE_URL = useRuntimeConfig().public.apiURL;
-        await fetch(BASE_URL+"/signup", {
+        // const BASE_URL = useRuntimeConfig().public.apiURL;
+        await fetch("https://lookwhatfound.me/signup", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -26,8 +26,8 @@ export const useAuthStore = defineStore({
     },
     async login({ username, password }) {
       try {
-        const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(BASE_URL+"/login", {
+        // const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch("https://lookwhatfound.me/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -53,8 +53,8 @@ export const useAuthStore = defineStore({
         // const token = localStorage.getItem("userToken");
         const token = Cookies.get('userToken');
         // const csrfToken = useCookie("csrftoken");
-        const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(BASE_URL+"/get_user", {
+        // const BASE_URL = useRuntimeConfig().public.apiURL;
+        const response = await fetch("https://lookwhatfound.me/get_user", {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Token ${token}`,
@@ -75,8 +75,8 @@ export const useAuthStore = defineStore({
         const token = localStorage.getItem("userToken");
         Cookies.remove('userToken');
         const csrfToken = useCookie("csrftoken");
-        const BASE_URL = useRuntimeConfig().public.apiURL;
-        await fetch(BASE_URL+"/logout", {
+        // const BASE_URL = useRuntimeConfig().public.apiURL;
+        await fetch("https://lookwhatfound.me/logout", {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
