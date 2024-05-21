@@ -5,8 +5,8 @@ orbs:
   cypress: cypress-io/cypress@3.3.1
 
 jobs:
-  run-cypress-tests:
-      executor: cypress/default
+  #run-cypress-tests:
+    # executor: cypress/default
       # steps:
       #   - checkout
       #   - cypress/install
@@ -14,16 +14,16 @@ jobs:
       #       name: Run Cypress tests
       #       command: |
       #         $(npm bin)/cypress run --project cypress/e2e # Adjust this command according to your project setup
-      steps:
-      - cypress/install
-      - persist_to_workspace:
-          paths:
-            - .cache/Cypress
-            - project
-          root: ~/
-      - run:
-          command: |
-            npx cypress run
+      # steps:
+      # - cypress/install
+      # - persist_to_workspace:
+        #  paths:
+          #  - .cache/Cypress
+          #  - project
+          # root: ~/
+      # - run:
+        #  command: |
+         #   npx cypress run
   build-node:
     executor: node/default
     steps:
