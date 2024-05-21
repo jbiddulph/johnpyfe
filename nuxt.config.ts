@@ -6,6 +6,7 @@ export default defineNuxtConfig({
   // ],
   runtimeConfig: {
     public: {
+      baseURL: process.env.BASE_URL,
       appURL: process.env.NUXT_PUBLIC_APP_URL ?? "https://lookwhatfound.me",
       apiURL: process.env.NUXT_PUBLIC_API_URL ?? "https://lookwhatfound.me",
       googleMaps: {

@@ -129,7 +129,7 @@ const fetchAllEvents = async () => {
   try {
     // const BASE_URL = useRuntimeConfig().public.apiURL;
     const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const response = await fetch(`https://lookwhatfound.me/api/events?skip=${skip}&take=${itemsPerPage.value}`);
+    const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events?skip=${skip}&take=${itemsPerPage.value}`);
     const data = await response.json();
     events.value = data;
     console.log("events.value: ", events.value);
@@ -147,7 +147,7 @@ const openDetailsModal = (event: { venue_id: number }) => {
 }
 const fetchVenueDetails = async (venueId: number) => {
     try {
-        const response = await fetch(`https://lookwhatfound.me/api/venues/${venueId}`);
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/venues/${venueId}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
