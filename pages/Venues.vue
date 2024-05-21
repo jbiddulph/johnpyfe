@@ -127,7 +127,7 @@ const nextPage = () => {
 const fetchAllVenues = async () => {
   try {
     const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const response = await fetch(`https://lookwhatfound.me/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
+    const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
     const data = await response.json();
     venues.value = data;
     totalItems.value = data.length;

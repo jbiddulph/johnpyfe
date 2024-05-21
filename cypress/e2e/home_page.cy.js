@@ -36,8 +36,8 @@ describe('The Home Page', () => {
       // cy.url().should('eq', Cypress.config().baseUrl + '/', { timeout: 70000 })
       
       
-      // cy.visit('http://localhost:3000/')
-      // cy.url().should('eq', 'http://localhost:3000/')
+      // cy.visit(`${useRuntimeConfig().public.baseURL}`)
+      // cy.url().should('eq', `${useRuntimeConfig().public.baseURL}`)
 
       // Verify successful login message
       // cy.contains('Welcome quincy, you are logged in').should('be.visible')

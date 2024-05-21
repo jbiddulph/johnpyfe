@@ -27,7 +27,7 @@ export const useEventStore = defineStore({
         //   throw new Error("venueID must be a number");
         // }
 
-        const response = await fetch(`https://lookwhatfound.me/api/events/add/`, {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/add/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -45,7 +45,7 @@ export const useEventStore = defineStore({
     },
     async fetchVenueEvents(id) {
       try {
-        const response = await fetch(`https://lookwhatfound.me/api/events/venue/${id}`, {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/venue/${id}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -61,7 +61,7 @@ export const useEventStore = defineStore({
     },
     async fetchAllEvents() {
       try {
-        const response = await fetch("https://lookwhatfound.me/api/events/all/", {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/all/`, {
           headers: {
             "Content-Type": "application/json",
             "Accept": "application/json",
@@ -75,7 +75,7 @@ export const useEventStore = defineStore({
     },
     async deleteEvent(id) {
       try {
-        await fetch(`https://lookwhatfound.me/api/events/${id}`, {
+        await fetch(`${useRuntimeConfig().public.baseURL}/api/events/${id}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
