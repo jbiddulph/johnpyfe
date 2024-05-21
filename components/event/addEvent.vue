@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="overflow-y-scroll">
     <h3 v-if="props.venue">
       Add Event for {{ venue.venuename }}
     </h3>
