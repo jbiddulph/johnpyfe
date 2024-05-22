@@ -2,11 +2,20 @@
   <div>
     <div class="pt-3 flex justify-evenly w-full text-xl">
       {{ venueName }}
-      <input type="text" v-model="searchQuery" @input="searchPlaces" class="capitalize text-center p-2 rounded-t-lg border-t-2 border-l-2 border-r-2 border-white" placeholder="Search UK places...">
+      <input type="text" v-model="searchQuery" @input="searchPlaces" class="outline-dashed outline-gray-100 focus-visible:dashed capitalize text-center p-2 rounded-t-lg border-t-2 border-l-2 border-r-2 border-white" placeholder="Search UK places...">
+      <USelect
+        class="content-center"
+        icon="i-heroicons-map-pin-20-solid"
+        color="white"
+        size="sm"
+        :options="cityList"
+        placeholder="Search by city..."
+        v-model="selectedCity"
+        @change="searchCity(selectedCity)"
+      />
     </div>
     <div class="bg-gray-100 border-t">
       <venue-namesList class="h-full" :venuenames="venueStore.names" @venue-name="venueNameSelected" />
-      
     </div>
     <div id="mainmap"></div>
     <USlideover v-model="isOpenRight.slideover" :transition="true">
@@ -15,91 +24,89 @@
         <venue-rightPane class="h-full" :fsa_id="isOpenRight.featureId" :venuenames="venueStore.names" @venue-name="venueNameSelected" />
       </div>
     </USlideover>
-    
-    
     <USlideover v-model="isOpenLeft.slideover" side="left">
       <div class="p-4 flex-1">
         <venue-eventList class="h-full" :venue-id="venueStore.venue[0].id" />
       </div>
     </USlideover>
-    
-
   </div>
 </template>
 
+
 <script setup lang="ts">
+import { ref, reactive, onMounted, watch, computed } from 'vue';
 import { useVenueStore } from "@/store/venue.js";
-const venueStore = useVenueStore();
 import mapboxgl from 'mapbox-gl';
-const districts = ['Scotland', 'North West', 'North East', 'Wales', 'East', 'Midlands', 'London', 'South West', 'South East']
-const selected = ref([])
+
+// State variables
+const venueStore = useVenueStore();
+const selectedCity = ref("");
+const cityList = [
+  "Aberdeen", "Bath", "Birmingham", "Bradford",
+  "Brighton & Hove", "Bristol", "Cambridge", "Canterbury", "Cardiff", "Carlisle",
+  "Chelmsford", "Chester", "Chichester", "Coventry", "Derby", "Dundee",
+  "Durham", "Edinburgh", "Exeter", "Glasgow", "Gloucester", "Hereford",
+  "Inverness", "Kingston upon Hull", "Lancaster uk", "Leeds", "Leicester",
+  "Lichfield", "Lincoln", "Liverpool", "London", "Manchester", "Newcastle upon Tyne", 
+  "Newport", "Norwich", "Nottingham",
+  "Oxford", "Perth uk", "Peterborough", "Plymouth", "Portsmouth", "Preston", "Ripon",
+  "Salford", "Salisbury uk", "Sheffield", "Southampton", "St Albans", "Stirling",
+  "Stoke-on-Trent", "Sunderland", "Swansea", "Truro", "Wakefield", "Wells uk",
+  "Westminster", "Winchester uk", "Wolverhampton", "Worcester", "York"
+];
+
 const isOpenRight = reactive({
   slideover: false,
   featureId: null
 });
+
 const isOpenLeft = reactive({
   slideover: false,
   featureId: null
 });
-const selectedCounty = ref(null);
-const accessToken = ref('');
+
 const searchQuery = ref('');
 const venueName = ref('');
-const venue = ref({});
 const map = ref(null);
 let popup: mapboxgl.Popup|null = null;
 let popupTimeout: string|number|NodeJS.Timeout|null|undefined = null;
 const layersAdded = ref([]);
+
 onMounted(() => {
   venueName.value = 'VENUES';
   createMap();
 });
-const countyOptions = computed(() => {
-  return venueStore.counties.map((county: { county: any; count: any; }) => ({
-    label: `${county.county} (${county.count})`,
-    value: county.county
-  }));
-});
+
 const venueNameSelected = (name: any) => {
   venueName.value = name.toString().toUpperCase();
 }
-watch(selectedCounty, (newCounty: any) => {
-  if (newCounty) {
-    flyToCounty(newCounty);
-  }
-});
+
 const showVenueEvents = (venueId: any) => {
   console.log("the venueId: ", venueId);
-  isOpenLeft.slideover = true
+  isOpenLeft.slideover = true;
 }
-async function flyToCounty(countyName: any) {
-  const county = venueStore.counties.find((county: { county: any; }) => county.county === countyName);
-  if (county) {
-    if (!map.value) return; // Ensure map is initialized
+const searchCity = (city: string|number|boolean) => {
 
-    try {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(county.county)}.json?access_token=${accessToken.value}`;
-      const response = await fetch(url);
-      const data = await response.json();
+  if (!map.value) return;
+  const accessToken = useRuntimeConfig().public.mapbox_token;
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(city)}.json?access_token=${accessToken}`;
+  
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
       if (data.features && data.features.length > 0) {
         const coordinates = data.features[0].center;
-        if (Array.isArray(coordinates) && coordinates.length === 2) {
-          map.value.flyTo({ center: coordinates, zoom: 12 });
-        } else {
-          console.error('Invalid coordinates received from the API:', coordinates);
-        }
-      } else {
-        console.error('No features found in the API response:', data);
+        map.value.flyTo({ center: coordinates, zoom: 12 });
+        searchQuery.value = ""
       }
-    } catch (error) {
-      console.error('Error searching places:', error);
-    }
-  }
+    })
+    .catch(error => console.error('Error searching places:', error));
 }
 const searchPlaces = () => {
-  if (!map.value) return; // Ensure map is initialized
-  accessToken.value = useRuntimeConfig().public.mapbox_token;
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery.value)}.json?access_token=${accessToken.value}`;
+  selectedCity.value = ""
+  if (!map.value) return;
+  const accessToken = useRuntimeConfig().public.mapbox_token;
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery.value)}.json?access_token=${accessToken}`;
   
   fetch(url)
     .then(response => response.json())
@@ -112,28 +119,20 @@ const searchPlaces = () => {
     .catch(error => console.error('Error searching places:', error));
 }
 
-watch(venueName, (newVenueName: any, oldVenueName: any) => {
-  if (map && newVenueName !== oldVenueName) {
-    updateMapLayer(newVenueName);
-  }
-});
-
 const createMap = async () => {
-  // Previous code remains unchanged
-  const order = "-venue_count"
+  const order = "-venue_count";
   await venueStore.fetchTowns();
-  await venueStore.fetchCounties();
+  // await venueStore.fetchCounties();
   await venueStore.fetchNames(order);
-  accessToken.value = useRuntimeConfig().public.mapbox_token;
-  mapboxgl.accessToken = accessToken.value;
+  const accessToken = useRuntimeConfig().public.mapbox_token;
+  mapboxgl.accessToken = accessToken;
   map.value = new mapboxgl.Map({
     container: "mainmap",
     style: "mapbox://styles/jbiddulph/cltklztvt00b101pj5ddoanuk",
-    zoom: 10,
-    center: [-3.0665894, 53.9012106],
+    zoom: 5,
+    center: [-3.0665894, 53.3012106],
   });
   map.value.on('load', () => {
-    // Ensure that the map is fully loaded before calling updateMapLayer
     map.value.once('render', () => {
       updateMapLayer(venueName.value.toUpperCase());
     });
@@ -142,64 +141,38 @@ const createMap = async () => {
 
 const updateMapLayer = (venueName: any) => {
   isOpenRight.slideover = false;
-  // Ensure map is initialized
   if (!map.value) {
     console.error('Map is not initialized.');
     return;
   }
-
-  // Log when the map is initialized
-  console.log('Map is initialized.');
-
-  // Ensure venueName is provided
-  if (!venueName) {
-    console.error('Venue name is not provided.');
-    return;
-  }
-
-  // Log venueName for debugging
-  console.log('Updating layer:', venueName);
-
-  // Hide previously added layers
   layersAdded.value.forEach((layerId: any) => {
     map.value.setLayoutProperty(layerId, 'visibility', 'none');
   });
-
-  // Show the new layer
   map.value.setLayoutProperty(venueName, 'visibility', 'visible');
-  // Add the new layer to the layersAdded array
   layersAdded.value.push(venueName);
 
-  // Attach event listener for mouse enter
   map.value.on("mouseenter", venueName, async (e: { features: any[]; }) => {
     const feature = e.features[0];
     const coordinates = feature.geometry.coordinates.slice();
     if (!popup) {
-      // Open a new popup if none exists
       popup = new mapboxgl.Popup({ closeButton: false })
         .setLngLat(coordinates)
         .setHTML(`<div class='bg-gray-200 p-2'><h1 class='mb-4 text-2xl'>${feature.properties.venuename}</h1> <h2>${feature.properties.address}, ${feature.properties.address2}</h2></div>`)
         .addTo(map.value);
     }
-
-    // Clear any existing timeout to close the popup
-    // clearTimeout(popupTimeout);
   });
 
-  // Attach event listener for mouse leave
   map.value.on("mouseleave", venueName, () => {
-    // Set a timeout to close the popup after 1 second
     popupTimeout = setTimeout(() => {
       if (popup) {
         popup.remove();
-        popup = null; // Reset the popup reference
+        popup = null;
       }
     }, 1000);
   });
 
   map.value.on("click", venueName, async (e: { features: { properties: { fsa_id: any; }; }[]; }) => {
-    console.log("Clicked")
-    // Close the popup if another marker is clicked
+    console.log("Clicked");
     if (popup) {
       popup.remove();
       popup = null;
@@ -209,8 +182,8 @@ const updateMapLayer = (venueName: any) => {
     isOpenRight.featureId = e.features[0].properties.fsa_id;
   });
 }
-
 </script>
+
 
 <style>
 @import "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css";
