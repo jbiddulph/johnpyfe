@@ -3,8 +3,8 @@
     <h3 v-if="props.venue">
       Add Event for {{ venue.venuename }}
     </h3>
-    <h3 v-else>Add Event for venue: {{venueid}}</h3>
-    <div v-if="venueid === 0">
+    <h3 v-else>Add Event for venue: {{selected.concatenatedName}} <button v-if="selected !== []" class="rounded-full p-0 m-0 flex w-4 h-4 bg-red-500" @click="clear">&nbsp;</button>{{venueid}}</h3>
+    <div v-if="!props.venue">
       <USelectMenu
         v-model="selected"
         :loading="loading"
@@ -16,7 +16,7 @@
         by="id"
       />
     </div>
-    <form @submit.prevent="submitForm(user.id)" enctype="multipart/form-data">
+    <form @submit.prevent="submitForm(user.id)" enctype="multipart/form-data" class="m-2">
       <h2>{{ formData.event_title }}</h2>
       <div>
         <UInput v-model="user.id" type="hidden" id="user_id" name="user_id" disabled />
@@ -29,17 +29,25 @@
         <p for="description">Description (max 20 chars):</p>
         <UTextarea v-model="formData.description" id="description" name="description" rows="4" cols="50"></UTextarea>
       </div>
-      <div>
-        <p for="cost">Cost:</p>
-        <UInput v-model="formData.cost" type="text" id="cost" name="cost" step="0.01" required />
+      <div class="flex flex-row">
+        <div class="w-1/2 mr-4">
+          <p for="cost">Cost:</p>
+          <UInput v-model="formData.cost" type="text" id="cost" name="cost" step="0.01" required />
+        </div>
+        <div class="w-1/2">
+          <p for="duration">Duration (in minutes):</p>
+          <UInput v-model="formData.duration" type="text" id="duration" name="duration" required />
+        </div>
       </div>
-      <div>
-        <p for="duration">Duration (in minutes):</p>
-        <UInput v-model="formData.duration" type="text" id="duration" name="duration" required />
-      </div>
-      <div>
-        <p for="event_start">Event Date:</p>
-        <UInput v-model="formData.event_start" type="text" id="event_start" name="event_start" required />
+      <div class="flex flex-row">
+        <div class="w-1/2 mr-4">
+          <p for="event_date">Event Date:</p>
+          <UInput v-model="eventDate" type="date" id="event_date" name="event_date" required />
+        </div>
+        <div class="w-1/2">
+          <p for="event_time">Event Time:</p>
+          <UInput v-model="eventTime" type="time" id="event_time" name="event_time" required />
+        </div>
       </div>
       <div>
         <p for="category">Category:</p>
@@ -66,7 +74,9 @@
   </div>
 </template>
 
+
 <script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAuthStore } from "@/store/auth.js";
 import { useEventStore } from "@/store/event.js";
 const authStore = useAuthStore();
@@ -82,6 +92,9 @@ const selected = ref([])
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 const userId = ref(user.value.id); // Initialize userId with the current user's ID
+const clear = () => {
+  selected.value = []
+}
 async function search(q: string) {
   loading.value = true;
   const response = await $fetch<any[]>(`${useRuntimeConfig().public.baseURL}/api/venues/search/`, { params: { q } });
@@ -91,8 +104,9 @@ async function search(q: string) {
   });
   return response;
 }
-const date = new Date();
-const formattedDate = date.toISOString().slice(0, 19) + ".000Z";
+
+const eventDate = ref('');
+const eventTime = ref('');
 const formData = ref({
   venue_id: parseInt(props.venueid),
   user_id: userId.value, // Set user_id to the initialized userId
@@ -101,16 +115,28 @@ const formData = ref({
   description: null,
   cost: null,
   duration: null,
-  event_start: formattedDate,
+  event_start: '',
   category: null,
   photo: null,
   website: null,
 });
-console.log("Formdata: ", formData);
+
+const formattedEventStart = computed(() => {
+  if (eventDate.value && eventTime.value) {
+    return new Date(`${eventDate.value}T${eventTime.value}:00.000Z`).toISOString();
+  }
+  return '';
+});
+
+watch([eventDate, eventTime], () => {
+  formData.value.event_start = formattedEventStart.value;
+});
+
 const handleFileUpload = (event: { target: { files: any[]; }; }) => {
   const file = event.target.files[0];
   formData.photo = file;
 };
+
 const submitForm = async (curuser: string) => {
   userId.value = curuser; // Update userId with the current user's ID passed to the function
   const fileName = Math.floor(Math.random() * 10000000000000000);
@@ -154,11 +180,13 @@ const submitForm = async (curuser: string) => {
     console.error("No photo to upload");
   }
 };
+
 onMounted(() => {
   if(props.venueid) {
     venueid.value = props.venueid;
   }
 });
+
 watch(selected, (newValue: { id: number }) => {
   console.log("selected:", selected);
   console.log("newValue:", newValue);
