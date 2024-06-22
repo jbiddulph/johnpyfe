@@ -1,8 +1,10 @@
 <template>
-  <div class="list-container text-center">
-    <button @click="toggleList">NAMES LIST</button>
-    <div v-show="showList" class="scroll-x overflow-x">
-      <div>
+  <div class="text-center">
+    <div class="w-auto">
+      <button @click="toggleList">NAMES LIST</button>
+    </div>
+    <div v-show="showList" class="scroll-y h-100 flex">
+      <div class="overflow-y-scroll scroll-y h-[24rem]">
         <h3 class="mb-2 text-2xl text-center">Heres just a few from most popular</h3>
         <ul class="overflow-y-auto flex flex-row flex-wrap justify-center">
           <li class="pr-2 pb-2">
