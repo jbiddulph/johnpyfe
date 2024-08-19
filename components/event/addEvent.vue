@@ -3,7 +3,7 @@
     <h3 v-if="props.venue">
       Add Event for {{ venue.venuename }}
     </h3>
-    <h3 v-else>Add Event for venue: {{selected.concatenatedName}} <button v-if="selected !== []" class="rounded-full p-0 m-0 flex w-4 h-4 bg-red-500" @click="clear">&nbsp;</button>{{venueid}}</h3>
+    <h3 v-else>Add Event for venue: {{selected.concatenatedName}} <button v-if="selected !== []" class="rounded-full p-0 m-0 flex w-4 h-4 bg-red-500" @click="clear">&nbsp;</button></h3>
     <div v-if="!props.venue">
       <USelectMenu
         v-model="selected"
