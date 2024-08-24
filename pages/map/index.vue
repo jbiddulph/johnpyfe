@@ -26,7 +26,7 @@
     </USlideover>
     <USlideover v-model="isOpenLeft.slideover" side="left">
       <div class="p-4 flex-1">
-        <venue-eventList class="h-full" :venue-id="venueStore.venue[0].id" />
+        <venue-eventList class="h-full" :venue-id="venueStore.venue[0].id" @close="isOpenLeft.slideover = false" />
       </div>
     </USlideover>
   </div>
