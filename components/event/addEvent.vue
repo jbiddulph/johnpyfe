@@ -1,5 +1,8 @@
 <template>
   <div class="overflow-y-scroll">
+    <div v-if="isSaving" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="spinner"></div>
+    </div>
     <h3 v-if="props.venue">
       Add Event for {{ venue.venuename }}
     </h3>
@@ -16,7 +19,7 @@
         by="id"
       />
     </div>
-    <form @submit.prevent="submitForm(user.id)" enctype="multipart/form-data" class="m-2">
+    <form @submit.prevent="submitEventForm(user.id)" enctype="multipart/form-data" class="m-2">
       <h2>{{ formData.event_title }}</h2>
       <div>
         <UInput v-model="user.id" type="hidden" id="user_id" name="user_id" disabled />
@@ -87,6 +90,7 @@ const props = defineProps({
   venueid: Number
 })
 const venueid = ref(0);
+const isSaving = ref(false); 
 const loading = ref(false)
 const selected = ref([])
 const supabase = useSupabaseClient();
@@ -137,48 +141,53 @@ const handleFileUpload = (event: { target: { files: any[]; }; }) => {
   formData.photo = file;
 };
 
-const submitForm = async (curuser: string) => {
-  userId.value = curuser; // Update userId with the current user's ID passed to the function
-  const fileName = Math.floor(Math.random() * 10000000000000000);
-  if (formData.value.photo) {
-    const { data, error } = await supabase.storage.from("event_images").upload("public/" + fileName, formData.photo)
-    if (error) {
-      console.error("Failed to upload photo:", error.message);
-      return;
-    }
-    try {
-      let venueIdValue;
-      if (props.venueid) {
-        venueIdValue = parseInt(props.venueid);
-      } else {
-        venueIdValue = venueid.value;
+const submitEventForm = async (curuser: string) => {
+  isSaving.value = true;
+  try {
+    userId.value = curuser; // Update userId with the current user's ID passed to the function
+    const fileName = Math.floor(Math.random() * 10000000000000000);
+    if (formData.value.photo) {
+      const { data, error } = await supabase.storage.from("event_images").upload("public/" + fileName, formData.photo)
+      if (error) {
+        console.error("Failed to upload photo:", error.message);
+        return;
       }
-      const formDataObj = {
-        venue_id: venueIdValue,
-        user_id: userId.value, // Use the updated userId for the form data
-        listingId: venueIdValue,
-        event_title: formData.value.event_title,
-        description: formData.value.description,
-        cost: formData.value.cost,
-        duration: formData.value.duration,
-        event_start: formData.value.event_start,
-        category: formData.value.category,
-        website: formData.value.website,
-        created_at: new Date(),
-        photo: data.path
-      };
-      
-      await eventStore.addEvent(formDataObj);
-      
-      console.log("Event added successfully:", formDataObj);
-      emits('closeModal');
-    } catch (error) {
-      console.error("Failed to add event:", error);
-      await supabase.storage.from("event_images").remove(data.path);
-    }
-  } else {
-    console.error("No photo to upload");
-  }
+      try {
+        let venueIdValue;
+        if (props.venueid) {
+          venueIdValue = parseInt(props.venueid);
+        } else {
+          venueIdValue = venueid.value;
+        }
+        const formDataObj = {
+          venue_id: venueIdValue,
+          user_id: userId.value, // Use the updated userId for the form data
+          listingId: venueIdValue,
+          event_title: formData.value.event_title,
+          description: formData.value.description,
+          cost: formData.value.cost,
+          duration: formData.value.duration,
+          event_start: formData.value.event_start,
+          category: formData.value.category,
+          website: formData.value.website,
+          created_at: new Date(),
+          photo: data.path
+        };
+        
+        await eventStore.addEvent(formDataObj);
+        
+        console.log("Event added successfully:", formDataObj);
+        emits('closeModal');
+      } catch (error) {
+        console.error("Failed to add event:", error);
+        await supabase.storage.from("event_images").remove(data.path);
+      }
+    } else {
+      console.error("No photo to upload");
+    } 
+  } finally {
+    isSaving.value = false; // Hide spinner and overlay after saving is done
+  } 
 };
 
 onMounted(() => {
@@ -208,5 +217,53 @@ watch(selected, (newValue: { id: number }) => {
 </script>
 
 <style scoped>
+.spinner {
+  border: 8px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fixed {
+  position: fixed;
+}
+
+.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.bg-black {
+  background-color: #000;
+}
+
+.bg-opacity-50 {
+  background-opacity: 0.5;
+}
+
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.z-50 {
+  z-index: 50;
+}
 </style>

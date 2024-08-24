@@ -82,6 +82,7 @@ export const useEventStore = defineStore({
           },
         });
         console.log("Event deleted successfully");
+        fetchAllEvents();
         await navigateTo({ path: '/events' });
       } catch (error) {
         console.error("Error deleting event:", error);
