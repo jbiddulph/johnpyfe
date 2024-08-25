@@ -19,7 +19,7 @@
 
           <img class="w-250 h-auto mr-4" :src="`${config.public.supabase.url}/storage/v1/object/public/event_images/${event.photo}`" alt="Event image" width="250px" />
           <template #footer>
-            <span>on: {{ toUKTime(event.event_start) }} </span><br />
+            <span>on: {{ formatDate(event.event_start) }} </span><br />
             <small>for: {{ event.duration }} minutes</small><br />
             <div v-html="countdowns[index]"></div>
           </template>
@@ -42,7 +42,6 @@ const props = defineProps({
 });
 
 onMounted(async () => {
-  console.log("Fetching events.....");
   try {
     eventData.value = await eventStore.fetchVenueEvents(props.venueId);
     console.log(eventData); // Access the fetched event data here
@@ -56,11 +55,9 @@ const countdowns = ref([]);  // Array to store countdowns for each event
 let countdownInterval: number | undefined = undefined;
 
 function calculateCountdown(eventStartDate: string, durationMinutes: number) {
-  const now = new Date(); // Current time in the UK timezone
-  const eventDate = new Date(eventStartDate); // Assumed to be in the UK timezone
-
-  // Event end time based on the duration in minutes
-  const eventEndDate = new Date(eventDate.getTime() + durationMinutes * 60000);
+  const now = new Date(); // Local time
+  const eventDate = new Date(eventStartDate); // Interpreted as UTC if ISO 8601 format
+  const eventEndDate = new Date(eventDate.getTime() + durationMinutes * 60000); // Duration in milliseconds
 
   const timeDifference = eventDate.getTime() - now.getTime(); // Difference in milliseconds
 
@@ -91,13 +88,6 @@ function calculateCountdown(eventStartDate: string, durationMinutes: number) {
     // Event has ended
     return `<UBadge color="red" variant="solid">Event has ended</UBadge>`;
   }
-}
-
-function toUKTime(eventStartDate: any) {
-  const eventDate = new Date(eventStartDate);
-  // UK timezone offset in hours (this is just an example; adjust according to your DST rules if needed)
-  const ukOffset = 0; // GMT+0 or GMT+1 depending on the time of year
-  return new Date(eventDate.getTime() + ukOffset * 60 * 60 * 1000);
 }
 
 function startCountdowns() {
