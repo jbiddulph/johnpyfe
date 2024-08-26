@@ -115,5 +115,7 @@ watch(authStore, (newValue: { user: any; }) => {
 
 
 <style scoped>
-
+.router-link-active {
+  color: text-primary-700;
+}
 </style>
