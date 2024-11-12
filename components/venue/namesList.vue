@@ -1,6 +1,6 @@
 <template>
-  <div class="text-center">
-    <div class="w-auto">
+  <div class="text-center w-full">
+    <div class="w-full">
       <button @click="toggleList">NAMES LIST</button>
     </div>
     <div v-show="showList" class="scroll-y h-100 flex">
