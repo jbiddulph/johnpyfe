@@ -306,6 +306,6 @@ function formatDate(dateString: string): string {
   font-size: 3rem;
   font-stretch: extra-condensed;
   font-weight: 100;
-  color: rgba($color: #fff, $alpha: 0.8);
+  color: rgba($color: #999, $alpha: 0.8);
 }
 </style>

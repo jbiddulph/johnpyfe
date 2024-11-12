@@ -13,6 +13,7 @@
         <UButton icon="i-heroicons-plus-circle" size="xs" label="Add Event" @click="openAddEventModal(venue.id)" />
       </div>
     </div>
+
     <div class="mb-4">
       <h3>Notes</h3>
       <ul>
@@ -20,17 +21,16 @@
           {{ note.text }}
         </li>
       </ul>
+      <UFormGroup name="textarea" label="Tell us something about this venue">
+        <UTextarea v-model="state.textarea" />
+      </UFormGroup>
+      <UButton type="submit" class="mt-2" :disabled="isTextareaBlank" @click="addNote(venue.id)">
+        Add Note
+      </UButton>
     </div>
-    <UFormGroup name="textarea" label="Tell us something about this venue">
-      <UTextarea v-model="state.textarea" />
-    </UFormGroup>
-    <UButton type="submit" class="mt-2" :disabled="isTextareaBlank" @click="addNote(venue.id)">
-      Add Note
-    </UButton>
-    
-    <div class="pb-4">
+    <!-- <div class="pb-4">
       <UTabs :items="items" :default-index="0" class="mt-4" />
-    </div>
+    </div> -->
     <div>
       <!-- google street view -->
       <div>
@@ -78,13 +78,13 @@ const streetview = ref(null);
 const venueNotes = ref([]);
 const lat = ref(null);
 const lng = ref(null);
-const items = [{
-  label: 'Details',
-  content: "venue.venuename"
-}, {
-  label: 'Pubs Nearby',
-  content: 'And, this is the content for Tab2'
-}]
+// const items = [{
+//   label: 'Details',
+//   content: "venue.venuename"
+// }, {
+//   label: 'Pubs Nearby',
+//   content: 'And, this is the content for Tab2'
+// }]
 // Fetch venue details if in edit mode
 onMounted( async() => {
   if (props.fsa_id > 0) {
