@@ -1,8 +1,7 @@
 <template>
   <div>
-    <div class="pt-3 flex justify-evenly w-full text-xl">
+    <div class="flex justify-between w-full text-xl items-center container mx-auto py-3">
       {{ venueName }}
-      <input type="text" v-model="searchQuery" @input="searchPlaces" class="outline-dashed outline-gray-100 focus-visible:dashed capitalize text-center p-2 rounded-t-lg border-t-2 border-l-2 border-r-2 border-white" placeholder="Search UK places...">
       <USelect
         class="content-center"
         icon="i-heroicons-map-pin-20-solid"
@@ -65,7 +64,6 @@ const isOpenLeft = reactive({
   featureId: null
 });
 
-const searchQuery = ref('');
 const venueName = ref('');
 const map = ref(null);
 let popup: mapboxgl.Popup|null = null;
@@ -98,22 +96,6 @@ const searchCity = (city: string|number|boolean) => {
         const coordinates = data.features[0].center;
         map.value.flyTo({ center: coordinates, zoom: 12 });
         searchQuery.value = ""
-      }
-    })
-    .catch(error => console.error('Error searching places:', error));
-}
-const searchPlaces = () => {
-  selectedCity.value = ""
-  if (!map.value) return;
-  const accessToken = useRuntimeConfig().public.mapbox_token;
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery.value)}.json?access_token=${accessToken}`;
-  
-  fetch(url)
-    .then(response => response.json())
-    .then(data => {
-      if (data.features && data.features.length > 0) {
-        const coordinates = data.features[0].center;
-        map.value.flyTo({ center: coordinates, zoom: 12 });
       }
     })
     .catch(error => console.error('Error searching places:', error));
