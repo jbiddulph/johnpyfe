@@ -5,11 +5,17 @@ export const useNoteStore = defineStore({
   id: 'note',
   state: () => ({
     notes: [],
-    note: {}
+    note: {},
+    successMsg: "",
+    errorMsg: ""
   }),
   actions: {
     async addVenueNote(userId, venueId, note) {
+      this.successMsg = ""
+      this.errorMsg = ""
       console.log("userId: ", userId)
+      console.log("venueId: ", venueId)
+      console.log("note: ", note)
       try {
         const requestData = {
           user_id: userId.toString(),
@@ -19,17 +25,17 @@ export const useNoteStore = defineStore({
           listingId: venueId,
         };
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(`https://lookwhatfound.me/api/notes/venue`, {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/notes/venue`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(requestData),
         });
-    
+        
         if (response.ok) {
           console.log("Note added successfully");
-          await navigateTo({ path: '/venues' });
+          this.successMsg = "Note added successfully!"
         } else {
           // Handle the case when the server returns an error response
           const errorMessage = await response.text();
@@ -44,7 +50,7 @@ export const useNoteStore = defineStore({
         const token = localStorage.getItem("userToken");
         const csrfToken = useCookie("csrftoken");
         // const BASE_URL = useRuntimeConfig().public.apiURL;
-        const response = await fetch(`https://lookwhatfound.me/api/notes/venue/${venueId}/`, {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/notes/venue/${venueId}/`, {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Token ${token}`,

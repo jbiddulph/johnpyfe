@@ -15,7 +15,10 @@
     </div>
 
     <div class="mb-4">
-      <h3>Notes</h3>
+      <div class="flex justify-between flex-row">
+        <h3>Notes</h3>
+        <small v-if="noteStore.successMsg" class="text-green-500">{{ noteStore.successMsg }}</small>
+      </div>
       <ul>
         <li v-for="note in noteStore.notes" :key="note.id">
           {{ note.text }}
@@ -133,8 +136,9 @@ const addNote = async (venueid: any) => {
     try {
       const userId = user.value.id; // Get the user ID from authentication context or store
       const venueId = venueid; // Get the venue ID from component state or props
-  console.log("xxuserId:", userId);
       await noteStore.addVenueNote(userId.toString(), venueId, state.textarea);
+      state.textarea = ""
+      await noteStore.getVenueNotes(venueid)
       // If venue ID is not available in component state, make sure it's passed as a prop
     } catch (error) {
       console.log("Error in text area: ", error);
