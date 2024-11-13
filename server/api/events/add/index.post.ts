@@ -20,6 +20,8 @@ const schema = Joi.object({
 
 export default defineEventHandler(async(event) => {
     const body = await readBody(event); // Access the request body directly
+    if (body.venue_id) body.venue_id = Number(body.venue_id);
+    if (body.listingId) body.listingId = Number(body.listingId);
     const { error, value } = schema.validate(body);
     if (error) {
       throw createError({

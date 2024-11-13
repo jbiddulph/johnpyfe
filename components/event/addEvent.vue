@@ -112,7 +112,7 @@ async function search(q: string) {
 const eventDate = ref('');
 const eventTime = ref('');
 const formData = ref({
-  venue_id: parseInt(props.venueid),
+  venue_id: props.venueid,
   user_id: userId.value, // Set user_id to the initialized userId
   listingId: parseInt(props.venueid),
   event_title: null,
@@ -157,8 +157,9 @@ const submitEventForm = async (curuser: string) => {
         if (props.venueid) {
           venueIdValue = parseInt(props.venueid);
         } else {
-          venueIdValue = venueid.value;
+          venueIdValue = parseInt(venueid.value);
         }
+        console.log("VENUE ID: ", venueIdValue);
         const formDataObj = {
           venue_id: venueIdValue,
           user_id: userId.value, // Use the updated userId for the form data
@@ -175,7 +176,7 @@ const submitEventForm = async (curuser: string) => {
         };
         
         await eventStore.addEvent(formDataObj);
-        await eventStore.fetchAllEvents();
+        
         console.log("Event added successfully:", formDataObj);
         emits('closeModal');
       } catch (error) {

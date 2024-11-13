@@ -21,9 +21,10 @@ const closeModal = () => {
   emits('closeModal');
 }
 const deleteEvent = async (id: any) => {
-  await eventStore.deleteEvent(id); // Pass formData to addVenue function
-  console.log("Event deleted");
   emits('closeModal');
+  await eventStore.deleteEvent(id); // Pass formData to addVenue function
+  await eventStore.fetchAllEvents();
+  console.log("Event deleted");
 }
 </script>
 

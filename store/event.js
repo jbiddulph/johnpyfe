@@ -59,20 +59,20 @@ export const useEventStore = defineStore({
         console.error("Error fetching event:", error);
       }
     },
-    async fetchAllEvents() {
-      try {
-        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/all/`, {
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-          }
-        });
-        const content = await response.json();
-        this.events = content;
-      } catch (error) {
-        console.error("Error fetching event:", error);
-      }
-    },
+    // async fetchAllEvents() {
+    //   try {
+    //     const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/all/`, {
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //         "Accept": "application/json",
+    //       }
+    //     });
+    //     const content = await response.json();
+    //     this.events = content;
+    //   } catch (error) {
+    //     console.error("Error fetching event:", error);
+    //   }
+    // },
     async deleteEvent(id) {
       try {
         await fetch(`${useRuntimeConfig().public.baseURL}/api/events/${id}`, {
@@ -82,7 +82,7 @@ export const useEventStore = defineStore({
           },
         });
         console.log("Event deleted successfully");
-        fetchAllEvents();
+        // fetchAllEvents();
         await navigateTo({ path: '/events' });
       } catch (error) {
         console.error("Error deleting event:", error);
