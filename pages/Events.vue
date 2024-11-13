@@ -21,7 +21,7 @@
                     <span>{{event.category}}</span>
                 </div>
                 <div v-if="userName === user.user_metadata.name">
-                  <div class="flex items-center flex-col w-full h-full relative">
+                  <div class="flex items-center flex-col w-full h-auto relative">
                     <div class="flex justify-center">
                         <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" />
                         <div v-if="userName === user.user_metadata.name">
@@ -31,7 +31,11 @@
                         </div>
                     </div>
                     <span>on: {{ formatDate(event.event_start) }} </span><br />
-                    <img class="w-auto h-auto" :src="`${config.public.supabase.url}/storage/v1/object/public/event_images/${event.photo}`" alt="Event image" />
+                    <img 
+                      class="w-full h-[250px] object-cover" 
+                      :src="`${config.public.supabase.url}/storage/v1/object/public/event_images/${event.photo}`" 
+                      alt="Event image" 
+                    />
                     <div class="w-full px-4 py-2 absolute center bottom-0 bg-gray-500 opacity-80 text-white" v-html="countdowns[index]"></div>
                   </div>
                 </div>
@@ -58,7 +62,8 @@
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEditOpen = false" />
         </div>
-        <venue-addEditVenue class="h-48" :venueid="venueid" @closeModal="handleCloseModal" />
+        Venue ID: {{ venueid }}
+        <event-addEditEvent class="h-48" :venueid="venueid" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
     <UModal v-model="isAddEventOpen" prevent-close>
@@ -66,6 +71,7 @@
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEventOpen = false" />
         </div>
+        Venue ID is: {{ venueid }}
         <event-addEvent :editing="editMode" :venueid="venueid" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
@@ -108,7 +114,7 @@ const totalPages = ref(1);
 const paginatedEvents = ref([]);
 const itemsPerPage = ref(104);
 const totalItems = ref(0);
-const venue = reactive({});
+const event = reactive({});
 const venues = ref([]);
 const events = ref([]);
 const userName = ref('');
@@ -155,33 +161,34 @@ const fetchAllEvents = async () => {
     events.value = []; // Assign an empty array on error
   }
 };
-const openDetailsModal = (event: { venue_id: number }) => {
-  fetchVenueDetails(event.venue_id);
+const openDetailsModal = (event: { id: number }) => {
+  fetchEventDetails(event.id);
   isDetailsOpen.value = true;
   content.value = event;
 }
-const fetchVenueDetails = async (venueId: number) => {
+const fetchEventDetails = async (eventId: number) => {
     try {
-        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/venues/${venueId}`);
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/${eventId}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        venue.value = data;
-        console.log("venue: ", venue.value);
+        console.log("EVENT DATA: ", data);
+        event.value = data;
+        console.log("event: ", event.value);
     } catch (error) {
         console.error("Failed to fetch venue details:", error);
     }
 }
-const openDeleteModal = (venue: object) => {
+const openDeleteModal = (event: object) => {
   isDeleteOpen.value = true
-  content.value = venue
+  content.value = event
 }
-const openEditModal = (venue: object, id: Number) => {
+const openEditModal = (event: object, id: Number) => {
   isAddEditOpen.value = true
-  content.value = venue
+  content.value = event
   editMode.value = true
-  venueid.value = id
+  eventid.value = id
 }
 const openAddEventModal = () => {
   console.log("clicked");
@@ -210,7 +217,7 @@ watch(isMapOpen, (newValue: any) => {
 });
 onMounted( async() => {
   // await eventStore.fetchAllEvents();
-  userName.value = "John Biddulph";
+  userName.value = useRuntimeConfig().public.userName;
   try {
     fetchAllEvents();
     events.value = await eventStore.fetchVenueEvents(props.venueId);
@@ -306,6 +313,6 @@ function formatDate(dateString: string): string {
   font-size: 3rem;
   font-stretch: extra-condensed;
   font-weight: 100;
-  color: rgba($color: #fff, $alpha: 1.0);
+  color: rgba($color: #ddcf00, $alpha: 1.0);
 }
 </style>

@@ -175,7 +175,7 @@ const submitEventForm = async (curuser: string) => {
         };
         
         await eventStore.addEvent(formDataObj);
-        
+        await eventStore.fetchAllEvents();
         console.log("Event added successfully:", formDataObj);
         emits('closeModal');
       } catch (error) {
