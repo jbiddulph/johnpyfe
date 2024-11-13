@@ -38,7 +38,8 @@ export const useEventStore = defineStore({
         
         console.log("response: ", response);
         console.log("Event created successfully");
-        await navigateTo({ path: '/venues' });
+        await navigateTo({ path: '/events' });
+        fetchAllEvents();
       } catch (error) {
         console.error("Error creating event:", error);
       }

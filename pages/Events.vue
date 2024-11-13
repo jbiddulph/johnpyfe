@@ -32,7 +32,7 @@
                     </div>
                     <span>on: {{ formatDate(event.event_start) }} </span><br />
                     <img class="w-auto h-auto" :src="`${config.public.supabase.url}/storage/v1/object/public/event_images/${event.photo}`" alt="Event image" />
-                    <div class="w-full px-4 py-2 absolute center bottom-0 bg-gray-500 opacity-80" v-html="countdowns[index]"></div>
+                    <div class="w-full px-4 py-2 absolute center bottom-0 bg-gray-500 opacity-80 text-white" v-html="countdowns[index]"></div>
                   </div>
                 </div>
               </div>
@@ -306,6 +306,6 @@ function formatDate(dateString: string): string {
   font-size: 3rem;
   font-stretch: extra-condensed;
   font-weight: 100;
-  color: rgba($color: #999, $alpha: 0.8);
+  color: rgba($color: #fff, $alpha: 1.0);
 }
 </style>
