@@ -66,6 +66,19 @@
       <!-- <Nuxt /> -->
       <slot />
     </main>
+    <footer>
+      <div>
+        <div class="container mx-auto">
+          <ul>
+            <li><NuxtLink to="/">Home</NuxtLink></li>
+            <li></li>
+          </ul>
+          <p>
+            Look What Found Me is a pubs and venues events listings website around the UK
+          </p>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -98,6 +111,7 @@ const logout = async () => {
   //logout JWT
   toggleMenu()
   await authStore.logoutUser();
+  navigateTo("/")
 } 
 
 const toggleMenu = () => {

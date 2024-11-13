@@ -87,6 +87,13 @@
 </template>
 
 <script lang="ts" setup>
+useHead({
+  title: 'Pubs and Venues in the UK', // Optional: Set the page title
+  meta: [
+    { name: 'keywords', content: 'Venues, Pubs, Bars, UK' },
+    { name: 'description', content: 'Venues and pubs for events around the UK' }
+  ]
+});
 const toast = useToast();
 import { useVenueStore } from "@/store/venue.js";
 import { useAuthStore } from "@/store/auth.js";

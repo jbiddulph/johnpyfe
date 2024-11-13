@@ -9,7 +9,7 @@
       <div class="flex justify-center my-8">
         <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
         <UButton label="Previous" @click="prevPage(currentPage.value - 1)" />
-        <UButton :label="currentPage" class="mx-4" variant="soft" />
+        <UButton :label="String(currentPage)" class="mx-4" variant="soft" />
         <UButton label="Next" @click="nextPage(currentPage + 1)" />
         <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
       </div>
@@ -23,11 +23,11 @@
                 <div v-if="userName === user.user_metadata.name">
                   <div class="flex items-center flex-col w-full h-auto relative">
                     <div class="flex justify-center">
-                        <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" />
+                        <!-- <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" /> -->
                         <div v-if="userName === user.user_metadata.name">
-                            <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(event, event.id)" />
-                            <UButton label="Delete" color="red" @click="openDeleteModal(event, event.id)" />
-                            <UButton label="Event" color="green" @click="openAddEventModal(event, event.id)" />
+                            <!-- <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(event, event.id)" /> -->
+                            <UButton label="Delete" class="mr-2" color="red" @click="openDeleteModal(event, event.id)" />
+                            <UButton label="Event" color="amber" @click="openAddEventModal(event, event.id)" />
                         </div>
                     </div>
                     <span>on: {{ formatDate(event.event_start) }} </span><br />
@@ -57,7 +57,7 @@
         <eventDetails class="h-auto w-auto" :content="content" :venue="venue" />
       </UCard>
     </UModal>
-    <UModal v-model="isAddEditOpen" prevent-close>
+    <!-- <UModal v-model="isAddEditOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEditOpen = false" />
@@ -65,7 +65,7 @@
         Venue ID: {{ venueid }}
         <event-addEditEvent class="h-48" :venueid="venueid" @closeModal="handleCloseModal" />
       </UCard>
-    </UModal>
+    </UModal> -->
     <UModal v-model="isAddEventOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <div class="flex justify-end">
@@ -95,6 +95,13 @@
 </template>
 
 <script lang="ts" setup>
+useHead({
+  title: 'Events in Pubs and Venues around the UK', // Optional: Set the page title
+  meta: [
+    { name: 'keywords', content: 'Events, Pubs, venues, UK' },
+    { name: 'description', content: 'Venues and pubs for events in the UK' }
+  ]
+});
 const toast = useToast();
 import { useEventStore } from "@/store/event.js";
 import { useAuthStore } from "@/store/auth.js";
@@ -220,7 +227,9 @@ onMounted( async() => {
   userName.value = useRuntimeConfig().public.userName;
   try {
     fetchAllEvents();
-    events.value = await eventStore.fetchVenueEvents(props.venueId);
+    if(props.venueId){
+      events.value = await eventStore.fetchVenueEvents(props.venueId);
+    }
     startCountdowns();
   } catch (error) {
     console.error("Error fetching events:", error);
