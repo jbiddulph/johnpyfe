@@ -136,8 +136,8 @@ const clearFileInput = () => {
   }
 };
 const clear = () => {
-  selected.value = [];
-};
+  selected.value = []
+}
 async function search(q: string) {
   loading.value = true;
   const response = await $fetch<any[]>(`${useRuntimeConfig().public.baseURL}/api/venues/search/`, { params: { q } });
@@ -148,7 +148,7 @@ async function search(q: string) {
   return response;
 }
 const currentPhotoUrl = computed(() => {
-  return isEditMode.value ? props.event.photo : "";
+  return isEditMode.value ? props.event.photo : '';
 });
 
 const eventDate = ref("");
@@ -161,24 +161,45 @@ if (isEditMode.value && props.event.event_start) {
   eventDate.value = date || "";
   eventTime.value = time?.slice(0, 5) || ""; // Extract HH:MM
 }
+if (isEditMode.value) {
+  formData.value = {
+    venue_id: props.event.venue_id || venueid.value || null,
+    user_id: props.event.user_id || userId.value,
+    listingId: props.event.listingId || venueid.value || null,
+    event_title: props.event.event_title || '',
+    description: props.event.description || '',
+    cost: props.event.cost || '',
+    duration: props.event.duration || '',
+    event_start: props.event.event_start || '',
+    category: props.event.category || '',
+    photo: '', // Do not set props.event.photo here
+    website: props.event.website || '',
+  };
 
+  const [date, time] = props.event.event_start
+    ? props.event.event_start.split('T')
+    : ['', ''];
+  eventDate.value = date;
+  eventTime.value = time ? time.split('.')[0] : '';
+}
 const formattedEventStart = computed(() => {
   if (eventDate.value && eventTime.value) {
-    const dateTimeString = `${eventDate.value}T${eventTime.value}:00`; // Combine date and time
+    const dateTimeString = `${eventDate.value}T${eventTime.value}:00.000Z`; // Combine date and time
     const dateObject = new Date(dateTimeString);
 
     if (isNaN(dateObject.getTime())) {
       console.error("Invalid date or time:", eventDate.value, eventTime.value);
-      return ""; // Return empty string if invalid
+      return ''; // Return empty string if invalid
     }
 
     return dateObject.toISOString(); // Return ISO 8601 formatted string
   }
 
-  return ""; // Return empty string if date or time is missing
+  return ''; // Return empty string if date or time is missing
 });
 
 watch([eventDate, eventTime], () => {
+  console.log("Date:", eventDate.value, "Time:", eventTime.value);
   formData.value.event_start = formattedEventStart.value;
 });
 
@@ -252,28 +273,31 @@ const submitEventForm = async (curuser) => {
   }
 };
 
-onMounted(async () => {
-  if (props.venueid) {
+onMounted(async() => {
+  if(props.venueid) {
     venueid.value = props.venueid;
   }
-
+  
   if (isEditMode.value && props.event.venue_id) {
     const venues = await search(""); // Fetch all venues
     const venueDetails = await venueStore.fetchVenueDetails(props.event.venue_id);
 
-    selected.value = venueDetails.venuename; // Set the dropdown to the selected venue
-    venueid.value = venueDetails.id;
+
+      selected.value = venueDetails.venuename; // Set the dropdown to the selected venue
+      venueid.value = venueDetails.id;
   }
 });
 
 watch(selected, (newValue) => {
   if (newValue && newValue.id) {
-    venueid.value = parseInt(newValue.id, 10);
-    formData.value.venue_id = parseInt(newValue.id, 10);
-    formData.value.listingId = parseInt(newValue.id, 10);
+    console.log("New Venue Selected:", newValue);
+    venueid.value = parseInt(newValue.id);
+    formData.value.venue_id = parseInt(newValue.id);
+    formData.value.listingId = parseInt(newValue.id);
   } else if (!isNaN(props.venueid)) {
-    formData.value.venue_id = parseInt(props.venueid, 10);
-    formData.value.listingId = parseInt(props.venueid, 10);
+    // Fallback to props.venueid if no valid selection
+    formData.value.venue_id = parseInt(props.venueid);
+    formData.value.listingId = parseInt(props.venueid);
   } else {
     formData.value.venue_id = null;
     formData.value.listingId = null;

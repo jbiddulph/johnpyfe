@@ -138,15 +138,7 @@ const clearFileInput = () => {
 const clear = () => {
   selected.value = [];
 };
-async function search(q: string) {
-  loading.value = true;
-  const response = await $fetch<any[]>(`${useRuntimeConfig().public.baseURL}/api/venues/search/`, { params: { q } });
-  loading.value = false;
-  response.forEach(venue => {
-    venue.concatenatedName = `${venue.venuename} - ${venue.town}`;
-  });
-  return response;
-}
+
 const currentPhotoUrl = computed(() => {
   return isEditMode.value ? props.event.photo : "";
 });
