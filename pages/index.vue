@@ -20,7 +20,13 @@ import { useAuthStore } from "@/store/auth.js";
 const authStore = useAuthStore();
 const user = ref({});
 const loggedIn = ref(false);
-
+useHead({
+  title: 'Events in Pubs and Venues around the UK', // Optional: Set the page title
+  meta: [
+    { name: 'keywords', content: 'Events, Pubs, venues, UK' },
+    { name: 'description', content: 'Venues and pubs for events in the UK' }
+  ]
+});
 onMounted(async () => {
   try {
     user.value = authStore.user;
