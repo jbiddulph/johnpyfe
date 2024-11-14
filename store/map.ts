@@ -28,30 +28,63 @@ export const useMapStore = defineStore({
       this.map = map;
 
       // Add the pubs1 data layer
-    map.on('load', () => {
-      map.addLayer({
-        id: 'pubs1',
-        type: 'fill',
-        source: {
-          type: 'vector',
-          url: 'mapbox://jbiddulph.uk-pubs1',
-        },
-        'source-layer': 'pubs1',
-        paint: {
-          "fill-color": "red",
-          'fill-opacity': 0.5,
-        },
+      map.on('load', () => {
+        map.addLayer({
+          id: 'pubs1',
+          type: 'fill',
+          source: {
+            type: 'vector',
+            url: 'mapbox://jbiddulph.uk-pubs1',
+          },
+          'source-layer': 'pubs1',
+          paint: {
+            "fill-color": "red",
+            'fill-opacity': 0.5,
+          },
+        });
+
+        // Add markers for each location
+        // map.addSource('pubs1-markers', {
+        //   type: 'geojson',
+        //   data: {
+        //     type: 'FeatureCollection',
+        //     features: [] // Empty for now, replace with your actual GeoJSON features
+        //   }
+        // });
+      });
+    },
+    initializeSingleMap(mapContainer: HTMLDivElement | null, latLng): void {
+      if (!mapContainer) return;
+
+      const mapboxToken = useRuntimeConfig().public.mapbox_token;
+      console.log("latLng: ", latLng)
+      // Initialize the Mapbox map
+      const map = new mapboxgl.Map({
+        container: mapContainer,
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: latLng,
+        zoom: 16,
+        accessToken: mapboxToken,
       });
 
-      // Add markers for each location
-      // map.addSource('pubs1-markers', {
-      //   type: 'geojson',
-      //   data: {
-      //     type: 'FeatureCollection',
-      //     features: [] // Empty for now, replace with your actual GeoJSON features
-      //   }
-      // });
-    });
+      this.map = map;
+
+      // Add the pubs1 data layer
+      map.on('load', () => {
+        map.addLayer({
+          id: 'pubs1',
+          type: 'fill',
+          source: {
+            type: 'vector',
+            url: 'mapbox://jbiddulph.uk-pubs1',
+          },
+          'source-layer': 'pubs1',
+          paint: {
+            "fill-color": "red",
+            'fill-opacity': 0.5,
+          },
+        });
+      });
     },
   },
 });
