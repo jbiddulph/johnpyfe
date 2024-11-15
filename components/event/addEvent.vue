@@ -130,6 +130,9 @@ const formData = ref({
   website: props.event?.website || "",
 });
 
+const previousPhoto = ref(props.event?.photo || ""); // Store previous photo URL
+const newPhotoSelected = ref(false); // Track if a new photo is selected
+
 const clearFileInput = () => {
   if (fileInput.value) {
     fileInput.value.value = ""; // Reset the file input
@@ -186,6 +189,19 @@ const handleFileUpload = (event) => {
   const file = event.target.files[0];
   if (file) {
     formData.value.photo = file;
+    newPhotoSelected.value = true; // Mark that a new photo has been selected
+  }
+};
+
+const deletePreviousPhoto = async () => {
+  if (previousPhoto.value) {
+    const photoPath = previousPhoto.value.replace(useRuntimeConfig().public.EVENT_IMG_FOLDER, ""); // Extract relative path
+    const { error } = await supabase.storage.from("event_images").remove([photoPath]); // Use your bucket name
+    if (error) {
+      console.error("Error deleting previous photo from Supabase:", error.message);
+    } else {
+      console.log("Previous photo deleted successfully from Supabase storage");
+    }
   }
 };
 
@@ -214,9 +230,7 @@ const submitEventForm = async (curuser) => {
     }
     formData.value.event_start = eventStartValue;
 
-    // Log the final form data
-    console.log("Final Event Data to Send:", formData.value);
-
+    // Handle photo upload
     let photoPath = formData.value.photo;
     if (formData.value.photo instanceof File) {
       const fileName = Date.now().toString();
@@ -226,6 +240,11 @@ const submitEventForm = async (curuser) => {
 
       if (error) throw error;
       photoPath = data.path;
+
+      // Delete the previous photo after uploading the new one
+      if (isEditMode.value && newPhotoSelected.value) {
+        await deletePreviousPhoto();
+      }
     } else if (isEditMode.value) {
       photoPath = props.event.photo;
     }
