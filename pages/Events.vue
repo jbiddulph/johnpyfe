@@ -8,13 +8,13 @@
       <!-- Pagination controls -->
       <div class="flex justify-center my-8">
         <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
-        <UButton label="Previous" @click="prevPage(currentPage.value - 1)" />
-        <UButton :label="String(currentPage)" class="mx-4" variant="soft" />
-        <UButton label="Next" @click="nextPage(currentPage + 1)" />
+        <UButton label="Previous" @click="prevPage(eventStore.currentPage.value - 1)" />
+        <UButton :label="String(eventStore.currentPage)" class="mx-4" variant="soft" />
+        <UButton label="Next" @click="nextPage(eventStore.currentPage + 1)" />
         <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
       </div>
       <ul class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <li v-for="(event, index) in events" :key="index">
+          <li v-for="(event, index) in eventStore.events" :key="index">
               <div class="w-full items-center bg-white dark:bg-gray-900"> <!-- Flex container to align items horizontally -->
                 <div class="p-6">
                     <h3 class="font-bold">{{ event.event_title }}</h3>
@@ -136,37 +136,16 @@ const imageUrl = (photoUrl) => {
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
-    fetchAllEvents();
+    eventStore.fetchAllEvents();
   }
 }
 const nextPage = () => {
   // if (currentPage.value * itemsPerPage.value < totalItems.value) {
     currentPage.value++;
-    fetchAllEvents();
+    eventStore.fetchAllEvents();
   // }
 }
-const fetchAllEvents = async () => {
-  try {
-    const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events?skip=${skip}&take=${itemsPerPage.value}`);
-    const data = await response.json();
-    
-    if (Array.isArray(data)) {
-      events.value = data;
-    } else {
-      console.error("Unexpected data format:", data);
-      events.value = []; // Assign an empty array to avoid further errors
-    }
 
-    console.log("events.value: ", events.value);
-    totalItems.value = data.length;
-    const totalPagesCount = Math.ceil(totalItems.value / itemsPerPage.value);
-    totalPages.value = totalPagesCount;
-  } catch (error) {
-    console.error('Error loading events:', error);
-    events.value = []; // Assign an empty array on error
-  }
-};
 const openDetailsModal = (event: { id: number }) => {
   fetchEventDetails(event.id);
   isDetailsOpen.value = true;
@@ -233,9 +212,9 @@ onMounted( async() => {
   // await eventStore.fetchAllEvents();
   userName.value = useRuntimeConfig().public.userName;
   try {
-    fetchAllEvents();
+    eventStore.fetchAllEvents();
     if(props.venueId){
-      events.value = await eventStore.fetchVenueEvents(props.venueId);
+      eventStore.events = await eventStore.fetchVenueEvents(props.venueId);
     }
     startCountdowns();
   } catch (error) {
@@ -282,16 +261,16 @@ function calculateCountdown(eventStartDate: string, durationMinutes: number) {
 }
 
 function startCountdowns() {
-  if (Array.isArray(events.value)) {
-    countdowns.value = events.value.map(event => calculateCountdown(event.event_start, event.duration));
+  if (Array.isArray(eventStore.events)) {
+    countdowns.value = eventStore.events.map(event => calculateCountdown(event.event_start, event.duration));
   } else {
-    console.error("Events is not an array:", events.value);
+    console.error("Events is not an array:", eventStore.events);
     countdowns.value = [];
   }
 
   countdownInterval = setInterval(() => {
-    if (Array.isArray(events.value)) {
-      countdowns.value = events.value.map(event => calculateCountdown(event.event_start, event.duration));
+    if (Array.isArray(eventStore.events)) {
+      countdowns.value = eventStore.events.map(event => calculateCountdown(event.event_start, event.duration));
     }
   }, 1000);
 }
