@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto">
+  <div class="container mx-auto p-4 md:p-0">
     <div class="flex w-full justify-between items-center">
       <h1 class="text-4xl font-bold my-8">Events</h1>
       <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddEventModal()" />
@@ -13,7 +13,7 @@
         <UButton label="Next" @click="nextPage(eventStore.currentPage + 1)" />
         <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
       </div>
-      <ul class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <li v-for="(event, index) in eventStore.events" :key="index">
               <div class="w-full items-center bg-white dark:bg-gray-900"> <!-- Flex container to align items horizontally -->
                 <div class="p-6">
