@@ -27,7 +27,7 @@
                         <div v-if="userName === user.user_metadata.name">
                             <!-- <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(event, event.id)" /> -->
                             <UButton label="Delete" class="mr-2" color="red" @click="openDeleteModal(event, event.id)" />
-                            <UButton label="Event" color="amber" @click="openEditEventModal(event)" />
+                            <UButton label="Event" color="amber" @click="openAddEventModal(event, event.id)" />
                         </div>
                     </div>
                     <span>on: {{ formatDate(event.event_start) }} </span><br />
@@ -71,7 +71,8 @@
         <div class="flex justify-end">
           <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEventOpen = false" />
         </div>
-        <event-addEvent :editing="editMode" :venueid="venueid" :event="content" @closeModal="handleCloseModal" />
+        Venue ID is: {{ venueid }}
+        <event-addEvent :editing="editMode" :venueid="venueid" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
     <!-- <UModal v-model="isMapOpen" prevent-close>
@@ -200,14 +201,6 @@ const openAddEventModal = () => {
   console.log("clicked");
   isAddEventOpen.value = true
   editMode.value = true
-  content.value = event
-  console.log("content: ", content.value);
-}
-const openEditEventModal = (event) => {
-  console.log("clicked");
-  isAddEventOpen.value = true
-  editMode.value = true
-  content.value = event
 }
 const handleCloseModal = () => {
   isMapOpen.value = false
