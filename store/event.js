@@ -5,7 +5,13 @@ export const useEventStore = defineStore({
   id: 'event',
   state: () => ({
     events: [],
-    event: {}
+    event: {},
+    currentPage: 1,
+    totalPages: 1,
+    paginatedEvents: [],
+    itemsPerPage: 104,
+    totalItems: 0,
+    PAGE_SIZE: 104
   }),
   actions: {
     async addEvent(newEvent) {
@@ -95,11 +101,34 @@ export const useEventStore = defineStore({
         }
     
         console.log("Event updated successfully");
-        await navigateTo({ path: "/events" });
+        this.fetchAllEvents();
+        // await navigateTo({ path: "/events" });
       } catch (error) {
         console.error("Error updating event:", error);
       }
-    },    
+    },
+    async fetchAllEvents() {
+      try {
+        const skip = (this.currentPage - 1) * this.itemsPerPage;
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events?skip=${skip}&take=${this.itemsPerPage}`);
+        const data = await response.json();
+        
+        if (Array.isArray(data)) {
+          this.events = data;
+        } else {
+          console.error("Unexpected data format:", data);
+          this.events = []; // Assign an empty array to avoid further errors
+        }
+    
+        console.log("events.value: ", this.events);
+        this.totalItems = data.length;
+        const totalPagesCount = Math.ceil(this.totalItems / this.itemsPerPage);
+        this.totalPages = this.totalPagesCount;
+      } catch (error) {
+        console.error('Error loading events:', error);
+        this.events = []; // Assign an empty array on error
+      }
+    },  
     async fetchVenueEvents(id) {
       try {
         const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/venue/${id}`, {
