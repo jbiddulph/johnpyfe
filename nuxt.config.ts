@@ -13,6 +13,7 @@ export default defineNuxtConfig({
       googleMaps: {
         key: 'AIzaSyBWiPC71sMkSoaa0TNrioE8CP1Ll5HmpZ4'
       },
+      eventImgFolder: process.env.EVENT_IMG_FOLDER,
       admin: process.env.ADMIN_EMAIL,
       // apiURL: process.env.NUXT_PUBLIC_API_URL ?? "http://lookwhatfound.me",
       mapbox_token:

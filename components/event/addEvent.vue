@@ -3,10 +3,13 @@
     <div v-if="isSaving" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="spinner"></div>
     </div>
-    <h3 v-if="props.venue">
-      Add Event for {{ venue.venuename }}
+    <h3 v-if="isEditMode">
+      Edit Event: {{ formData.event_title }}
     </h3>
-    <h3 v-else>Add Event for venue: {{selected.concatenatedName}} <button v-if="selected !== []" class="rounded-full p-0 m-0 flex w-4 h-4 bg-red-500" @click="clear">&nbsp;</button></h3>
+    <h3 v-else>
+      Add Event for {{ props.venue ? props.venue.venuename : selected.concatenatedName }}
+      <button v-if="selected.length" class="rounded-full p-0 m-0 flex w-4 h-4 bg-red-500" @click="clear">&nbsp;</button>
+    </h3>
     <div v-if="!props.venue">
       <USelectMenu
         v-model="selected"
@@ -27,10 +30,10 @@
       <div>
         <p for="event_title">Event Name:</p>
         <UInput v-model="formData.event_title" type="text" id="event_title" name="event_title" />
-      </div>  
+      </div>
       <div>
         <p for="description">Description (max 20 chars):</p>
-        <UTextarea v-model="formData.description" id="description" name="description" rows="4" cols="50"></UTextarea>
+        <UTextarea v-model="formData.description" id="description" name="description" :rows="4" cols="50"></UTextarea>
       </div>
       <div class="flex flex-row">
         <div class="w-1/2 mr-4">
@@ -57,8 +60,19 @@
         <UInput v-model="formData.category" type="text" id="category" name="category" />
       </div>
       <div>
+        <div v-if="isEditMode && currentPhotoUrl">
+          <p>Current Photo:</p>
+          <img :src="`${useRuntimeConfig().public.eventImgFolder}/` + currentPhotoUrl" alt="Event Photo" class="w-32 h-32 object-cover" />
+        </div>
         <p for="photo">Photo URL:</p>
-        <UInput v-model="formData.photo" type="file" id="photo" name="photo" accept="image/*" @change="handleFileUpload" />
+        <UInput
+          ref="fileInput"
+          type="file"
+          id="photo"
+          name="photo"
+          accept="image/*"
+          @change="handleFileUpload"
+        />
       </div>
       <div>
         <p for="website">Website URL:</p>
@@ -68,151 +82,201 @@
         type="submit"
         icon="i-heroicons-pencil-square"
         size="sm"
-        color="primary"
+        :color="isEditMode ? 'blue' : 'green'"
         variant="solid"
-        label="Add Event"
+        :label="isEditMode ? 'Save Changes' : 'Add Event'"
         :trailing="false"
       />
     </form>
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
 import { useAuthStore } from "@/store/auth.js";
 import { useEventStore } from "@/store/event.js";
+import { useVenueStore } from "@/store/venue.js";
+
 const authStore = useAuthStore();
 const eventStore = useEventStore();
-const emits = defineEmits(['closeModal']);
+const venueStore = useVenueStore();
+const emits = defineEmits(["closeModal"]);
+
 const props = defineProps({
+  event: Object,
   venue: Object,
-  venueid: Number
-})
-const venueid = ref(0);
-const isSaving = ref(false); 
-const loading = ref(false)
-const selected = ref([])
+  venueid: Number,
+});
+
+const fileInput = ref(null);
+const venueid = ref(props.venueid || 0);
+const isSaving = ref(false);
+const loading = ref(false);
+const selected = ref([]);
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
-const userId = ref(user.value.id); // Initialize userId with the current user's ID
+const userId = ref(user.value.id);
+
+const formData = ref({
+  venue_id: props.venueid || null,
+  user_id: userId.value || null,
+  listingId: props.venueid || null,
+  event_title: props.event?.event_title || "",
+  description: props.event?.description || "",
+  cost: props.event?.cost || "",
+  duration: props.event?.duration || "",
+  event_start: props.event?.event_start || "",
+  category: props.event?.category || "",
+  photo: props.event?.photo || "",
+  website: props.event?.website || "",
+});
+
+const clearFileInput = () => {
+  if (fileInput.value) {
+    fileInput.value.value = ""; // Reset the file input
+  }
+};
 const clear = () => {
-  selected.value = []
-}
+  selected.value = [];
+};
 async function search(q: string) {
   loading.value = true;
   const response = await $fetch<any[]>(`${useRuntimeConfig().public.baseURL}/api/venues/search/`, { params: { q } });
   loading.value = false;
   response.forEach(venue => {
-    venue.concatenatedName = `${venue.venuename}, of ${venue.town} (${venue.id})`;
+    venue.concatenatedName = `${venue.venuename} - ${venue.town}`;
   });
   return response;
 }
-
-const eventDate = ref('');
-const eventTime = ref('');
-const formData = ref({
-  venue_id: props.venueid,
-  user_id: userId.value, // Set user_id to the initialized userId
-  listingId: parseInt(props.venueid),
-  event_title: null,
-  description: null,
-  cost: null,
-  duration: null,
-  event_start: '',
-  category: null,
-  photo: null,
-  website: null,
+const currentPhotoUrl = computed(() => {
+  return isEditMode.value ? props.event.photo : "";
 });
+
+const eventDate = ref("");
+const eventTime = ref("");
+
+const isEditMode = computed(() => props.event && Object.keys(props.event).length > 0);
+
+if (isEditMode.value && props.event.event_start) {
+  const [date, time] = props.event.event_start.split("T");
+  eventDate.value = date || "";
+  eventTime.value = time?.slice(0, 5) || ""; // Extract HH:MM
+}
 
 const formattedEventStart = computed(() => {
   if (eventDate.value && eventTime.value) {
-    return new Date(`${eventDate.value}T${eventTime.value}:00.000Z`).toISOString();
+    const dateTimeString = `${eventDate.value}T${eventTime.value}:00`; // Combine date and time
+    const dateObject = new Date(dateTimeString);
+
+    if (isNaN(dateObject.getTime())) {
+      console.error("Invalid date or time:", eventDate.value, eventTime.value);
+      return ""; // Return empty string if invalid
+    }
+
+    return dateObject.toISOString(); // Return ISO 8601 formatted string
   }
-  return '';
+
+  return ""; // Return empty string if date or time is missing
 });
 
 watch([eventDate, eventTime], () => {
   formData.value.event_start = formattedEventStart.value;
 });
 
-const handleFileUpload = (event: { target: { files: any[]; }; }) => {
+const handleFileUpload = (event) => {
   const file = event.target.files[0];
-  formData.photo = file;
+  if (file) {
+    formData.value.photo = file;
+  }
 };
 
-const submitEventForm = async (curuser: string) => {
+const submitEventForm = async (curuser) => {
   isSaving.value = true;
   try {
-    userId.value = curuser; // Update userId with the current user's ID passed to the function
-    const fileName = Math.floor(Math.random() * 10000000000000000);
-    if (formData.value.photo) {
-      const { data, error } = await supabase.storage.from("event_images").upload("public/" + fileName, formData.photo)
-      if (error) {
-        console.error("Failed to upload photo:", error.message);
-        return;
+    userId.value = curuser;
+
+    // Validate venue_id and listingId
+    if (!formData.value.venue_id || !formData.value.listingId) {
+      if (selected.value && selected.value.id) {
+        formData.value.venue_id = parseInt(selected.value.id, 10);
+        formData.value.listingId = parseInt(selected.value.id, 10);
+      } else if (props.event && props.event.venue_id) {
+        formData.value.venue_id = parseInt(props.event.venue_id, 10);
+        formData.value.listingId = parseInt(props.event.listingId, 10);
+      } else {
+        throw new Error("No valid venue selected or fallback available");
       }
-      try {
-        let venueIdValue;
-        if (props.venueid) {
-          venueIdValue = parseInt(props.venueid);
-        } else {
-          venueIdValue = parseInt(venueid.value);
-        }
-        console.log("VENUE ID: ", venueIdValue);
-        const formDataObj = {
-          venue_id: venueIdValue,
-          user_id: userId.value, // Use the updated userId for the form data
-          listingId: venueIdValue,
-          event_title: formData.value.event_title,
-          description: formData.value.description,
-          cost: formData.value.cost,
-          duration: formData.value.duration,
-          event_start: formData.value.event_start,
-          category: formData.value.category,
-          website: formData.value.website,
-          created_at: new Date(),
-          photo: data.path
-        };
-        
-        await eventStore.addEvent(formDataObj);
-        
-        console.log("Event added successfully:", formDataObj);
-        emits('closeModal');
-      } catch (error) {
-        console.error("Failed to add event:", error);
-        await supabase.storage.from("event_images").remove(data.path);
-      }
+    }
+
+    // Validate event_start
+    const eventStartValue = formattedEventStart.value;
+    if (!eventStartValue) {
+      throw new Error("Invalid event_start value");
+    }
+    formData.value.event_start = eventStartValue;
+
+    // Log the final form data
+    console.log("Final Event Data to Send:", formData.value);
+
+    let photoPath = formData.value.photo;
+    if (formData.value.photo instanceof File) {
+      const fileName = Date.now().toString();
+      const { data, error } = await supabase.storage
+        .from("event_images")
+        .upload(`public/${fileName}`, formData.value.photo);
+
+      if (error) throw error;
+      photoPath = data.path;
+    } else if (isEditMode.value) {
+      photoPath = props.event.photo;
+    }
+
+    const eventData = {
+      ...formData.value,
+      photo: photoPath,
+      created_at: new Date().toISOString(),
+    };
+
+    if (isEditMode.value) {
+      await eventStore.updateEvent(props.event.id, eventData);
+      console.log("Event updated successfully");
     } else {
-      console.error("No photo to upload");
-    } 
+      await eventStore.addEvent(eventData);
+      console.log("Event added successfully");
+    }
+
+    emits("closeModal");
+  } catch (error) {
+    console.error("Failed to save event:", error);
   } finally {
-    isSaving.value = false; // Hide spinner and overlay after saving is done
-  } 
+    isSaving.value = false;
+  }
 };
 
-onMounted(() => {
-  if(props.venueid) {
+onMounted(async () => {
+  if (props.venueid) {
     venueid.value = props.venueid;
+  }
+
+  if (isEditMode.value && props.event.venue_id) {
+    const venues = await search(""); // Fetch all venues
+    const venueDetails = await venueStore.fetchVenueDetails(props.event.venue_id);
+
+    selected.value = venueDetails.venuename; // Set the dropdown to the selected venue
+    venueid.value = venueDetails.id;
   }
 });
 
-watch(selected, (newValue: { id: number }) => {
-  console.log("selected:", selected);
-  console.log("newValue:", newValue);
+watch(selected, (newValue) => {
   if (newValue && newValue.id) {
-    venueid.value = parseInt(newValue.id);
-    formData.value.venue_id = parseInt(newValue.id);
-    formData.value.listingId = parseInt(newValue.id);
+    venueid.value = parseInt(newValue.id, 10);
+    formData.value.venue_id = parseInt(newValue.id, 10);
+    formData.value.listingId = parseInt(newValue.id, 10);
   } else if (!isNaN(props.venueid)) {
-    // If no venue is selected or selected venue doesn't have a valid id,
-    // and props.venueid is a valid number, fallback to props.venueid
-    formData.value.venue_id = parseInt(props.venueid);
-    formData.value.listingId = props.venueid;
+    formData.value.venue_id = parseInt(props.venueid, 10);
+    formData.value.listingId = parseInt(props.venueid, 10);
   } else {
-    // If neither newValue.id nor props.venueid is a valid number, set venue_id to null or a default value
-    formData.value.venue_id = null; // Or provide a default value like 0
-    formData.value.listingId = null; // Or provide a default value like 0
+    formData.value.venue_id = null;
+    formData.value.listingId = null;
   }
 });
 </script>
@@ -226,45 +290,9 @@ watch(selected, (newValue: { id: number }) => {
   height: 50px;
   animation: spin 1s linear infinite;
 }
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
-}
-
-.fixed {
-  position: fixed;
-}
-
-.inset-0 {
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-}
-
-.bg-black {
-  background-color: #000;
-}
-
-.bg-opacity-50 {
-  background-opacity: 0.5;
-}
-
-.flex {
-  display: flex;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.justify-center {
-  justify-content: center;
-}
-
-.z-50 {
-  z-index: 50;
 }
 </style>
