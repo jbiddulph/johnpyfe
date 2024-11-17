@@ -2,7 +2,7 @@
   <div class="container mx-auto p-4 md:p-0">
     <div class="flex w-full justify-between items-center">
       <h1 class="text-4xl font-bold my-8">Events</h1>
-      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddEventModal()" />
+      <UButton v-if="user" icon="i-heroicons-plus-circle" label="Add" @click="openAddEventModal()" />
     </div>
     <div class="pb-12">
       <!-- Pagination controls -->
@@ -15,12 +15,13 @@
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <li v-for="(event, index) in eventStore.events" :key="index">
-              <div class="flex justify-center">
-                <div v-if="userName === user.user_metadata.name">
-                    <UButton label="Delete" class="mr-2 text-xs" color="red" @click="openDeleteModal(event, event.id)" />
-                    <UButton label="Event" class="text-xs" color="amber" @click="openEditEventModal(event)" />
-                </div>
+            <div class="flex justify-center">
+              <div v-if="userName === user?.user_metadata?.name">
+                  <UButton label="Delete" class="mr-2 text-xs" color="red" @click="openDeleteModal(event, event.id)" />
+                  <UButton label="Event" class="text-xs" color="amber" @click="openEditEventModal(event)" />
               </div>
+            </div>
+            <NuxtLink :to="`/events/${event.id}`" class="block">
               <div class="w-full items-center bg-white dark:bg-gray-900 rounded-md"> <!-- Flex container to align items horizontally -->
                 <div class="p-4">
                     <h2 class="font-bold text-2xl">{{ event.event_title }}</h2>
@@ -50,6 +51,7 @@
                   </div>
                 </div>
               </div>
+            </NuxtLink>
           </li>
       </ul>
 
@@ -316,6 +318,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss">
+.router-link-exact-active {
+  color: text-primary-700!important;
+}
 .big{
   font-size: 3rem;
   font-stretch: extra-condensed;

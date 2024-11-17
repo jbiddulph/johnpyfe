@@ -8,7 +8,12 @@ export default defineEventHandler(async (event) => {
   const venue = await prisma.event.findUnique({
     where: {
       id: parseInt(id)
-    }
+    },
+    include: {
+      city: true,
+      category: true,
+      listing: true,
+    },
   })
   if(!venue) {
     throw createError({
