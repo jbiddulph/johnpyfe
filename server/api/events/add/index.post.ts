@@ -6,12 +6,12 @@ const prisma = new PrismaClient();
 
 const eventSchema = Joi.object({
   event_title: Joi.string().required(),
-  description: Joi.string().required(),
-  cost: Joi.string().required(),
-  duration: Joi.string().required(),
+  description: Joi.string().optional().allow(''),
+  cost: Joi.string().optional().allow(''),
+  duration: Joi.string().optional().allow(''),
   event_start: Joi.date().required(),
-  photo: Joi.string().required(),
-  website: Joi.string().required(),
+  photo: Joi.string().optional().allow(''),
+  website: Joi.string().optional().allow(''),
   created_at: Joi.date().required(),
   user_id: Joi.string().required(),
   venue_id: Joi.number().required(),

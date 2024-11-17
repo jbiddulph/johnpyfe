@@ -4,9 +4,9 @@
       <h1 class="text-4xl font-bold my-8">Events</h1>
       <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddEventModal()" />
     </div>
-    <div class="mt-8 pb-12">
+    <div class="pb-12">
       <!-- Pagination controls -->
-      <div class="flex justify-center my-8">
+      <div class="flex justify-center mb-4 mt-2">
         <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
         <UButton label="Previous" @click="prevPage(eventStore.currentPage.value - 1)" />
         <UButton :label="String(eventStore.currentPage)" class="mx-4" variant="soft" />
@@ -21,10 +21,10 @@
                     <UButton label="Event" class="text-xs" color="amber" @click="openEditEventModal(event)" />
                 </div>
               </div>
-              <div class="w-full items-center bg-white dark:bg-gray-900"> <!-- Flex container to align items horizontally -->
-                <div class="p-6">
-                    <h2 class="font-bold">{{ event.event_title }}</h2>
-                    <h3>{{ event.category.name }} at the: xxx</h3>
+              <div class="w-full items-center bg-white dark:bg-gray-900 rounded-md"> <!-- Flex container to align items horizontally -->
+                <div class="p-4">
+                    <h2 class="font-bold text-2xl">{{ event.event_title }}</h2>
+                    <h3>{{ event.category.name }} at {{ event.listing.venuename }}</h3>
                     <span>{{event.city.name}}</span>
                 </div>
                 <div>
@@ -35,9 +35,9 @@
                           <div class="month pr-2">{{ formatDate(event.event_start).month }}</div>
                           <div class="year">{{ formatDate(event.event_start).year }}</div>
                         </div>
-                        <div class="day text-3xl text-center">{{ formatDate(event.event_start).day }}</div>
+                        <div class="day text-3xl text-center text-black">{{ formatDate(event.event_start).day }}</div>
                         
-                        <div class="time text-center"><small>at</small> {{ formatDate(event.event_start).time }}</div>
+                        <div class="time text-center text-black"><small>at</small> {{ formatDate(event.event_start).time }}</div>
                       </div>
                     </div>
                     <!-- <span>on: {{ formatDate(event.event_start) }} </span><br /> -->

@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
       include: {
         city: true,
         category: true,
+        listing: true,
       },
     });
 

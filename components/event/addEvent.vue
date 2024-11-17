@@ -56,11 +56,11 @@
       <div class="flex flex-row">
         <div class="w-1/2 mr-4">
           <p for="cost">Cost:</p>
-          <UInput v-model="formData.cost" type="text" id="cost" name="cost" step="0.01" required />
+          <UInput v-model="formData.cost" type="text" id="cost" name="cost" step="0.01" />
         </div>
         <div class="w-1/2">
           <p for="duration">Duration (in minutes):</p>
-          <UInput v-model="formData.duration" type="text" id="duration" name="duration" required />
+          <UInput v-model="formData.duration" type="text" id="duration" name="duration" />
         </div>
       </div>
       <div class="flex flex-row">
@@ -272,6 +272,7 @@ const submitEventForm = async (curuser) => {
 
     if (isEditMode.value) {
       await eventStore.updateEvent(props.event.id, eventData);
+      await eventStore.fetchAllEvents();
       console.log("Event updated successfully");
     } else {
       await eventStore.addEvent(eventData);
