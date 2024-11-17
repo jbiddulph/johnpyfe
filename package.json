@@ -14,7 +14,7 @@
     "@nuxt/ui": "^2.14.1",
     "@nuxtjs/tailwindcss": "^6.11.4",
     "@pinia/nuxt": "^0.5.1",
-    "@prisma/client": "5.12.1",
+    "@prisma/client": "^5.22.0",
     "axios": "^1.6.8",
     "cookie-universal-nuxt": "^2.2.2",
     "cors": "^2.8.5",
@@ -23,7 +23,6 @@
     "joi": "^17.13.0",
     "js-cookie": "^3.0.5",
     "nuxt": "^3.10.3",
-    "prisma": "^5.12.1",
     "vue": "^3.4.19",
     "vue-router": "^4.3.0"
   },
@@ -32,6 +31,7 @@
     "cypress": "^13.7.1",
     "mapbox-gl": "^3.2.0",
     "nuxt-mapbox": "^1.5.9",
+    "prisma": "^5.22.0",
     "sass": "^1.72.0"
   }
 }
