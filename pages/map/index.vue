@@ -7,7 +7,7 @@
         icon="i-heroicons-map-pin-20-solid"
         color="white"
         size="sm"
-        :options="cityList"
+        :options="cityNames"
         placeholder="Search by city..."
         v-model="selectedCity"
         @change="searchCity(selectedCity)"
@@ -35,24 +35,16 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch, computed } from 'vue';
 import { useVenueStore } from "@/store/venue.js";
+import { useEventStore } from "@/store/event.js";
 import mapboxgl from 'mapbox-gl';
 
 // State variables
 const venueStore = useVenueStore();
+const eventStore = useEventStore();
 const selectedCity = ref("");
-const cityList = [
-  "Aberdeen", "Bath", "Birmingham", "Bradford",
-  "Brighton & Hove", "Bristol", "Cambridge", "Canterbury", "Cardiff", "Carlisle",
-  "Chelmsford", "Chester", "Chichester", "Coventry", "Derby", "Dundee",
-  "Durham", "Edinburgh", "Exeter", "Glasgow", "Gloucester", "Hereford",
-  "Inverness", "Kingston upon Hull", "Lancaster uk", "Leeds", "Leicester",
-  "Lichfield", "Lincoln", "Liverpool", "London", "Manchester", "Newcastle upon Tyne", 
-  "Newport", "Norwich", "Nottingham",
-  "Oxford", "Perth uk", "Peterborough", "Plymouth", "Portsmouth", "Preston", "Ripon",
-  "Salford", "Salisbury uk", "Sheffield", "Southampton", "St Albans", "Stirling",
-  "Stoke-on-Trent", "Sunderland", "Swansea", "Truro", "Wakefield", "Wells uk",
-  "Westminster", "Winchester uk", "Wolverhampton", "Worcester", "York"
-];
+const cityNames = computed(() => {
+  return eventStore.cities.map(city => city.name);
+});
 
 const isOpenRight = reactive({
   slideover: false,
@@ -73,6 +65,7 @@ const layersAdded = ref([]);
 onMounted(() => {
   venueName.value = 'VENUES';
   createMap();
+  eventStore.fetchCities();
 });
 
 const venueNameSelected = (name: any) => {
@@ -95,7 +88,6 @@ const searchCity = (city: string|number|boolean) => {
       if (data.features && data.features.length > 0) {
         const coordinates = data.features[0].center;
         map.value.flyTo({ center: coordinates, zoom: 12 });
-        searchQuery.value = ""
       }
     })
     .catch(error => console.error('Error searching places:', error));
@@ -139,7 +131,7 @@ const updateMapLayer = (venueName: any) => {
     if (!popup) {
       popup = new mapboxgl.Popup({ closeButton: false })
         .setLngLat(coordinates)
-        .setHTML(`<div class='bg-blue-100 p-2'><h1 class='mb-4 text-2xl'>${feature.properties.venuename}</h1> <h2>${feature.properties.address}, ${feature.properties.address2}</h2></div>`)
+        .setHTML(`<div class='p-2'><h1 class='mb-4 text-2xl'>${feature.properties.venuename}</h1> <h2>${feature.properties.address}, ${feature.properties.address2}</h2></div>`)
         .addTo(map.value);
     }
   });

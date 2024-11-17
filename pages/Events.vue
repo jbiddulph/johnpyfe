@@ -15,22 +15,32 @@
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <li v-for="(event, index) in eventStore.events" :key="index">
+              <div class="flex justify-center">
+                <div v-if="userName === user.user_metadata.name">
+                    <UButton label="Delete" class="mr-2 text-xs" color="red" @click="openDeleteModal(event, event.id)" />
+                    <UButton label="Event" class="text-xs" color="amber" @click="openEditEventModal(event)" />
+                </div>
+              </div>
               <div class="w-full items-center bg-white dark:bg-gray-900"> <!-- Flex container to align items horizontally -->
                 <div class="p-6">
-                    <h3 class="font-bold">{{ event.event_title }}</h3>
-                    <span>{{event.category}}</span>
+                    <h2 class="font-bold">{{ event.event_title }}</h2>
+                    <h3>{{ event.category.name }} at the: xxx</h3>
+                    <span>{{event.city.name}}</span>
                 </div>
                 <div>
-                  <div class="flex items-center flex-col w-full h-auto relative">
-                    <div class="flex justify-center">
-                        <!-- <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" /> -->
-                        <div v-if="userName === user.user_metadata.name">
-                            <!-- <UButton label="Edit" class="mr-2" color="amber" @click="openEditModal(event, event.id)" /> -->
-                            <UButton label="Delete" class="mr-2" color="red" @click="openDeleteModal(event, event.id)" />
-                            <UButton label="Event" color="amber" @click="openEditEventModal(event)" />
+                  <div class="calendar flex items-center flex-col w-full h-auto relative">
+                    <div class="bg-white rounded-lg absolute -top-2 right-4">
+                      <div class="flex flex-col">
+                        <div class="flex flex-row justify-between bg-red-700 text-white rounded-t-lg px-2 text-sm">
+                          <div class="month pr-2">{{ formatDate(event.event_start).month }}</div>
+                          <div class="year">{{ formatDate(event.event_start).year }}</div>
                         </div>
+                        <div class="day text-3xl text-center">{{ formatDate(event.event_start).day }}</div>
+                        
+                        <div class="time text-center"><small>at</small> {{ formatDate(event.event_start).time }}</div>
+                      </div>
                     </div>
-                    <span>on: {{ formatDate(event.event_start) }} </span><br />
+                    <!-- <span>on: {{ formatDate(event.event_start) }} </span><br /> -->
                     <img 
                       class="w-full h-[250px] object-cover" 
                       :src="`${config.public.supabase.url}/storage/v1/object/public/event_images/${event.photo}`" 
@@ -259,7 +269,32 @@ function calculateCountdown(eventStartDate: string, durationMinutes: number) {
     return `<UBadge color="red" variant="solid">Event has ended</UBadge>`;
   }
 }
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  const day = date.getUTCDate();
+  const month = date.toLocaleString('en-US', { month: 'long' });
+  const year = date.getUTCFullYear().toString().slice(-2); // Get last two digits of the year
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
 
+  // Format the day with "st", "nd", "rd", or "th"
+  const daySuffix = (day) => {
+    if (day > 3 && day < 21) return 'th'; // 11th, 12th, 13th
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+
+  return {
+    day: `${day}${daySuffix(day)}`,
+    month,
+    year,
+    time: `${hours}:${minutes}`,
+  };
+}
 function startCountdowns() {
   if (Array.isArray(eventStore.events)) {
     countdowns.value = eventStore.events.map(event => calculateCountdown(event.event_start, event.duration));
@@ -278,29 +313,6 @@ function startCountdowns() {
 onBeforeUnmount(() => {
   clearInterval(countdownInterval);
 });
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-
-  const day = date.getUTCDate();
-  const month = date.toLocaleString('en-US', { month: 'long' });
-  const year = date.getUTCFullYear().toString().slice(-2); // Get last two digits of the year
-  const hours = date.getUTCHours().toString().padStart(2, '0');
-  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-
-  // Format the day with "st", "nd", "rd", or "th"
-  const daySuffix = (day) => {
-    if (day > 3 && day < 21) return 'th'; // 11th, 12th, 13th
-    switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
-  };
-
-  return `${day}${daySuffix(day)} ${month} ${year} at ${hours}:${minutes}`;
-}
 </script>
 
 <style lang="scss">
@@ -309,5 +321,9 @@ function formatDate(dateString: string): string {
   font-stretch: extra-condensed;
   font-weight: 100;
   color: rgba($color: #ddcf00, $alpha: 1.0);
+  font-family: 'Doto', sans-serif;
+}
+.calendar {
+  font-family: 'Kanit', sans-serif;
 }
 </style>
