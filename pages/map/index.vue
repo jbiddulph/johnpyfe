@@ -139,7 +139,7 @@ const updateMapLayer = (venueName: any) => {
     if (!popup) {
       popup = new mapboxgl.Popup({ closeButton: false })
         .setLngLat(coordinates)
-        .setHTML(`<div class='bg-gray-200 p-2'><h1 class='mb-4 text-2xl'>${feature.properties.venuename}</h1> <h2>${feature.properties.address}, ${feature.properties.address2}</h2></div>`)
+        .setHTML(`<div class='bg-blue-100 p-2'><h1 class='mb-4 text-2xl'>${feature.properties.venuename}</h1> <h2>${feature.properties.address}, ${feature.properties.address2}</h2></div>`)
         .addTo(map.value);
     }
   });

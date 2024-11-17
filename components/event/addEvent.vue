@@ -36,6 +36,24 @@
         <UTextarea v-model="formData.description" id="description" name="description" :rows="4" cols="50"></UTextarea>
       </div>
       <div class="flex flex-row">
+        <div class="flex flex-col w-1/2 pr-2">
+          <label for="city">Select City:</label>
+          <select id="city" v-model="formData.cityId" class="border-2 border-slate-300 rounded-md py-1">
+            <option v-for="city in eventStore.cities" :key="city.id" :value="city.id">
+              {{ city.name }}
+            </option>
+          </select>
+        </div>
+        <div class="flex flex-col w-1/2 pl-2">
+          <label for="category">Select Category:</label>
+          <select id="category" v-model="formData.categoryId" class="border-2 border-slate-300 rounded-md py-1">
+            <option v-for="category in eventStore.categories" :key="category.id" :value="category.id">
+              {{ category.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="flex flex-row">
         <div class="w-1/2 mr-4">
           <p for="cost">Cost:</p>
           <UInput v-model="formData.cost" type="text" id="cost" name="cost" step="0.01" required />
@@ -54,10 +72,6 @@
           <p for="event_time">Event Time:</p>
           <UInput v-model="eventTime" type="time" id="event_time" name="event_time" required />
         </div>
-      </div>
-      <div>
-        <p for="category">Category:</p>
-        <UInput v-model="formData.category" type="text" id="category" name="category" />
       </div>
       <div>
         <div v-if="isEditMode && currentPhotoUrl">
@@ -125,8 +139,9 @@ const formData = ref({
   cost: props.event?.cost || "",
   duration: props.event?.duration || "",
   event_start: props.event?.event_start || "",
-  category: props.event?.category || "",
   photo: props.event?.photo || "",
+  cityId: props.event?.cityId || null,
+  categoryId: props.event?.categoryId || null,
   website: props.event?.website || "",
 });
 
@@ -275,7 +290,8 @@ onMounted(async () => {
   if (props.venueid) {
     venueid.value = props.venueid;
   }
-
+  eventStore.fetchCities();
+  eventStore.fetchCategories();
   if (isEditMode.value && props.event.venue_id) {
     const venues = await search(""); // Fetch all venues
     const venueDetails = await venueStore.fetchVenueDetails(props.event.venue_id);

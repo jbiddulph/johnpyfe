@@ -20,7 +20,7 @@
                     <h3 class="font-bold">{{ event.event_title }}</h3>
                     <span>{{event.category}}</span>
                 </div>
-                <div v-if="userName === user.user_metadata.name">
+                <div>
                   <div class="flex items-center flex-col w-full h-auto relative">
                     <div class="flex justify-center">
                         <!-- <UButton label="Details" class="mr-2" @click="openDetailsModal(event)" /> -->
