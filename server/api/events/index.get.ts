@@ -9,6 +9,10 @@ export default defineEventHandler(async (event) => {
     const paginatedVenues = await prisma.event.findMany({
       skip: parseInt(skip),
       take: parseInt(take),
+      include: {
+        city: true,
+        category: true,
+      },
     });
 
     return paginatedVenues;
