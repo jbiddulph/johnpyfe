@@ -40,6 +40,19 @@ model Venue {
   events              Event[]
 }
 
+model City {
+  id        Int      @id @default(autoincrement())
+  name      String
+  events    Event[]  @relation("CityEvents")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  events    Event[]  @relation("CategoryEvents")
+}
+
+
 model Event {
   id                  Int     @id @default(autoincrement())
   event_title         String
@@ -47,7 +60,6 @@ model Event {
   cost                String
   duration            String
   event_start         DateTime
-  category            String
   photo               String
   website             String
   created_at          DateTime
@@ -55,6 +67,10 @@ model Event {
   venue_id            Int
   listingId           Int
   listing             Venue @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  cityId              Int
+  city                City @relation(fields: [cityId], references: [id], onDelete: Cascade, name: "CityEvents")
+  categoryId          Int
+  category            Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, name: "CategoryEvents")
 }
 
 model Note {

@@ -6,6 +6,8 @@ export const useEventStore = defineStore({
   state: () => ({
     events: [],
     event: {},
+    cities: [],
+    categories: [],
     currentPage: 1,
     totalPages: 1,
     paginatedEvents: [],
@@ -105,6 +107,36 @@ export const useEventStore = defineStore({
         // await navigateTo({ path: "/events" });
       } catch (error) {
         console.error("Error updating event:", error);
+      }
+    },
+    async fetchCities() {
+      try {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/cities`);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          this.cities = data;
+        } else {
+          console.error("Unexpected data format:", data);
+          this.cities = []; // Assign an empty array to avoid further errors
+        }
+      } catch (error) {
+        console.error('Error loading events:', error);
+        this.cities = [];
+      }
+    },
+    async fetchCategories() {
+      try {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/categories`);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          this.categories = data;
+        } else {
+          console.error("Unexpected data format:", data);
+          this.categories = []; // Assign an empty array to avoid further errors
+        }
+      } catch (error) {
+        console.error('Error loading events:', error);
+        this.cities = [];
       }
     },
     async fetchAllEvents() {

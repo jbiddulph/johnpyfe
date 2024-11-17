@@ -1,69 +1,62 @@
-import Joi from "joi";
-import { PrismaClient } from "@prisma/client";
-import { createError } from 'h3';
+import { defineEventHandler, createError, readBody } from 'h3';
+import { PrismaClient } from '@prisma/client';
+import Joi from 'joi';
 
 const prisma = new PrismaClient();
-const schema = Joi.object({
-  event_title: Joi.string().required().min(2),
+
+const eventSchema = Joi.object({
+  event_title: Joi.string().required(),
   description: Joi.string().required(),
   cost: Joi.string().required(),
   duration: Joi.string().required(),
   event_start: Joi.date().required(),
-  category: Joi.string().required(),
-  photo: Joi.string().allow(''), // Allow photo to be an empty string if not uploaded
+  photo: Joi.string().required(),
   website: Joi.string().required(),
   created_at: Joi.date().required(),
   user_id: Joi.string().required(),
-  venue_id: Joi.number().required().min(0),
-  listingId: Joi.number().required().min(0),
+  venue_id: Joi.number().required(),
+  listingId: Joi.number().required(),
+  cityId: Joi.number().required(),
+  categoryId: Joi.number().required(),
 });
 
-export default defineEventHandler(async(event) => {
-    const body = await readBody(event); // Access the request body directly
-    if (body.venue_id) body.venue_id = Number(body.venue_id);
-    if (body.listingId) body.listingId = Number(body.listingId);
-    const { error, value } = schema.validate(body);
-    if (error) {
-      throw createError({
-        statusCode: 412,
-        statusMessage: error.message
-      });
-    }
-    const {
-      event_title,
-      description,
-      cost,
-      duration,
-      event_start,
-      category,
-      photo,
-      website,
-      created_at,
-      user_id,
-      venue_id,
-      listingId,
-    } = value; // Use validated value instead of raw body
+export default defineEventHandler(async (event) => {
+  const body = await readBody(event);
 
-    // Check if photo is provided, if not, log and skip photo upload
-    if (!photo) {
-      console.log("No photo provided, skipping photo upload.");
-    }
+  const { error } = eventSchema.validate(body);
+  if (error) {
+    throw createError({
+      statusCode: 412,
+      statusMessage: error.message,
+    });
+  }
+
+  try {
+    const eventData = {
+      event_title: body.event_title,
+      description: body.description,
+      cost: body.cost,
+      duration: body.duration,
+      event_start: new Date(body.event_start),
+      photo: body.photo,
+      website: body.website,
+      created_at: new Date(),
+      user_id: body.user_id,
+      venue_id: body.venue_id,
+      listingId: body.listingId,
+      cityId: body.cityId,
+      categoryId: body.categoryId,
+    };
 
     const eventdetails = await prisma.event.create({
-      data: {
-        event_title,
-        description,
-        cost,
-        duration,
-        event_start,
-        category,
-        photo,
-        website,
-        created_at,
-        user_id,
-        venue_id,
-        listingId,
-      },
+      data: eventData,
     });
+
     return eventdetails;
+  } catch (error) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: error.message,
+    });
+  }
 });
