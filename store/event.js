@@ -177,6 +177,19 @@ export const useEventStore = defineStore({
         console.error("Error fetching event:", error);
       }
     },
+    async fetchEventDetails(eventId) {
+      try {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/${eventId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Failed to fetch event details:", error);
+        throw error;
+      }
+    },
     async deleteEvent(id) {
       try {
         await fetch(`${useRuntimeConfig().public.baseURL}/api/events/${id}`, {

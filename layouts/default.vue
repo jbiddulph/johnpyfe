@@ -49,6 +49,9 @@
             <li>
               <NuxtLink @click="toggleMenu" to="/login" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Login</NuxtLink>
             </li>
+            <li>
+              <NuxtLink @click="toggleMenu" to="/events" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Events</NuxtLink>
+            </li>
             <!-- <li>
               <NuxtLink @click="toggleMenu" to="/register" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Register</NuxtLink>
             </li> -->
@@ -129,10 +132,19 @@ watch(authStore, (newValue: { user: any; }) => {
 
 
 <style>
-.router-link-active {
-  color: text-primary-700;
-}
 body {
   font-family: 'Kanit', sans-serif;
+}
+.router-link-active {
+  @apply text-primary-500 !important;
+}
+@media (min-width: 768px) {
+    :is(.dark .md\:dark\:text-white) {
+  }
+}
+@media (min-width: 768px) {
+  :is(.dark .md\:dark\:text-white) {
+    color: white !important;
+  }
 }
 </style>
