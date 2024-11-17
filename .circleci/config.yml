@@ -1,36 +1,29 @@
 version: 2.1
-
 orbs:
   node: circleci/node@5
   cypress: cypress-io/cypress@3.3.1
 
 jobs:
   run-cypress-tests:
-      executor: cypress/default
-      # steps:
-      #   - checkout
-      #   - cypress/install
-      #   - run:
-      #       name: Run Cypress tests
-      #       command: |
-      #         $(npm bin)/cypress run --project cypress/e2e # Adjust this command according to your project setup
-      steps:
-      - cypress/install
-      - persist_to_workspace:
-          paths:
-            - .cache/Cypress
-            - project
-          root: ~/
+    executor: cypress/default
+    steps:
+      - checkout
       - run:
-          command: |
-            npx cypress run
+          name: Install dependencies
+          command: npm install
+      - run:
+          name: Run Cypress tests
+          command: npx cypress run
+
   build-node:
     executor: node/default
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
       - run:
+          name: Install dependencies
+          command: npm install
+      - run:
+          name: Build project
           command: npm run build
       - run:
           name: Create the ~/artifacts directory if it doesn't exist
@@ -49,4 +42,3 @@ workflows:
           requires:
             - build-node
       - build-node
-      
