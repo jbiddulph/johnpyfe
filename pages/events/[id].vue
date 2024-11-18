@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useEventStore } from '@/store/event.js';
 
@@ -30,5 +30,24 @@ const event = ref({});
 onMounted(async () => {
   const eventId = route.params.id;
   event.value = await eventStore.fetchEventDetails(eventId);
+  document.title = event.value.event_title;
+  updateMetaKeywords(event.value);
 });
+
+watch(event, (newEvent) => {
+  console.log(newEvent.event_title);
+  document.title = newEvent.event_title;
+  updateMetaKeywords(newEvent);
+});
+
+function updateMetaKeywords(event) {
+  const keywords = event.description || '';
+  let metaTag = document.querySelector('meta[name="keywords"]');
+  if (!metaTag) {
+    metaTag = document.createElement('meta');
+    metaTag.name = 'keywords';
+    document.head.appendChild(metaTag);
+  }
+  metaTag.content = keywords;
+}
 </script>
