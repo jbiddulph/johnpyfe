@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto p-4 md:p-0">
+  <div class="container mx-auto p-4">
     <div class="flex w-full justify-between items-center">
       <h1 class="text-4xl font-bold my-8">Events</h1>
       <UButton v-if="user" icon="i-heroicons-plus-circle" label="Add" @click="openAddEventModal()" />
@@ -44,7 +44,7 @@
                     <!-- <span>on: {{ formatDate(event.event_start) }} </span><br /> -->
                     <img 
                       class="w-full h-[250px] object-cover" 
-                      :src="`${config.public.supabase.url}/storage/v1/object/public/event_images/${event.photo}`" 
+                      :src="`${useRuntimeConfig().public.eventImgFolder}${event.photo}`" 
                       alt="Event image" 
                     />
                     <div class="w-full px-4 py-2 absolute center bottom-0 bg-gray-500 opacity-80 text-white" v-html="countdowns[index]"></div>

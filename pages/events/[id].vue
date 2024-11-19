@@ -1,6 +1,10 @@
 <template>
   <div class="container mx-auto p-4">
-    <h1 class="text-4xl font-bold my-8">{{ event.event_title }}</h1>
+    <h1 class="text-4xl font-bold my-8">
+      <NuxtLink to="/events">
+        <span class="text-amber-500">Events</span></NuxtLink>
+        - {{ event.event_title }}
+    </h1>
     <div class="flex flex-col md:flex-row">
       <img :src="`${useRuntimeConfig().public.eventImgFolder}/${event.photo}`" alt="Event image" class="w-full md:w-1/2 h-auto object-cover" />
       <div class="md:ml-8">

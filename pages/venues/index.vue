@@ -1,12 +1,12 @@
 <template>
-  <div class="container mx-auto">
+  <div class="container mx-auto p-4">
     <div class="flex w-full justify-between items-center">
       <h1 class="text-4xl font-bold my-8">Venues</h1>
       <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
     </div>
-    <div class="mt-8 pb-12">
+    <div class="pb-12">
       <!-- Pagination controls -->
-      <div class="flex justify-center my-8">
+      <div class="flex justify-center mb-4  mt-2">
         <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
         <UButton label="Previous" @click="prevPage(currentPage.value - 1)" />
         <UButton :label="currentPage" class="mx-4" variant="soft" />
@@ -22,15 +22,19 @@
             <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
             <template #footer>
               <div class="flex justify-center">
-                <div v-if="userName === user.user_metadata.email" class="controls">
+                <div v-if="user && userName === user.user_metadata.email" class="controls">
                   <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" @click="openDetailsModal(venue)" />
                   <UButton icon="i-heroicons-pencil-square" class="mr-1 text-xs" size="sm" color="amber" @click="openEditModal(venue, venue.id)" />
+                  <UButton icon="i-heroicons-photo" class="mr-1 text-xs" size="sm" color="amber" @click="openPhotoUploadModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-map-pin" class="mr-1 text-xs" size="sm" color="blue" @click="openMapModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-calendar" class="mr-1 text-xs" size="sm" color="violet" @click="openAddEventModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-trash" class="text-xs" size="sm" color="red" @click="openDeleteModal(venue, venue.id)" />
                 </div>
                 <div v-else>
-                  <UButton label="Details" class="mr-1 text-xs" size="sm" @click="openDetailsModal(venue)" />
+                  <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" @click="openDetailsModal(venue)" />
+                  <UButton label="Full Details" class="mr-1 text-xs" size="sm">
+                    <NuxtLink :to="'/venues/' + venue.id">Full Details</NuxtLink>
+                  </UButton>
                 </div>
               </div>
             </template>
@@ -83,6 +87,17 @@
         <venue-deleteVenue class="h-48" :content="content" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
+    <UModal v-model="isPhotoUploadOpen" prevent-close>
+      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <div class="flex justify-end">
+          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isPhotoUploadOpen = false" />
+        </div>
+        <div class="p-4">
+          <input type="file" @change="handleFileUpload" />
+          <UButton label="Upload" @click="uploadPhoto" />
+        </div>
+      </UCard>
+    </UModal>
   </div>
 </template>
 
@@ -100,12 +115,14 @@ import { useAuthStore } from "@/store/auth.js";
 import axios from "axios";
 const venueStore = useVenueStore();
 const authStore = useAuthStore();
+const supabase = useSupabaseClient();
 const venueid = ref(null);
 const isDetailsOpen = ref(false)
 const isAddEditOpen = ref(false)
 const isAddEventOpen = ref(false)
 const isMapOpen = ref(false)
 const isDeleteOpen = ref(false)
+const isPhotoUploadOpen = ref(false);
 const editMode = ref(false)
 const content = ref({});
 const currentPage = ref(1);
@@ -119,6 +136,7 @@ const venues = ref([]);
 const userName = ref('');
 const userID = process.env.USER_ID;
 const PAGE_SIZE = 104; // Define the page size constant
+const selectedFile = ref<File | null>(null);
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
@@ -177,6 +195,52 @@ const openMapModal = (venue: object, id: Number) => {
   content.value = venue
   editMode.value = true
   venueid.value = id
+}
+const openPhotoUploadModal = (venue: object, id: Number) => {
+  isPhotoUploadOpen.value = true;
+  content.value = venue;
+  venueid.value = id;
+}
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files[0]) {
+    selectedFile.value = target.files[0];
+  }
+}
+const uploadPhoto = async () => {
+  if (!selectedFile.value) {
+    toast.add({ title: 'No file selected!' });
+    return;
+  }
+
+  const fileName = Date.now().toString();
+  const { data, error } = await supabase.storage
+    .from("venue_images")
+    .upload(`public/${fileName}`, selectedFile.value);
+
+  if (error) {
+    console.error('Error uploading photo:', error);
+    toast.add({ title: 'Error uploading photo!', description: error.message });
+    return;
+  }
+
+  const photo = data.path;
+  try {
+    await fetch(`/api/venues/${venueid.value}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ photo })
+    });
+
+    toast.add({ title: 'Photo uploaded successfully!' });
+    isPhotoUploadOpen.value = false;
+  } catch (error) {
+    console.error('Error updating venue with photo URL:', error);
+    toast.add({ title: 'Failed to update venue with photo URL!' });
+  }
 }
 const handleCloseModal = () => {
   isMapOpen.value = false
