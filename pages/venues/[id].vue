@@ -6,18 +6,18 @@
         - {{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}
     </h1>
     <div class="flex flex-col md:flex-row">
-        xx<img 
+        <img 
           v-if="venue.photo === 'images/venues/awaiting.jpg'"
           :src="`/assets/images/awaiting.jpg`" 
           alt="Venue image" 
           class="w-full md:w-1/2 h-auto object-cover" 
-        />xx
-        yy<img 
+        />
+        <img 
           v-else 
           :src="`${useRuntimeConfig().public.venueImgFolder}${venue.photo}`" 
           alt="Venue image" 
           class="w-full md:w-1/2 h-auto object-cover" 
-        />yy
+        />
       <div class="md:ml-8">
         <p><strong>Description:</strong> {{ venue?.description }}</p>
         <p><strong>Address:</strong> {{ venue?.address }}</p>
