@@ -40,7 +40,7 @@
                 <div v-else>
                   <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" @click="openDetailsModal(venue)" />
                   <UButton label="Full Details" class="mr-1 text-xs" size="sm">
-                    <NuxtLink :to="'/venues/' + venue.id">Full Details</NuxtLink>
+                    <NuxtLink :to="'/venues/' + venue.id + '/' + venue.slug">Full Details</NuxtLink>
                   </UButton>
                 </div>
               </div>
