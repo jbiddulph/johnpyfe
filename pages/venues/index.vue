@@ -4,6 +4,13 @@
       <h1 class="text-4xl font-bold my-8">Venues</h1>
       <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
     </div>
+    <div class="flex w-full justify-between items-center mb-4">
+      <input v-model="searchQuery" type="text" placeholder="Search by venue name" class="input" />
+      <select v-model="selectedTown" class="select">
+        <option value="">All Towns</option>
+        <option v-for="town in towns" :key="town" :value="town">{{ town }}</option>
+      </select>
+    </div>
     <div class="pb-12">
       <!-- Pagination controls -->
       <div class="flex justify-center mb-4  mt-2">
@@ -14,7 +21,7 @@
         <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <li v-for="(venue, index) in venues" :key="index">
+        <li v-for="(venue, index) in filteredVenues" :key="index">
           <UCard class="h-[250px]">
             <template #header>
               <h3 class="font-bold">{{ venue.venuename }}</h3>
@@ -137,6 +144,9 @@ const userName = ref('');
 const userID = process.env.USER_ID;
 const PAGE_SIZE = 104; // Define the page size constant
 const selectedFile = ref<File | null>(null);
+const searchQuery = ref('');
+const selectedTown = ref('');
+const towns = ref([]); // List of towns for the dropdown
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
@@ -158,10 +168,19 @@ const fetchAllVenues = async () => {
     totalItems.value = data.length;
     const totalPagesCount = Math.ceil(totalItems.value / itemsPerPage.value);
     totalPages.value = totalPagesCount;
+    towns.value = [...new Set(data.map((venue: any) => venue.town))]; // Extract unique towns
   } catch (error) {
     console.error('Error loading venues:', error);
   }
 };
+const filteredVenues = computed(() => {
+  return venues.value.filter(venue => {
+    return (
+      venue.venuename.toLowerCase().includes(searchQuery.value.toLowerCase()) &&
+      (selectedTown.value === '' || venue.town === selectedTown.value)
+    );
+  });
+});
 const openDetailsModal = (venue: object) => {
   isDetailsOpen.value = true
   content.value = venue
@@ -274,5 +293,15 @@ onMounted(async () => {
 <style lang="scss" scoped>
 .controls button span{
   font-size: 0.8em!important;
+}
+.input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+}
+.select {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
 }
 </style>

@@ -14,7 +14,7 @@
         />
         <img 
           v-else 
-          :src="`${useRuntimeConfig().public.venueImgFolder}/${venue.photo}`" 
+          :src="`${useRuntimeConfig().public.venueImgFolder}${venue.photo}`" 
           alt="Venue image" 
           class="w-full md:w-1/2 h-auto object-cover" 
         />
