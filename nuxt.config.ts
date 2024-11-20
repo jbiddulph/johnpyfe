@@ -22,7 +22,16 @@ export default defineNuxtConfig({
     }
   },
   devtools: { enabled: true },
-  modules: ["@pinia/nuxt", "@nuxt/ui", "@nuxtjs/color-mode", "nuxt-mapbox", "@nuxtjs/supabase", "@nuxt/fonts"],
+  modules: [
+    "@pinia/nuxt",
+    "@nuxt/ui",
+    "@nuxtjs/color-mode",
+    "nuxt-mapbox",
+    "@nuxtjs/supabase",
+    "@nuxt/fonts",
+    "@nuxtjs/robots",
+    "@nuxtjs/sitemap",
+  ],
   fonts: {
     google: {
       families: {
@@ -31,6 +40,9 @@ export default defineNuxtConfig({
         'Lato': [100, 300], // Loads Lato font with weights 100 and 300
       }
     }
+  },
+  sitemap: {
+    sources: ['/api/venue-urls'],
   },
   mapbox: {
     accessToken: 'pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA'
