@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
       id: true,
       slug: true,
     },
-    take: 100 // Limit the number of venues to 100
+    take: 40000 // Limit the number of venues to 100
   });
 
   const venueurls = venues.map(venue => ({
