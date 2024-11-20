@@ -1,4 +1,3 @@
-
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -8,7 +7,8 @@ export default defineEventHandler(async (event) => {
     select: {
       id: true,
       slug: true,
-    }
+    },
+    take: 100 // Limit the number of venues to 100
   });
 
   const venueurls = venues.map(venue => ({
