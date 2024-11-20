@@ -12,6 +12,7 @@
   "dependencies": {
     "@nuxt/fonts": "^0.10.2",
     "@nuxt/ui": "^2.14.1",
+    "@nuxtjs/sitemap": "^6.1.5",
     "@nuxtjs/tailwindcss": "^6.11.4",
     "@pinia/nuxt": "^0.5.1",
     "@prisma/client": "^5.22.0",
@@ -27,6 +28,7 @@
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
+    "@nuxtjs/robots": "^4.1.11",
     "@nuxtjs/supabase": "0.3.0",
     "cypress": "^13.7.1",
     "mapbox-gl": "^3.2.0",

@@ -884,7 +884,7 @@
     unplugin "^1.14.1"
     unstorage "^1.12.0"
 
-"@nuxt/kit@^3.0.0", "@nuxt/kit@^3.10.3", "@nuxt/kit@^3.13.2", "@nuxt/kit@^3.5.0", "@nuxt/kit@^3.8.1", "@nuxt/kit@^3.8.2", "@nuxt/kit@^3.9.0", "@nuxt/kit@^3.9.1", "@nuxt/kit@^3.9.3":
+"@nuxt/kit@^3.0.0", "@nuxt/kit@^3.10.3", "@nuxt/kit@^3.13.2", "@nuxt/kit@^3.14.0", "@nuxt/kit@^3.5.0", "@nuxt/kit@^3.8.1", "@nuxt/kit@^3.8.2", "@nuxt/kit@^3.9.0", "@nuxt/kit@^3.9.1", "@nuxt/kit@^3.9.3":
   version "3.14.159"
   resolved "https://registry.npmjs.org/@nuxt/kit/-/kit-3.14.159.tgz"
   integrity sha512-ZqxsCI1NKV/gjfEUUZjMcr82sg0MKYZOuyB6bu9QY5Zr7NGpfIZY/z5Z822AKTmFxKGChnuz9M0UaS4ze6p42g==
@@ -1075,6 +1075,44 @@
     "@nuxt/kit" "^3.8.1"
     lodash.template "^4.5.0"
     pathe "^1.1.1"
+
+"@nuxtjs/robots@^4.1.11":
+  version "4.1.11"
+  resolved "https://registry.npmjs.org/@nuxtjs/robots/-/robots-4.1.11.tgz"
+  integrity sha512-neHIO1WnnURwq/XE7z8SSrf7OvjwD+pfRPpCHdMdaly6aGN8U0z4ZAq53gIrcYMi/xzE+D63QlxeODQgKjLQfQ==
+  dependencies:
+    "@nuxt/devtools-kit" "^1.6.0"
+    "@nuxt/kit" "^3.13.2"
+    consola "^3.2.3"
+    defu "^6.1.4"
+    nuxt-site-config "^2.2.21"
+    nuxt-site-config-kit "^2.2.21"
+    pathe "^1.1.2"
+    pkg-types "^1.2.1"
+    sirv "^3.0.0"
+    std-env "^3.7.0"
+    ufo "^1.5.4"
+
+"@nuxtjs/sitemap@^6.1.5":
+  version "6.1.5"
+  resolved "https://registry.npmjs.org/@nuxtjs/sitemap/-/sitemap-6.1.5.tgz"
+  integrity sha512-3ae7SBwMYQh8AKbznRbc1UORYNgi7ukAELJzCskAoKJgIr2ox8nIxMT/pvkpFWoKoTxC8bLINEbkfMvKVs2myg==
+  dependencies:
+    "@nuxt/devtools-kit" "^1.6.0"
+    "@nuxt/kit" "^3.14.0"
+    chalk "^5.3.0"
+    defu "^6.1.4"
+    h3-compression "^0.3.2"
+    nuxt-site-config "^2.2.21"
+    nuxt-site-config-kit "^2.2.21"
+    ofetch "^1.4.1"
+    pathe "^1.1.2"
+    pkg-types "^1.2.1"
+    radix3 "^1.1.2"
+    semver "^7.6.3"
+    sirv "^3.0.0"
+    site-config-stack "^2.2.21"
+    ufo "^1.5.4"
 
 "@nuxtjs/supabase@0.3.0":
   version "0.3.0"
@@ -4103,6 +4141,11 @@ gzip-size@^7.0.0:
   dependencies:
     duplexer "^0.1.2"
 
+h3-compression@^0.3.2:
+  version "0.3.2"
+  resolved "https://registry.npmjs.org/h3-compression/-/h3-compression-0.3.2.tgz"
+  integrity sha512-B+yCKyDRnO0BXSfjAP4tCXJgJwmnKp3GyH5Yh66mY9KuOCrrGQSPk/gBFG2TgH7OyB/6mvqNZ1X0XNVuy0qRsw==
+
 h3-formidable@^1.0.0:
   version "1.0.0"
   resolved "https://registry.npmjs.org/h3-formidable/-/h3-formidable-1.0.0.tgz"
@@ -5841,6 +5884,33 @@ nuxt-mapbox@^1.5.9:
     mapbox-gl "^3.2.0"
     vue "^3.4.21"
 
+nuxt-site-config-kit@^2.2.21, nuxt-site-config-kit@2.2.21:
+  version "2.2.21"
+  resolved "https://registry.npmjs.org/nuxt-site-config-kit/-/nuxt-site-config-kit-2.2.21.tgz"
+  integrity sha512-xO41Zf6bXlA9Zvj+fX7ftD+ITee4LfrkzHj85Gt4FpgwonFxzGO5pMBtAqIxXKJwuyT1z2wVAixHI+ov66wV0w==
+  dependencies:
+    "@nuxt/kit" "^3.13.2"
+    "@nuxt/schema" "^3.13.2"
+    pkg-types "^1.2.1"
+    site-config-stack "2.2.21"
+    std-env "^3.7.0"
+    ufo "^1.5.4"
+
+nuxt-site-config@^2.2.21:
+  version "2.2.21"
+  resolved "https://registry.npmjs.org/nuxt-site-config/-/nuxt-site-config-2.2.21.tgz"
+  integrity sha512-VsHpR4socGrlRPjyg2F8JqbirBqH4yCkTQa60fj7saqKMPW1VcRROn21OJzfTHDpjeD+KayRdR3FB0Jxk9WFNA==
+  dependencies:
+    "@nuxt/devtools-kit" "^1.6.0"
+    "@nuxt/kit" "^3.13.2"
+    "@nuxt/schema" "^3.13.2"
+    nuxt-site-config-kit "2.2.21"
+    pathe "^1.1.2"
+    pkg-types "^1.2.1"
+    sirv "^3.0.0"
+    site-config-stack "2.2.21"
+    ufo "^1.5.4"
+
 nuxt@^3.10.3:
   version "3.10.3"
   resolved "https://registry.npmjs.org/nuxt/-/nuxt-3.10.3.tgz"
@@ -7189,6 +7259,13 @@ sisteransi@^1.0.5:
   version "1.0.5"
   resolved "https://registry.npmjs.org/sisteransi/-/sisteransi-1.0.5.tgz"
   integrity sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==
+
+site-config-stack@^2.2.21, site-config-stack@2.2.21:
+  version "2.2.21"
+  resolved "https://registry.npmjs.org/site-config-stack/-/site-config-stack-2.2.21.tgz"
+  integrity sha512-HRIgIgZAEK8XFYYepL/KtygJgmcUPdgxBJl0ueSrA12lNo2tk5aMkSuA2Oz/k6chnTbEwd6ESMYCs6opgYKNHw==
+  dependencies:
+    ufo "^1.5.4"
 
 slash@^4.0.0:
   version "4.0.0"

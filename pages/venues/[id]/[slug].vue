@@ -2,6 +2,7 @@
   <div>
     <h1>{{ venue.venuename }}</h1>
     <p>{{ venue.description }}</p>
+    <p>xxxx</p>
     <!-- Add more venue details here -->
   </div>
 </template>
