@@ -1,9 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 // import axios from "axios";
 export default defineNuxtConfig({
-  // serverMiddleware: [
-  //   { path: '/api', handler: '~/middleware/cors.js' } // Apply CORS middleware to '/api' routes
-  // ],
+  serverMiddleware: [
+    { path: '/.well-known', handler: '~/static/.well-known' } // Serve static files from .well-known directory
+  ],
   runtimeConfig: {
     public: {
       baseURL: process.env.BASE_URL,
