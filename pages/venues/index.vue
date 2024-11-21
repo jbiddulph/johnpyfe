@@ -30,9 +30,13 @@
             <template #footer>
               <div class="flex justify-center">
                 <div v-if="user && userName === user.user_metadata.email" class="controls">
-                  <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" @click="openDetailsModal(venue)" />
+                  <NuxtLink :to="'/venues/' + venue.id + '/' + venue.slug">
+                  <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" color="teal">
+                    </UButton>
+                  </NuxtLink>
+                  <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" color="green" @click="openDetailsModal(venue)" />
                   <UButton icon="i-heroicons-pencil-square" class="mr-1 text-xs" size="sm" color="amber" @click="openEditModal(venue, venue.id)" />
-                  <UButton icon="i-heroicons-photo" class="mr-1 text-xs" size="sm" color="amber" @click="openPhotoUploadModal(venue, venue.id)" />
+                  <UButton icon="i-heroicons-photo" class="mr-1 text-xs" size="sm" color="pink" @click="openPhotoUploadModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-map-pin" class="mr-1 text-xs" size="sm" color="blue" @click="openMapModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-calendar" class="mr-1 text-xs" size="sm" color="violet" @click="openAddEventModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-trash" class="text-xs" size="sm" color="red" @click="openDeleteModal(venue, venue.id)" />

@@ -104,7 +104,6 @@ export const useVenueStore = defineStore({
         if (!response.ok) {
           throw new Error('Failed to fetch venue details');
         }
-        console.log("response: ", response);
         const content = await response.json();
         this.venue = content;
         return content;
