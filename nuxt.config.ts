@@ -1,9 +1,5 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
-// import axios from "axios";
+
 export default defineNuxtConfig({
-  serverMiddleware: [
-    { path: '/.well-known', handler: '~/static/.well-known' } // Serve static files from .well-known directory
-  ],
   runtimeConfig: {
     public: {
       baseURL: process.env.BASE_URL,
@@ -16,7 +12,6 @@ export default defineNuxtConfig({
       eventImgFolder: process.env.EVENT_IMG_FOLDER,
       venueImgFolder: process.env.VENUE_IMG_FOLDER,
       admin: process.env.ADMIN_EMAIL,
-      // apiURL: process.env.NUXT_PUBLIC_API_URL ?? "http://lookwhatfound.me",
       mapbox_token:
             "pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA",
     }
