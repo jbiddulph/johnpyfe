@@ -23,7 +23,7 @@ bun install
 
 ## Development Server
 
-Start the development server on `http://lookwhatfound.me`:
+Start the development server on `http://ukpubs.co.uk`:
 
 ```bash
 # npm
