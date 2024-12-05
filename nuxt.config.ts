@@ -3,8 +3,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       baseURL: process.env.BASE_URL,
-      appURL: process.env.NUXT_PUBLIC_APP_URL ?? "https://lookwhatfound.me",
-      apiURL: process.env.NUXT_PUBLIC_API_URL ?? "https://lookwhatfound.me",
+      appURL: process.env.NUXT_PUBLIC_APP_URL ?? "https://ukpubs.co.uk",
+      apiURL: process.env.NUXT_PUBLIC_API_URL ?? "https://ukpubs.co.uk",
       userName: process.env.USER_NAME,
       googleMaps: {
         key: 'AIzaSyBWiPC71sMkSoaa0TNrioE8CP1Ll5HmpZ4'
@@ -37,7 +37,7 @@ export default defineNuxtConfig({
     }
   },
   sitemap: {
-    sources: ['https://lookwhatfound.me/api/venue-urls'],
+    sources: ['https://ukpubs.co.uk/api/venue-urls'],
   },
   mapbox: {
     accessToken: 'pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA'
