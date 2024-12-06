@@ -90,7 +90,25 @@
 
 <script lang="ts" setup>
 import { useAuthStore } from "../store/auth.js";
-import { onMounted, ref } from 'vue';
+useSeoMeta({
+  title: 'Pubs and venues around the UK',
+  description: 'Events listings website for pubs and venues around the UK',
+  og: {
+    title: 'Pubs and bars in and around the UK',
+    description: 'Live music, comedy, gigs, quizzes and other events at your local pub',
+  },
+})
+
+// Use `useHead` for more control, such as custom meta tags or other head elements
+useHead({
+  title: 'My App',
+  meta: [
+    { name: 'description', content: 'Pub listings UK, events at venues and bars in the uk' },
+    { name: 'robots', content: 'index, follow' },
+    { name: 'author', content: 'John Biddulph - UK Pubs' },
+    { property: 'og:image', content: '/favicon-96x96.png' },  // Example of custom meta tag
+  ],
+})
 const user = useSupabaseUser();
 const supabase = useSupabaseClient();
 const authStore = useAuthStore();
