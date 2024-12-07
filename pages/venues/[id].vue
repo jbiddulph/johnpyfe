@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto p-4">
-    <h1 class="text-4xl font-100 my-8">
+    <h1 class="text-4xl font-bold my-8">
       <NuxtLink to="/venues">
         <span class="text-amber-500">Venues</span></NuxtLink>
         - {{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}
