@@ -3,8 +3,8 @@
     <nav class="bg-white border-gray-200 dark:bg-gray-900">
       <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 sticky">
         <NuxtLink to="/" class="h-12 flex items-center space-x-3 rtl:space-x-reverse">
-            <img src="@/assets/2907054.png" class="h-8 w-10" alt="UK Pubs Logo" />
-            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">UKPubs.co.uk</span>
+            <img src="@/assets/2907054.png" class="h-8 w-8" alt="UK Pubs Logo" />
+            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white" title="Pubs in the UK">UKPubs.co.uk</span>
         </NuxtLink>
         <button @click="toggleMenu" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="navbar-default" aria-expanded="false">
             <span class="sr-only">Open main menu</span>
@@ -73,31 +73,31 @@
       <slot />
     </main>
     <footer>
-      <div class="bg-gray-800 text-white">
+      <div class="bg-gray-800 text-white p-4">
         <div class="container mx-auto py-12">
           <ul>
             <li><NuxtLink to="/">Home</NuxtLink></li>
             <li></li>
           </ul>
           <p>
-            <i><NuxtLink to="/">ukpubs.co.uk</NuxtLink></i> is an events listings website for pubs and venues  around the UK
+            <i><NuxtLink to="/" title="UK Pubs">ukpubs.co.uk</NuxtLink></i> is an events listings website for pubs and venues  around the UK
           </p>
           <p>More events at the following venues</p>
           <div v-if="eventsFetched" class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
             <!-- Venue Section -->
-            <div>
-              <h3 class="text-2xl">Pubs / Venues</h3>
-              <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+            <div class="border-b-2 sm:border-b-0">
+              <h3 class="text-2xl mb-4">Top 10 venues with events</h3>
+              <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4 sm:mb-0">
                 <li v-for="event in eventStore.venues" :key="event.venueId">
-                  <NuxtLink :to="`/venues/${event.venueId}/${event.slug}`">{{ event.venueName }} ({{ event.count }})</NuxtLink>
+                  <NuxtLink :to="`/venues/${event.venueId}/${event.slug}`" :title="`${event.venueName} in ${event.town}`">{{ event.venueName }} ({{ event.count }})</NuxtLink>
                 </li>
               </ul>
             </div>
 
             <!-- Town Section -->
-            <div>
-              <h3 class="text-2xl">Towns</h3>
-              <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+            <div class="border-b-2 sm:border-b-0">
+              <h3 class="text-2xl mb-4">Top 10 towns with events</h3>
+              <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4 sm:mb-0">
                 <li v-for="town in eventStore.towns" :key="town.town">
                   {{ town.town }} ({{ town.eventCount }})
                 </li>
@@ -105,6 +105,9 @@
             </div>
           </div>
         </div>
+      </div>
+      <div class="bg-gray-900 text-white text-xs text-center py-4 px-4">
+        &copy; 2021 - 2025 <NuxtLink to="/" title="UK Pubs listing">UKPubs.co.uk</NuxtLink> - events listings for pubs and venues in the UK
       </div>
     </footer>
   </div>
@@ -114,10 +117,10 @@
 import { useAuthStore } from "~/store/auth.js";
 import { useEventStore } from '~/store/event.js';
 useSeoMeta({
-  title: 'Pubs and venues around the UK',
-  description: 'Events listings website for pubs and venues around the UK',
+  title: 'Pubs and venues listings in the UK',
+  description: 'Events listings website for pubs and venues in the UK',
   og: {
-    title: 'Pubs and bars in and around the UK',
+    title: 'Pubs, bars and venues in and around the UK',
     description: 'Live music, comedy, gigs, quizzes and other events at your local pub',
   },
 })
@@ -126,7 +129,7 @@ useSeoMeta({
 useHead({
   title: 'My App',
   meta: [
-    { name: 'description', content: 'Pub listings UK, events at venues and bars in the uk' },
+    { name: 'description', content: 'UK Pub listings, events at venues and bars in the uk' },
     { name: 'robots', content: 'index, follow' },
     { name: 'author', content: 'John Biddulph - UK Pubs' },
     { property: 'og:image', content: '/favicon-96x96.png' },  // Example of custom meta tag
