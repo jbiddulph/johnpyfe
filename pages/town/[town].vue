@@ -6,12 +6,11 @@
         :alt="townName"
         :title="townName"
         class="w-full h-auto object-cover" />
-      <h1 class="text-6xl md:text-8xl absolute inset-0 flex items-center justify-center text-white">{{ townName }}</h1>
+      <h1 class="text-6xl md:text-8xl absolute inset-0 flex items-center justify-center text-white drop-shadow-md">{{ townName }}</h1>
     </div>
     <div class="container mx-auto">
-      
       <ul>
-        <li v-for="event in events" :key="event.id">{{ event.name }}</li>
+        <li v-for="event in events" :key="event.id">{{ event.event_title }}</li>
       </ul>
     </div>
   </div>
