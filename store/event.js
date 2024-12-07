@@ -8,6 +8,8 @@ export const useEventStore = defineStore({
     event: {},
     cities: [],
     categories: [],
+    venues: [],
+    towns: [],
     currentPage: 1,
     totalPages: 1,
     paginatedEvents: [],
@@ -160,7 +162,26 @@ export const useEventStore = defineStore({
         console.error('Error loading events:', error);
         this.events = []; // Assign an empty array on error
       }
-    },  
+    },
+    async fetchAllEventsTopten() {
+      try {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/top-ten`);
+        const data = await response.json();
+    
+        if (data.limitedVenues && data.limitedTowns) {
+          this.venues = data.limitedVenues;  // Store the venues data
+          this.towns = data.limitedTowns;    // Store the towns data
+        } else {
+          console.error("Unexpected data format:", data);
+          this.venues = [];
+          this.towns = [];
+        }
+      } catch (error) {
+        console.error('Error loading events:', error);
+        this.venues = [];
+        this.towns = [];
+      }
+    }, 
     async fetchVenueEvents(id) {
       try {
         const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/venue/${id}`, {

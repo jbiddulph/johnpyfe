@@ -73,8 +73,8 @@
       <slot />
     </main>
     <footer>
-      <div>
-        <div class="container mx-auto">
+      <div class="bg-gray-800 text-white">
+        <div class="container mx-auto py-12">
           <ul>
             <li><NuxtLink to="/">Home</NuxtLink></li>
             <li></li>
@@ -82,6 +82,28 @@
           <p>
             <i><NuxtLink to="/">ukpubs.co.uk</NuxtLink></i> is an events listings website for pubs and venues  around the UK
           </p>
+          <p>More events at the following venues</p>
+          <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+            <!-- Venue Section -->
+            <div>
+              <h3 class="text-2xl">Pubs / Venues</h3>
+              <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                <li v-for="event in eventStore.venues.reverse()" :key="event.venueId">
+                  <NuxtLink :to="`/venues/${event.venueId}/${event.slug}`">{{ event.venueName }} ({{ event.count }})</NuxtLink>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Town Section -->
+            <div>
+              <h3 class="text-2xl">Towns</h3>
+              <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                <li v-for="town in eventStore.towns.reverse()" :key="town.town">
+                  {{ town.town }} ({{ town.eventCount }})
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
@@ -90,6 +112,7 @@
 
 <script lang="ts" setup>
 import { useAuthStore } from "../store/auth.js";
+import { useEventStore } from '@/store/event.js';
 useSeoMeta({
   title: 'Pubs and venues around the UK',
   description: 'Events listings website for pubs and venues around the UK',
@@ -109,6 +132,7 @@ useHead({
     { property: 'og:image', content: '/favicon-96x96.png' },  // Example of custom meta tag
   ],
 })
+const eventStore = useEventStore();
 const user = useSupabaseUser();
 const supabase = useSupabaseClient();
 const authStore = useAuthStore();
@@ -122,8 +146,9 @@ const checkUserAuthentication = async () => {
   }
 }
 
-onMounted(() => {
+onMounted( async() => {
   checkUserAuthentication(); // Check user authentication on page load
+  eventStore.fetchAllEventsTopten();
 });
 
 const logout = async () => {
