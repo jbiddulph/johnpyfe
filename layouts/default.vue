@@ -83,12 +83,12 @@
             <i><NuxtLink to="/">ukpubs.co.uk</NuxtLink></i> is an events listings website for pubs and venues  around the UK
           </p>
           <p>More events at the following venues</p>
-          <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+          <div v-if="eventsFetched" class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
             <!-- Venue Section -->
             <div>
               <h3 class="text-2xl">Pubs / Venues</h3>
               <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                <li v-for="event in eventStore.venues.reverse()" :key="event.venueId">
+                <li v-for="event in eventStore.venues" :key="event.venueId">
                   <NuxtLink :to="`/venues/${event.venueId}/${event.slug}`">{{ event.venueName }} ({{ event.count }})</NuxtLink>
                 </li>
               </ul>
@@ -98,7 +98,7 @@
             <div>
               <h3 class="text-2xl">Towns</h3>
               <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                <li v-for="town in eventStore.towns.reverse()" :key="town.town">
+                <li v-for="town in eventStore.towns" :key="town.town">
                   {{ town.town }} ({{ town.eventCount }})
                 </li>
               </ul>
@@ -111,8 +111,8 @@
 </template>
 
 <script lang="ts" setup>
-import { useAuthStore } from "../store/auth.js";
-import { useEventStore } from '@/store/event.js';
+import { useAuthStore } from "~/store/auth.js";
+import { useEventStore } from '~/store/event.js';
 useSeoMeta({
   title: 'Pubs and venues around the UK',
   description: 'Events listings website for pubs and venues around the UK',
@@ -138,6 +138,7 @@ const supabase = useSupabaseClient();
 const authStore = useAuthStore();
 const loggedIn = ref(false);
 const showMenu = ref(false);
+const eventsFetched = ref(false);
 
 const checkUserAuthentication = async () => {
   if (localStorage.getItem("userToken")) {
@@ -146,10 +147,14 @@ const checkUserAuthentication = async () => {
   }
 }
 
-onMounted( async() => {
+onMounted(async () => {
+  console.log('onMounted called');
   checkUserAuthentication(); // Check user authentication on page load
-  if (eventStore.events.length === 0) {
-    eventStore.fetchAllEventsTopten();
+  if (eventStore.events.length === 0 && !eventsFetched.value) {
+    console.log('Fetching events');
+    eventsFetched.value = true; // Set the flag to true to prevent recursive updates
+    await eventStore.fetchAllEventsTopten();
+    console.log('Events fetched');
   }
 });
 
