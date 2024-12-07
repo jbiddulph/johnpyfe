@@ -148,7 +148,9 @@ const checkUserAuthentication = async () => {
 
 onMounted( async() => {
   checkUserAuthentication(); // Check user authentication on page load
-  eventStore.fetchAllEventsTopten();
+  if (eventStore.events.length === 0) {
+    eventStore.fetchAllEventsTopten();
+  }
 });
 
 const logout = async () => {
