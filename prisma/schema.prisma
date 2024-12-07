@@ -43,6 +43,7 @@ model Venue {
 model City {
   id        Int      @id @default(autoincrement())
   name      String
+  slug      String   @unique
   events    Event[]  @relation("CityEvents")
 }
 

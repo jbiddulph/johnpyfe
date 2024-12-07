@@ -88,7 +88,7 @@
             <div class="border-b-2 sm:border-b-0">
               <h3 class="text-2xl mb-4">Top 10 venues with events</h3>
               <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4 sm:mb-0">
-                <li v-for="event in eventStore.venues" :key="event.venueId">
+                <li v-for="event in reversedVenues" :key="event.venueId">
                   <NuxtLink :to="`/venues/${event.venueId}/${event.slug}`" :title="`${event.venueName} in ${event.town}`">{{ event.venueName }} ({{ event.count }})</NuxtLink>
                 </li>
               </ul>
@@ -98,8 +98,8 @@
             <div class="border-b-2 sm:border-b-0">
               <h3 class="text-2xl mb-4">Top 10 towns with events</h3>
               <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4 sm:mb-0">
-                <li v-for="town in eventStore.towns" :key="town.town">
-                  {{ town.town }} ({{ town.eventCount }})
+                <li v-for="town in townsWithSlug" :key="town.town">
+                  <NuxtLink :to="`/town/${town.townslug}`" :title="`Events in ${town.town}`">{{ town.town }} ({{ town.eventCount }})</NuxtLink>
                 </li>
               </ul>
             </div>
@@ -142,7 +142,13 @@ const authStore = useAuthStore();
 const loggedIn = ref(false);
 const showMenu = ref(false);
 const eventsFetched = ref(false);
-
+const reversedVenues = computed(() => [...eventStore.venues].reverse());
+const townsWithSlug = computed(() => {
+  return eventStore.towns.map(town => {
+    const townslug = town.town.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and');
+    return { ...town, townslug };
+  }).reverse();
+});
 const checkUserAuthentication = async () => {
   if (localStorage.getItem("userToken")) {
     // If user token exists, fetch user details
