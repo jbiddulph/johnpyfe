@@ -12,6 +12,8 @@ export default defineEventHandler(async (event) => {
       events: {
         include: {
           city: true, // Ensure city information is included
+          category: true,
+          listing: true,
         },
       },
     },
