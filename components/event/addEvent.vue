@@ -247,7 +247,7 @@ const submitEventForm = async (curuser) => {
     console.log("Event start:", eventStartValue);
     // Handle photo upload
     let photoPath = formData.value.photo;
-    
+    console.log("Photo path:", photoPath);
     if (formData.value.photo instanceof File) {
       const fileName = Date.now().toString();
       const { data, error } = await supabase.storage
@@ -256,14 +256,13 @@ const submitEventForm = async (curuser) => {
 
       if (error) throw error;
       photoPath = data.path;
-      console.log("Photo path:", photoPath);
+
       // Delete the previous photo after uploading the new one
       if (isEditMode.value && newPhotoSelected.value) {
         await deletePreviousPhoto();
       }
     } else if (isEditMode.value) {
       photoPath = props.event.photo;
-      console.log("edit mode Photo path:", photoPath);
     }
 
     const eventData = {
@@ -271,7 +270,7 @@ const submitEventForm = async (curuser) => {
       photo: photoPath,
       created_at: new Date().toISOString(),
     };
-    console.log("Event data:", eventData);
+
     if (isEditMode.value) {
       await eventStore.updateEvent(props.event.id, eventData);
       await eventStore.fetchAllEvents();
