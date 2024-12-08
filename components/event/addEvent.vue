@@ -7,7 +7,7 @@
       Edit Event: {{ formData.event_title }}
     </h3>
     <h3 v-else>
-      Add Event for {{ props.venue ? props.venue.venuename : selected.concatenatedName }}
+      Add Event for {{ props.venue ? props.venue.venuename : selected?.concatenatedName }}
       <button v-if="selected.length" class="rounded-full p-0 m-0 flex w-4 h-4 bg-red-500" @click="clear">&nbsp;</button>
     </h3>
     <div v-if="!props.venue">
