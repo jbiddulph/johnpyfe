@@ -23,8 +23,6 @@
             </div>
             <event-listing 
               :event="event"
-              :formatDate="formatDate"
-              :countdowns="countdowns"
               :index="index" 
             />
           </li>
@@ -203,14 +201,10 @@ onMounted( async() => {
     if(props.venueId){
       eventStore.events = await eventStore.fetchVenueEvents(props.venueId);
     }
-    startCountdowns();
   } catch (error) {
     console.error("Error fetching events:", error);
   }
 });
-
-const countdowns = ref([]);  // Array to store countdowns for each event
-
 </script>
 
 <style lang="scss">
