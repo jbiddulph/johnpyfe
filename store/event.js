@@ -154,7 +154,6 @@ export const useEventStore = defineStore({
           this.events = []; // Assign an empty array to avoid further errors
         }
     
-        console.log("events.value: ", this.events);
         this.totalItems = data.length;
         const totalPagesCount = Math.ceil(this.totalItems / this.itemsPerPage);
         this.totalPages = this.totalPagesCount;
