@@ -224,7 +224,7 @@ const submitEventForm = async (curuser) => {
   isSaving.value = true;
   try {
     userId.value = curuser;
-
+    console.log("User ID:", userId.value);
     // Validate venue_id and listingId
     if (!formData.value.venue_id || !formData.value.listingId) {
       if (selected.value && selected.value.id) {
@@ -244,9 +244,10 @@ const submitEventForm = async (curuser) => {
       throw new Error("Invalid event_start value");
     }
     formData.value.event_start = eventStartValue;
-
+    console.log("Event start:", eventStartValue);
     // Handle photo upload
     let photoPath = formData.value.photo;
+    console.log("Photo path:", photoPath);
     if (formData.value.photo instanceof File) {
       const fileName = Date.now().toString();
       const { data, error } = await supabase.storage
