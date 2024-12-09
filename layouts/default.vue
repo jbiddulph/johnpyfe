@@ -127,7 +127,7 @@ useSeoMeta({
 
 // Use `useHead` for more control, such as custom meta tags or other head elements
 useHead({
-  title: 'My App',
+  title: 'UK Pubs',
   meta: [
     { name: 'description', content: 'UK Pub listings, events at venues and bars in the uk' },
     { name: 'robots', content: 'index, follow' },
