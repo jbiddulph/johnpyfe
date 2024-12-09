@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const fsa = await prisma.venue.findUnique({
     where: {
       id: parseInt(id)
-    }
+    },
   })
   if(!fsa) {
     throw createError({

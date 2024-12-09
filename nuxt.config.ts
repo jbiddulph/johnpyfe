@@ -1,5 +1,8 @@
 
 export default defineNuxtConfig({
+  css: [
+    'mapbox-gl/dist/mapbox-gl.css'
+  ],
   runtimeConfig: {
     public: {
       baseURL: process.env.BASE_URL,
