@@ -42,15 +42,6 @@
         <eventDetails class="h-auto w-auto" :content="content" :venue="venue" />
       </UCard>
     </UModal>
-    <!-- <UModal v-model="isAddEditOpen" prevent-close>
-      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
-        <div class="flex justify-end">
-          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isAddEditOpen = false" />
-        </div>
-        Venue ID: {{ venueid }}
-        <event-addEditEvent class="h-48" :venueid="venueid" @closeModal="handleCloseModal" />
-      </UCard>
-    </UModal> -->
     <UModal v-model="isAddEventOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <div class="flex justify-end">
@@ -59,14 +50,6 @@
         <event-addEvent :editing="editMode" :venueid="venueid" :event="content" @closeModal="handleCloseModal" />
       </UCard>
     </UModal>
-    <!-- <UModal v-model="isMapOpen" prevent-close>
-      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
-        <div class="flex justify-end">
-          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isMapOpen = false" />
-        </div>
-        <venue-mapVenue class="h-48" :editing="editMode" :venueid="venueid" @closeModal="handleCloseModal" />
-      </UCard>
-    </UModal> -->
     <UModal v-model="isDeleteOpen" prevent-close>
       <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
         <div class="flex justify-end">
