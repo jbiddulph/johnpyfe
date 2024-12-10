@@ -5,11 +5,13 @@ export const useEventStore = defineStore({
   id: 'event',
   state: () => ({
     events: [],
+    townEvents: [],
     event: {},
     cities: [],
     categories: [],
     venues: [],
     towns: [],
+    selectedTown: "",
     currentPage: 1,
     totalPages: 1,
     paginatedEvents: [],
@@ -195,6 +197,21 @@ export const useEventStore = defineStore({
         return content;
       } catch (error) {
         console.error("Error fetching event:", error);
+      }
+    },
+    async fetchTownEvents(townSlug) {
+      try {
+        const response = await fetch(`/api/events/town/${townSlug}`);
+        const data = await response.json();
+        console.log("Town Events:", data);
+        if (data && data.cityName && Array.isArray(data.events)) {
+          this.selectedTown = data.cityName;
+          this.townEvents = data.events;
+        } else {
+          console.error("Unexpected data format:", data);
+        }
+      } catch (error) {
+        console.error("Error fetching town events:", error);
       }
     },
     async fetchEventDetails(eventId) {
