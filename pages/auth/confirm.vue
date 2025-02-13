@@ -10,6 +10,7 @@
   <script setup>
   import { ref, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
+
   
   const route = useRoute();
   const router = useRouter();
@@ -20,16 +21,17 @@
   const confirmEmail = async () => {
     const token = route.query.token_hash;
     if (!token) {
-      error.value = 'Invalid confirmation token.';
+      error.value = 'Invalid token';
       loading.value = false;
       return;
     }
-  
+    
     try {
-      const { error: confirmError } = await supabase.auth.verifyEmail(token);
-      if (confirmError) {
-        throw confirmError;
-      }
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        type: 'email',
+        token,
+      });
+      if (verifyError) throw verifyError;
       loading.value = false;
     } catch (err) {
       error.value = err.message;
@@ -41,10 +43,3 @@
     confirmEmail();
   });
   </script>
-  
-  <style scoped>
-  .container {
-    max-width: 800px;
-    margin: 0 auto;
-  }
-  </style>
