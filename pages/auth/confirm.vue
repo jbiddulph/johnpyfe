@@ -10,7 +10,7 @@
   <script setup>
   import { ref, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-
+  import { useSupabaseClient } from '@supabase/supabase-js';
   
   const route = useRoute();
   const router = useRouter();
@@ -20,8 +20,9 @@
   
   const confirmEmail = async () => {
     const token = route.query.token_hash;
-    if (!token) {
-      error.value = 'Invalid token';
+    const email = route.query.email;
+    if (!token || !email) {
+      error.value = 'Invalid token or email';
       loading.value = false;
       return;
     }
@@ -30,6 +31,7 @@
       const { error: verifyError } = await supabase.auth.verifyOtp({
         type: 'email',
         token,
+        email,
       });
       if (verifyError) throw verifyError;
       loading.value = false;
