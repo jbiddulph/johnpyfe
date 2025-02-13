@@ -10,7 +10,6 @@
   <script setup>
   import { ref, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import { useSupabaseClient } from '@supabase/supabase-js';
   
   const route = useRoute();
   const router = useRouter();
