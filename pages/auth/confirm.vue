@@ -3,7 +3,8 @@
       <h1 class="text-2xl font-bold mb-4">Email Confirmation</h1>
       <div v-if="loading" class="text-center">Confirming your email...</div>
       <div v-else-if="error" class="text-center text-red-500">{{ error }}</div>
-      <div v-else class="text-center text-green-500">Your email has been confirmed successfully!</div>
+      <div v-else-if="success" class="text-center text-green-500">Your email has been confirmed successfully!</div>
+      <div v-else class="text-center text-red-500">Token has expired or is invalid</div>
       <div v-if="!loading && !error && !email">
         <input v-model="emailInput" type="email" placeholder="Enter your email" class="border p-2 mb-4 w-full" />
         <button @click="confirmEmail" class="bg-blue-500 text-white p-2 w-full">Confirm Email</button>
@@ -20,6 +21,7 @@
   const supabase = useSupabaseClient();
   const loading = ref(true);
   const error = ref(null);
+  const success = ref(false);
   const email = ref(route.query.email || '');
   const emailInput = ref(email.value);
   
@@ -39,6 +41,7 @@
         email: emailToVerify,
       });
       if (verifyError) throw verifyError;
+      success.value = true;
       loading.value = false;
     } catch (err) {
       error.value = err.message;
