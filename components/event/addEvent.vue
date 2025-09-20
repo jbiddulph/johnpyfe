@@ -32,7 +32,7 @@
         <UInput v-model="formData.event_title" type="text" id="event_title" name="event_title" />
       </div>
       <div>
-        <p for="description">Description (max 20 chars):</p>
+        <p for="description">Description (up to 5000 characters):</p>
         <UTextarea v-model="formData.description" id="description" name="description" :rows="4" cols="50"></UTextarea>
       </div>
       <div class="flex flex-row">
@@ -249,13 +249,18 @@ const submitEventForm = async (curuser) => {
     let photoPath = formData.value.photo;
     console.log("Photo path:", photoPath);
     if (formData.value.photo instanceof File) {
+      console.log("Uploading file to Supabase...");
       const fileName = Date.now().toString();
       const { data, error } = await supabase.storage
         .from("event_images")
         .upload(`public/${fileName}`, formData.value.photo);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase upload error:", error);
+        throw error;
+      }
       photoPath = data.path;
+      console.log("File uploaded successfully, path:", photoPath);
 
       // Delete the previous photo after uploading the new one
       if (isEditMode.value && newPhotoSelected.value) {
@@ -263,6 +268,8 @@ const submitEventForm = async (curuser) => {
       }
     } else if (isEditMode.value) {
       photoPath = props.event.photo;
+    } else {
+      photoPath = ""; // Set empty string if no photo
     }
 
     const eventData = {
@@ -271,13 +278,15 @@ const submitEventForm = async (curuser) => {
       created_at: new Date().toISOString(),
     };
 
+    console.log("Event data being submitted:", eventData);
+
     if (isEditMode.value) {
       await eventStore.updateEvent(props.event.id, eventData);
       await eventStore.fetchAllEvents();
       console.log("Event updated successfully");
     } else {
-      await eventStore.addEvent(eventData);
-      console.log("Event added successfully");
+      const createdEvent = await eventStore.addEvent(eventData);
+      console.log("Event added successfully:", createdEvent);
     }
 
     emits("closeModal");

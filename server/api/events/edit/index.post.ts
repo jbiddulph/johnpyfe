@@ -7,15 +7,15 @@ const prisma = new PrismaClient();
 // Define Joi schema for validation
 const schema = Joi.object({
   id: Joi.number().required(),
-  event_title: Joi.string().required().min(2),
-  description: Joi.string().optional().allow(''),
-  cost: Joi.string().optional().allow(''),
-  duration: Joi.string().optional().allow(''),
+  event_title: Joi.string().required().min(2).max(200),
+  description: Joi.string().optional().allow('').max(5000),
+  cost: Joi.string().optional().allow('').max(100),
+  duration: Joi.string().optional().allow('').max(50),
   event_start: Joi.date().iso().required(), // Strict ISO validation
   cityId: Joi.number().required(),
   categoryId: Joi.number().required(),
-  photo: Joi.string().allow("").optional().allow(''),
-  website: Joi.string().optional().allow(''),
+  photo: Joi.string().allow("").optional().allow('').max(500),
+  website: Joi.string().optional().allow('').max(500),
   created_at: Joi.date().optional(),
   user_id: Joi.string().required(),
   venue_id: Joi.number().required().min(0),

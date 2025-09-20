@@ -34,6 +34,11 @@ export const useEventStore = defineStore({
           requestBody = { ...newEvent }; // Clone the object to avoid mutation
         }
     
+        // Ensure description is a string and not undefined
+        if (requestBody.description === undefined || requestBody.description === null) {
+          requestBody.description = "";
+        }
+    
         // Ensure `venue_id` is a valid number
         if (requestBody.venue_id) {
           requestBody.venue_id = parseInt(requestBody.venue_id, 10);
@@ -45,6 +50,7 @@ export const useEventStore = defineStore({
         }
     
         console.log("Request Body for Add Event:", requestBody);
+        console.log("Making API call to:", `${useRuntimeConfig().public.baseURL}/api/events/add/`);
     
         const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events/add/`, {
           method: "POST",
@@ -55,16 +61,22 @@ export const useEventStore = defineStore({
           body: JSON.stringify(requestBody),
         });
     
+        console.log("API Response status:", response.status);
+        console.log("API Response ok:", response.ok);
+    
         if (!response.ok) {
           const errorDetails = await response.json();
           console.error("Error creating event:", errorDetails);
           throw new Error(`Failed to create event: ${response.statusText}`);
         }
     
+        const responseData = await response.json();
+        console.log("API Response data:", responseData);
         console.log("Event created successfully");
-        await navigateTo({ path: "/events" });
+        return responseData; // Return the created event data instead of navigating
       } catch (error) {
         console.error("Error creating event:", error);
+        throw error; // Re-throw to let the calling component handle it
       }
     },
     async updateEvent(eventId, eventData) {
@@ -78,6 +90,11 @@ export const useEventStore = defineStore({
           });
         } else {
           requestBody = { ...eventData };
+        }
+    
+        // Ensure description is a string and not undefined
+        if (requestBody.description === undefined || requestBody.description === null) {
+          requestBody.description = "";
         }
     
         // Ensure numeric fields
