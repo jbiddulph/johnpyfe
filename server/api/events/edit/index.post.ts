@@ -112,7 +112,6 @@ export default defineEventHandler(async (event) => {
         website,
         created_at,
         user_id,
-        venue_id,
         listingId,
       },
     });

@@ -7,7 +7,6 @@ const schema = Joi.object({
   created_at: Joi.date().required(),
   user_id: Joi.string().required(),
   venue_id: Joi.number().required().min(0),
-  listingId: Joi.number().required().min(0),
 });
 
 export default defineEventHandler(async(event) => {
@@ -24,15 +23,13 @@ export default defineEventHandler(async(event) => {
     created_at,
     user_id,
     venue_id,
-    listingId,
-  } = body;
+  } = value;
   const notedetails = await prisma.note.create({
     data: {
       text,
       created_at,
       user_id,
-      venue_id,
-      listingId,
+      listingId: venue_id,
     },
   });
   return notedetails;

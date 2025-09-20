@@ -42,8 +42,7 @@ export default defineEventHandler(async (event) => {
       website: body.website,
       created_at: new Date(),
       user_id: body.user_id,
-      venue_id: body.venue_id,
-      listingId: body.listingId,
+      listingId: body.venue_id,
       cityId: body.cityId,
       categoryId: body.categoryId,
     };

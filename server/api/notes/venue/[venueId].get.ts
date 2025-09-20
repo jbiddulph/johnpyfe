@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const { venueId } = event.context.params;
   const notes = await prisma.note.findMany({
     where: {
-      venue_id: parseInt(venueId)
+      listingId: parseInt(venueId)
     }
   })
   if(!notes) {
