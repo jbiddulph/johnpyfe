@@ -271,7 +271,12 @@ const submitEventForm = async (curuser) => {
     // Handle photo upload
     let photoPath = formData.value.photo;
     console.log("Photo path:", photoPath);
-    if (formData.value.photo instanceof File) {
+    
+    // TEMPORARY: Skip photo upload for debugging
+    console.log("TEMPORARY: Skipping photo upload for debugging");
+    photoPath = "";
+    
+    if (false && formData.value.photo instanceof File) {
       console.log("Uploading file to Supabase...");
       console.log("File details:", {
         name: formData.value.photo.name,
@@ -282,17 +287,41 @@ const submitEventForm = async (curuser) => {
       try {
         const fileName = Date.now().toString();
         console.log("Uploading to path:", `public/${fileName}`);
+        console.log("About to call supabase.storage.from('event_images').upload()");
         
-        // Add timeout to the upload (reduced to 10 seconds for faster feedback)
+        // Test if we can access the bucket first
+        console.log("Testing bucket access...");
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+        console.log("Bucket test result:", { buckets, bucketError });
+        
+        if (bucketError) {
+          throw new Error(`Cannot access buckets: ${bucketError.message}`);
+        }
+        
+        // Test if we can access the specific bucket
+        console.log("Testing event_images bucket access...");
+        const { data: files, error: listError } = await supabase.storage
+          .from("event_images")
+          .list("public", { limit: 1 });
+        console.log("Bucket list test result:", { files, listError });
+        
+        if (listError) {
+          throw new Error(`Cannot access event_images bucket: ${listError.message}`);
+        }
+        
+        // Add timeout to the upload (reduced to 5 seconds for faster feedback)
+        console.log("Starting upload with 5-second timeout...");
         const uploadPromise = supabase.storage
           .from("event_images")
           .upload(`public/${fileName}`, formData.value.photo);
         
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Upload timeout after 10 seconds')), 10000)
+          setTimeout(() => reject(new Error('Upload timeout after 5 seconds')), 5000)
         );
         
+        console.log("About to call Promise.race()...");
         const { data, error } = await Promise.race([uploadPromise, timeoutPromise]);
+        console.log("Promise.race() completed with result:", { data, error });
 
         if (error) {
           console.error("Supabase upload error:", error);
