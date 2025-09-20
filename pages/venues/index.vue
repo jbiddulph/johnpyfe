@@ -167,14 +167,32 @@ const fetchAllVenues = async () => {
   try {
     const skip = (currentPage.value - 1) * itemsPerPage.value;
     const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const data = await response.json();
-    venues.value = data;
-    totalItems.value = data.length;
+    
+    if (Array.isArray(data)) {
+      venues.value = data;
+      totalItems.value = data.length;
+      towns.value = [...new Set(data.map((venue: any) => venue.town))]; // Extract unique towns
+    } else {
+      console.error("Unexpected data format:", data);
+      venues.value = [];
+      totalItems.value = 0;
+      towns.value = [];
+    }
+    
     const totalPagesCount = Math.ceil(totalItems.value / itemsPerPage.value);
     totalPages.value = totalPagesCount;
-    towns.value = [...new Set(data.map((venue: any) => venue.town))]; // Extract unique towns
   } catch (error) {
     console.error('Error loading venues:', error);
+    venues.value = [];
+    totalItems.value = 0;
+    towns.value = [];
+    totalPages.value = 1;
   }
 };
 const filteredVenues = computed(() => {

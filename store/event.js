@@ -147,21 +147,29 @@ export const useEventStore = defineStore({
       try {
         const skip = (this.currentPage - 1) * this.itemsPerPage;
         const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events?skip=${skip}&take=${this.itemsPerPage}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (Array.isArray(data)) {
           this.events = data;
+          this.totalItems = data.length;
         } else {
           console.error("Unexpected data format:", data);
           this.events = []; // Assign an empty array to avoid further errors
+          this.totalItems = 0;
         }
     
-        this.totalItems = data.length;
         const totalPagesCount = Math.ceil(this.totalItems / this.itemsPerPage);
-        this.totalPages = this.totalPagesCount;
+        this.totalPages = totalPagesCount;
       } catch (error) {
         console.error('Error loading events:', error);
         this.events = []; // Assign an empty array on error
+        this.totalItems = 0;
+        this.totalPages = 1;
       }
     },
     async fetchAllEventsTopten() {
