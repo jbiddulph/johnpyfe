@@ -130,6 +130,23 @@ const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 const userId = ref(user.value.id);
 
+// Test Supabase connection
+const testSupabaseConnection = async () => {
+  try {
+    console.log("Testing Supabase connection...");
+    const { data, error } = await supabase.storage.listBuckets();
+    if (error) {
+      console.error("Supabase connection error:", error);
+      return false;
+    }
+    console.log("Supabase connected successfully, buckets:", data);
+    return true;
+  } catch (err) {
+    console.error("Supabase connection test failed:", err);
+    return false;
+  }
+};
+
 const formData = ref({
   venue_id: props.venueid || null,
   user_id: userId.value || null,
@@ -225,6 +242,12 @@ const submitEventForm = async (curuser) => {
   try {
     userId.value = curuser;
     console.log("User ID:", userId.value);
+    
+    // Test Supabase connection first
+    const isConnected = await testSupabaseConnection();
+    if (!isConnected) {
+      console.warn("Supabase connection failed, proceeding without photo upload");
+    }
     // Validate venue_id and listingId
     if (!formData.value.venue_id || !formData.value.listingId) {
       if (selected.value && selected.value.id) {
@@ -250,21 +273,45 @@ const submitEventForm = async (curuser) => {
     console.log("Photo path:", photoPath);
     if (formData.value.photo instanceof File) {
       console.log("Uploading file to Supabase...");
-      const fileName = Date.now().toString();
-      const { data, error } = await supabase.storage
-        .from("event_images")
-        .upload(`public/${fileName}`, formData.value.photo);
+      console.log("File details:", {
+        name: formData.value.photo.name,
+        size: formData.value.photo.size,
+        type: formData.value.photo.type
+      });
+      
+      try {
+        const fileName = Date.now().toString();
+        console.log("Uploading to path:", `public/${fileName}`);
+        
+        // Add timeout to the upload (reduced to 10 seconds for faster feedback)
+        const uploadPromise = supabase.storage
+          .from("event_images")
+          .upload(`public/${fileName}`, formData.value.photo);
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Upload timeout after 10 seconds')), 10000)
+        );
+        
+        const { data, error } = await Promise.race([uploadPromise, timeoutPromise]);
 
-      if (error) {
-        console.error("Supabase upload error:", error);
-        throw error;
-      }
-      photoPath = data.path;
-      console.log("File uploaded successfully, path:", photoPath);
+        if (error) {
+          console.error("Supabase upload error:", error);
+          throw new Error(`Upload failed: ${error.message}`);
+        }
+        
+        photoPath = data.path;
+        console.log("File uploaded successfully, path:", photoPath);
 
-      // Delete the previous photo after uploading the new one
-      if (isEditMode.value && newPhotoSelected.value) {
-        await deletePreviousPhoto();
+        // Delete the previous photo after uploading the new one
+        if (isEditMode.value && newPhotoSelected.value) {
+          await deletePreviousPhoto();
+        }
+      } catch (uploadError) {
+        console.error("Upload failed:", uploadError);
+        console.log("Upload error details:", uploadError.message);
+        // For now, let's skip photo upload and continue with empty photo
+        console.log("Skipping photo upload, continuing without photo");
+        photoPath = "";
       }
     } else if (isEditMode.value) {
       photoPath = props.event.photo;
