@@ -51,8 +51,11 @@ const username = ref("");
 const password = ref("");
 const supabase = useSupabaseClient()
 const handleGoogleLogin = async () => {
-  const {err} = supabase.auth.signInWithOAuth({
-    provider: "google"
+  const {err} = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/auth/confirm`
+    }
   })
   if(err) {
     console.log("there was an error logging in: ", err);
