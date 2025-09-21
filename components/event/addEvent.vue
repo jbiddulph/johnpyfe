@@ -148,9 +148,9 @@ const testSupabaseConnection = async () => {
 };
 
 const formData = ref({
-  venue_id: props.venueid || null,
+  venue_id: props.venueid || props.event?.listingId || props.event?.venue_id || null,
   user_id: userId.value || null,
-  listingId: props.venueid || null,
+  listingId: props.venueid || props.event?.listingId || props.event?.venue_id || null,
   event_title: props.event?.event_title || "",
   description: props.event?.description || "",
   cost: props.event?.cost || "",
@@ -249,14 +249,26 @@ const submitEventForm = async (curuser) => {
       console.warn("Supabase connection failed, proceeding without photo upload");
     }
     // Validate venue_id and listingId
+    console.log("Event props:", props.event);
+    console.log("Selected venue:", selected.value);
+    console.log("Current formData:", formData.value);
+    
     if (!formData.value.venue_id || !formData.value.listingId) {
       if (selected.value && selected.value.id) {
         formData.value.venue_id = parseInt(selected.value.id, 10);
         formData.value.listingId = parseInt(selected.value.id, 10);
-      } else if (props.event && props.event.venue_id) {
-        formData.value.venue_id = parseInt(props.event.venue_id, 10);
-        formData.value.listingId = parseInt(props.event.listingId, 10);
+      } else if (props.event && (props.event.listingId || props.event.venue_id)) {
+        // Use listingId if available, otherwise fall back to venue_id
+        const venueId = props.event.listingId || props.event.venue_id;
+        formData.value.venue_id = parseInt(venueId, 10);
+        formData.value.listingId = parseInt(venueId, 10);
+        console.log("Using venue ID from event:", venueId);
       } else {
+        console.error("No venue data available:", {
+          selected: selected.value,
+          event: props.event,
+          formData: formData.value
+        });
         throw new Error("No valid venue selected or fallback available");
       }
     }
@@ -376,9 +388,10 @@ onMounted(async () => {
   }
   eventStore.fetchCities();
   eventStore.fetchCategories();
-  if (isEditMode.value && props.event.venue_id) {
+  if (isEditMode.value && (props.event.listingId || props.event.venue_id)) {
     const venues = await search(""); // Fetch all venues
-    const venueDetails = await venueStore.fetchVenueDetails(props.event.venue_id);
+    const venueId = props.event.listingId || props.event.venue_id;
+    const venueDetails = await venueStore.fetchVenueDetails(venueId);
 
     selected.value = venueDetails.venuename; // Set the dropdown to the selected venue
     venueid.value = venueDetails.id;
