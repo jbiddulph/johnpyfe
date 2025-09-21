@@ -144,11 +144,11 @@ const openEditModal = (event: object, id: Number) => {
   eventid.value = id
 }
 const openAddEventModal = () => {
-  console.log("clicked");
+  console.log("clicked - adding new event");
   isAddEventOpen.value = true
-  editMode.value = true
-  content.value = event
-  console.log("content: ", content.value);
+  editMode.value = false  // This should be false for adding new events
+  content.value = {}      // Empty object for new events
+  console.log("content for new event: ", content.value);
 }
 const openEditEventModal = (event) => {
   console.log("clicked");

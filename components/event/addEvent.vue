@@ -183,7 +183,7 @@ async function search(q: string) {
   return response;
 }
 const currentPhotoUrl = computed(() => {
-  return isEditMode.value ? props.event.photo : "";
+  return isEditMode.value && props.event?.photo ? props.event.photo : "";
 });
 
 const eventDate = ref("");
@@ -191,7 +191,7 @@ const eventTime = ref("");
 
 const isEditMode = computed(() => props.event && Object.keys(props.event).length > 0);
 
-if (isEditMode.value && props.event.event_start) {
+if (isEditMode.value && props.event?.event_start) {
   const [date, time] = props.event.event_start.split("T");
   eventDate.value = date || "";
   eventTime.value = time?.slice(0, 5) || ""; // Extract HH:MM
@@ -350,7 +350,7 @@ const submitEventForm = async (curuser) => {
         console.log("Skipping photo upload, continuing without photo");
         photoPath = "";
       }
-    } else if (isEditMode.value) {
+    } else if (isEditMode.value && props.event?.photo) {
       photoPath = props.event.photo;
     } else {
       photoPath = ""; // Set empty string if no photo
@@ -365,7 +365,7 @@ const submitEventForm = async (curuser) => {
     console.log("Final photoPath value:", photoPath);
     console.log("Event data being submitted:", eventData);
 
-    if (isEditMode.value) {
+    if (isEditMode.value && props.event?.id) {
       await eventStore.updateEvent(props.event.id, eventData);
       await eventStore.fetchAllEvents();
       console.log("Event updated successfully");
