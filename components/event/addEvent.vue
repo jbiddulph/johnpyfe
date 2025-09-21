@@ -272,11 +272,7 @@ const submitEventForm = async (curuser) => {
     let photoPath = formData.value.photo;
     console.log("Photo path:", photoPath);
     
-    // TEMPORARY: Skip photo upload for debugging
-    console.log("TEMPORARY: Skipping photo upload for debugging");
-    photoPath = "";
-    
-    if (false && formData.value.photo instanceof File) {
+    if (formData.value.photo instanceof File) {
       console.log("Uploading file to Supabase...");
       console.log("File details:", {
         name: formData.value.photo.name,
@@ -354,6 +350,7 @@ const submitEventForm = async (curuser) => {
       created_at: new Date().toISOString(),
     };
 
+    console.log("Final photoPath value:", photoPath);
     console.log("Event data being submitted:", eventData);
 
     if (isEditMode.value) {
