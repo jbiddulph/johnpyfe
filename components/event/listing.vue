@@ -56,10 +56,14 @@ onMounted( async() => {
 });
 function calculateCountdown(eventStartDate: string, durationMinutes: number) {
   const now = new Date(); // Local time
-  const eventDate = new Date(eventStartDate); // Interpreted as UTC if ISO 8601 format
-  const eventEndDate = new Date(eventDate.getTime() + durationMinutes * 60000); // Duration in milliseconds
+  const eventDate = new Date(eventStartDate); // Parse the event date
+  
+  // Ensure both dates are treated consistently in local timezone
+  const nowLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+  const eventDateLocal = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), eventDate.getHours(), eventDate.getMinutes(), eventDate.getSeconds());
+  const eventEndDateLocal = new Date(eventDateLocal.getTime() + (durationMinutes || 0) * 60000); // Duration in milliseconds
 
-  const timeDifference = eventDate.getTime() - now.getTime(); // Difference in milliseconds
+  const timeDifference = eventDateLocal.getTime() - nowLocal.getTime(); // Difference in milliseconds
 
   if (timeDifference > 0) {
     // Event hasn't started yet
@@ -76,7 +80,7 @@ function calculateCountdown(eventStartDate: string, durationMinutes: number) {
         <div class="flex flex-col items-center"><span class="big">${seconds}</span> <small>second${seconds !== 1 ? 's' : ''}</small></div>
         </div>
       </div>`;
-  } else if (now.getTime() <= eventEndDate.getTime()) {
+  } else if (nowLocal.getTime() <= eventEndDateLocal.getTime()) {
     // Event is currently happening
     return `
       <div class="flex items-center">
