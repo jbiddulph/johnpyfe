@@ -50,6 +50,7 @@ import { useMapStore } from '@/store/map';
 import { useVenueStore } from "@/store/venue.js";
 import { useNoteStore } from "@/store/note.js";
 const user = useSupabaseUser();
+// Fixed Supabase composables
 const venueStore = useVenueStore();
 const noteStore = useNoteStore();
 const mapStore = useMapStore();

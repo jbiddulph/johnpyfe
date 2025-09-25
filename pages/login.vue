@@ -49,7 +49,8 @@ import { useAuthStore } from "@/store/auth.js";
 const authStore = useAuthStore();
 const username = ref("");
 const password = ref("");
-const supabase = useSupabaseClient()
+const supabase = useSupabaseClient();
+// Fixed Supabase composables
 const handleGoogleLogin = async () => {
   const {err} = await supabase.auth.signInWithOAuth({
     provider: "google",

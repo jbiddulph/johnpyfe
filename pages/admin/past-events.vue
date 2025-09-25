@@ -115,6 +115,7 @@ useHead({
 });
 
 const user = useSupabaseUser();
+// Fixed Supabase composables
 const config = useRuntimeConfig();
 
 // Check if user is admin

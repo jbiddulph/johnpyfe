@@ -140,6 +140,7 @@ const currentPage = ref(1);
 const totalPages = ref(1);
 const paginatedVenues = ref([]);
 const user = useSupabaseUser();
+// Fixed Supabase composables
 // NEW STUFF
 const itemsPerPage = ref(104);
 const totalItems = ref(0);

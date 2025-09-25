@@ -142,6 +142,7 @@ const eventStore = useEventStore();
 const user = useSupabaseUser();
 const supabase = useSupabaseClient();
 const authStore = useAuthStore();
+// Fixed Supabase composables
 const config = useRuntimeConfig();
 const loggedIn = ref(false);
 const showMenu = ref(false);

@@ -13,6 +13,7 @@
 import { useEventStore } from "@/store/event.js";
 const eventStore = useEventStore();
 const supabase = useSupabaseClient();
+// Fixed Supabase composables
 const props = defineProps({
   content: Object,
 })

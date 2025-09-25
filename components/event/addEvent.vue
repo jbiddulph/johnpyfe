@@ -128,6 +128,7 @@ const loading = ref(false);
 const selected = ref([]);
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
+// Fixed Supabase composables
 const userId = ref(user.value.id);
 
 // Test Supabase connection

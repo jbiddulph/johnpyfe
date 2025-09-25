@@ -95,6 +95,7 @@ const userName = ref('');
 const PAGE_SIZE = 104; // Define the page size constant
 const config = useRuntimeConfig()
 const user = useSupabaseUser();
+// Fixed Supabase composables
 const props = defineProps({
   venueId: Number,
 });

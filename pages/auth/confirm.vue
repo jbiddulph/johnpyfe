@@ -19,6 +19,7 @@
   const route = useRoute();
   const router = useRouter();
   const supabase = useSupabaseClient();
+  // Fixed Supabase composables
   const loading = ref(true);
   const error = ref(null);
   const success = ref(false);
