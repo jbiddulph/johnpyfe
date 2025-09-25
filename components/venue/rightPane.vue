@@ -50,8 +50,12 @@ import { useMapStore } from '@/store/map';
 import { useVenueStore } from "@/store/venue.js";
 import { useNoteStore } from "@/store/note.js";
 const { $supabase } = useNuxtApp();
-const user = ref(null);
-// Fixed Supabase composables
+const { user, initializeAuth } = useAuth();
+
+// Initialize authentication state
+onMounted(async () => {
+  await initializeAuth();
+});
 const venueStore = useVenueStore();
 const noteStore = useNoteStore();
 const mapStore = useMapStore();
@@ -105,7 +109,7 @@ const isTextareaBlank = computed(() => {
 const addNote = async (venueId) => {
   if (state.textarea.length > 0) {
     try {
-      const userId = user.value.id; // Get the user ID from authentication context or store
+      const userId = user.value?.id; // Get the user ID from authentication context or store
       await noteStore.addVenueNote(userId.toString(), venueId, state.textarea);
       state.textarea = "";
       await noteStore.getVenueNotes(venueId);

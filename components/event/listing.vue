@@ -25,6 +25,17 @@
             alt="Event image"
           />
           <div class="w-full px-4 py-2 absolute center bottom-0 bg-black bg-opacity-70 text-white font-bold text-lg shadow-lg z-10" v-html="countdowns[index]"></div>
+          <!-- COPY Button -->
+          <div class="absolute top-2 right-2 z-20">
+            <UButton 
+              icon="i-heroicons-document-duplicate" 
+              size="sm" 
+              color="blue" 
+              variant="solid"
+              @click.stop="copyEvent"
+              title="Copy Event"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -118,6 +129,44 @@ function formatDate(dateString: string) {
     time: `${hours}:${minutes}`,
   };
 }
+
+const copyEvent = async () => {
+  try {
+    const config = useRuntimeConfig();
+    const { user, initializeAuth } = useAuth();
+    
+    // Initialize auth to get user
+    await initializeAuth();
+    
+    if (!user.value?.id) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    // Create a copy of the event with [COPY] prefix
+    const eventCopy = {
+      ...props.event,
+      event_title: `[COPY] ${props.event.event_title}`,
+      id: undefined, // Remove ID so it creates a new record
+      user_id: user.value.id,
+      created_at: new Date().toISOString(),
+    };
+
+    // Send to API to create the copy
+    const response = await $fetch(`${config.public.baseURL}/api/events/add`, {
+      method: 'POST',
+      body: eventCopy
+    });
+
+    if (response) {
+      // Refresh events list
+      await eventStore.fetchAllEvents();
+      console.log('Event copied successfully');
+    }
+  } catch (error) {
+    console.error('Error copying event:', error);
+  }
+};
 function startCountdowns() {
   if (Array.isArray(eventStore.events)) {
     countdowns.value = eventStore.events.map(event => calculateCountdown(event.event_start, event.duration));

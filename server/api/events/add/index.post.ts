@@ -45,9 +45,9 @@ export default defineEventHandler(async (event) => {
       website: body.website || "",
       created_at: new Date(),
       user_id: body.user_id,
-      listingId: body.venue_id,
-      cityId: body.cityId,
-      categoryId: body.categoryId,
+      listingId: parseInt(body.venue_id),
+      cityId: parseInt(body.cityId),
+      categoryId: parseInt(body.categoryId),
     };
 
     console.log("Creating event with data:", eventData);

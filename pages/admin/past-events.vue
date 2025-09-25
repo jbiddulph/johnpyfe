@@ -10,6 +10,50 @@
       </div>
     </div>
     
+    <!-- Filters -->
+    <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- City Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by City</label>
+          <USelectMenu
+            v-model="selectedCity"
+            :options="cities"
+            option-attribute="name"
+            value-attribute="id"
+            placeholder="All Cities"
+            searchable
+            @change="applyFilters"
+          />
+        </div>
+        
+        <!-- Venue Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Venue</label>
+          <USelectMenu
+            v-model="selectedVenue"
+            :options="venues"
+            option-attribute="venuename"
+            value-attribute="id"
+            placeholder="All Venues"
+            searchable
+            @change="applyFilters"
+          />
+        </div>
+        
+        <!-- Clear Filters -->
+        <div class="flex items-end">
+          <UButton 
+            label="Clear Filters" 
+            color="gray" 
+            variant="outline"
+            @click="clearFilters"
+            :disabled="!selectedCity && !selectedVenue"
+          />
+        </div>
+      </div>
+    </div>
+
     <div class="pb-12">
       <!-- Pagination controls -->
       <div class="flex justify-center mb-4 mt-2">
@@ -129,12 +173,19 @@ watchEffect(() => {
   }
 });
 
-const events = ref([]);
+const events = ref<any[]>([]);
 const loading = ref(true);
 const currentPage = ref(1);
 const totalPages = ref(1);
 const totalItems = ref(0);
 const itemsPerPage = ref(20);
+
+// Filter state
+const selectedCity = ref<number | null>(null);
+const selectedVenue = ref<number | null>(null);
+const cities = ref<any[]>([]);
+const venues = ref<any[]>([]);
+const allVenues = ref<any[]>([]);
 
 // Modal state
 const isEditEventOpen = ref(false);
@@ -168,6 +219,61 @@ const formatDate = (dateString: string) => {
   };
 };
 
+// Fetch cities for filter
+const fetchCities = async () => {
+  try {
+    const response = await fetch(`${config.public.baseURL}/api/cities`);
+    if (response.ok) {
+      const data = await response.json();
+      cities.value = data;
+    }
+  } catch (error) {
+    console.error('Error fetching cities:', error);
+  }
+};
+
+// Fetch venues for filter
+const fetchVenues = async () => {
+  try {
+    const response = await fetch(`${config.public.baseURL}/api/venues`);
+    if (response.ok) {
+      const data = await response.json();
+      allVenues.value = data;
+      venues.value = data;
+    }
+  } catch (error) {
+    console.error('Error fetching venues:', error);
+  }
+};
+
+// Filter venues by selected city
+const filterVenuesByCity = () => {
+  if (selectedCity.value) {
+    venues.value = allVenues.value.filter(venue => venue.cityId === selectedCity.value);
+    // Reset venue selection if current venue is not in filtered list
+    if (selectedVenue.value && !venues.value.find(v => v.id === selectedVenue.value)) {
+      selectedVenue.value = null;
+    }
+  } else {
+    venues.value = allVenues.value;
+  }
+};
+
+// Apply filters
+const applyFilters = () => {
+  currentPage.value = 1; // Reset to first page
+  fetchPastEvents();
+};
+
+// Clear all filters
+const clearFilters = () => {
+  selectedCity.value = null;
+  selectedVenue.value = null;
+  venues.value = allVenues.value;
+  currentPage.value = 1;
+  fetchPastEvents();
+};
+
 const fetchPastEvents = async () => {
   console.log('fetchPastEvents called, isAdmin:', isAdmin.value, 'user:', user.value?.email);
   
@@ -179,7 +285,17 @@ const fetchPastEvents = async () => {
   loading.value = true;
   try {
     const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const url = `${config.public.baseURL}/api/events/past?skip=${skip}&take=${itemsPerPage.value}`;
+    let url = `${config.public.baseURL}/api/events/past?skip=${skip}&take=${itemsPerPage.value}`;
+    
+    // Add filter parameters
+    const params = new URLSearchParams();
+    if (selectedCity.value) params.append('cityId', selectedCity.value);
+    if (selectedVenue.value) params.append('venueId', selectedVenue.value);
+    
+    if (params.toString()) {
+      url += `&${params.toString()}`;
+    }
+    
     console.log('Fetching from URL:', url);
     
     const response = await fetch(url);
@@ -238,9 +354,16 @@ const handleCloseModal = () => {
   fetchPastEvents();
 };
 
+// Watch for city selection to filter venues
+watch(selectedCity, () => {
+  filterVenuesByCity();
+});
+
 // Watch for admin status changes and fetch events
 watchEffect(() => {
   if (isAdmin.value && user.value) {
+    fetchCities();
+    fetchVenues();
     fetchPastEvents();
   }
 });

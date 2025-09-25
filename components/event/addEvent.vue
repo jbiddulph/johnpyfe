@@ -22,10 +22,10 @@
         by="id"
       />
     </div>
-    <form @submit.prevent="submitEventForm(user.id)" enctype="multipart/form-data" class="m-2">
+    <form @submit.prevent="submitEventForm(userId)" enctype="multipart/form-data" class="m-2">
       <h2>{{ formData.event_title }}</h2>
       <div>
-        <UInput v-model="user.id" type="hidden" id="user_id" name="user_id" disabled />
+        <UInput v-model="userId" type="hidden" id="user_id" name="user_id" disabled />
       </div>
       <div>
         <p for="event_title">Event Name:</p>
@@ -127,9 +127,15 @@ const isSaving = ref(false);
 const loading = ref(false);
 const selected = ref([]);
 const { $supabase } = useNuxtApp();
-const user = ref(null);
-// Fixed Supabase composables
-const userId = ref(user.value.id);
+const { user, initializeAuth } = useAuth();
+
+// Initialize auth and get user ID
+const userId = computed(() => user.value?.id || null);
+
+// Initialize authentication state
+onMounted(async () => {
+  await initializeAuth();
+});
 
 // Test Supabase connection
 const testSupabaseConnection = async () => {

@@ -29,7 +29,7 @@
             <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
             <template #footer>
               <div class="flex justify-center">
-                <div v-if="user && userName === user.user_metadata.email" class="controls">
+                <div v-if="user && isAdmin" class="controls">
                   <NuxtLink :to="'/venues/' + venue.id + '/' + venue.slug">
                   <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" color="teal">
                     </UButton>
@@ -127,6 +127,7 @@ import axios from "axios";
 const venueStore = useVenueStore();
 const authStore = useAuthStore();
 const { $supabase } = useNuxtApp();
+const { user, isAdmin, initializeAuth } = useAuth();
 const venueid = ref(null);
 const isDetailsOpen = ref(false)
 const isAddEditOpen = ref(false)
@@ -139,7 +140,6 @@ const content = ref({});
 const currentPage = ref(1);
 const totalPages = ref(1);
 const paginatedVenues = ref([]);
-const user = ref(null);
 // Fixed Supabase composables
 // NEW STUFF
 const itemsPerPage = ref(104);
@@ -306,6 +306,7 @@ watch(isMapOpen, (newValue: any) => {
 });
 
 onMounted(async () => {
+  await initializeAuth();
   fetchAllVenues();
   // userName.value = process.env.USER_NAME;
   userName.value = useRuntimeConfig().public.admin;
