@@ -6,14 +6,24 @@ const prisma = new PrismaClient();
 export default defineEventHandler(async (event) => {
   const { town } = event.context.params;
 
+  const now = new Date();
+  
   const city = await prisma.city.findUnique({
     where: { slug: town },
     include: {
       events: {
+        where: {
+          event_start: {
+            gt: now // Only return events that start after now
+          }
+        },
         include: {
           city: true, // Ensure city information is included
           category: true,
           listing: true,
+        },
+        orderBy: {
+          event_start: 'asc' // Order by event start date, earliest first
         },
       },
     },

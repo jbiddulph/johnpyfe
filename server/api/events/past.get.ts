@@ -10,12 +10,12 @@ export default defineEventHandler(async (event) => {
   try {
     const now = new Date();
     
-    const paginatedEvents = await prisma.event.findMany({
+    const pastEvents = await prisma.event.findMany({
       skip: skip,
       take: take,
       where: {
         event_start: {
-          gt: now // Only return events that start after now
+          lt: now // Only return events that started before now (past events)
         }
       },
       include: {
@@ -24,19 +24,17 @@ export default defineEventHandler(async (event) => {
         listing: true,
       },
       orderBy: {
-        event_start: 'asc' // Order by event start date, earliest first
+        event_start: 'desc' // Order by event start date, most recent first
       }
     });
 
-    return paginatedEvents;
+    return pastEvents;
   } catch (error) {
-    console.error('Error fetching events:', error);
+    console.error('Error fetching past events:', error);
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to fetch events'
+      statusMessage: 'Failed to fetch past events'
     });
   }
 });
 
-
- 

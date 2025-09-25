@@ -54,7 +54,7 @@ const handleGoogleLogin = async () => {
   const {err} = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${window.location.origin}/auth/confirm`
+      redirectTo: `${window.location.origin}/auth/confirm?redirect=/`
     }
   })
   if(err) {

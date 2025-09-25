@@ -43,13 +43,30 @@
       if (verifyError) throw verifyError;
       success.value = true;
       loading.value = false;
+      
+      // Redirect to specified page or home page after successful confirmation
+      const redirectTo = route.query.redirect || '/';
+      setTimeout(async () => {
+        await router.push(redirectTo);
+      }, 2000); // Wait 2 seconds to show success message
     } catch (err) {
       error.value = err.message;
       loading.value = false;
     }
   };
   
-  onMounted(() => {
+  onMounted(async () => {
+    // Check if user is already authenticated (from OAuth)
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      // User is already authenticated, redirect to specified page or home page
+      const redirectTo = route.query.redirect || '/';
+      console.log('User authenticated, redirecting to:', redirectTo);
+      await router.push(redirectTo);
+      return;
+    }
+    
     if (email.value) {
       confirmEmail();
     } else {

@@ -36,6 +36,9 @@
               <li>
                 <NuxtLink @click="toggleMenu" to="/events" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Events</NuxtLink>
               </li>
+              <li v-if="isAdmin">
+                <NuxtLink @click="toggleMenu" to="/admin/past-events" class="block py-2 px-3 text-red-600 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-red-700 md:p-0 dark:text-red-400 md:dark:hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Past Events (Admin)</NuxtLink>
+              </li>
               <li>
                 <a @click="logout" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent cursor-pointer">Logout</a>
               </li>
@@ -139,9 +142,16 @@ const eventStore = useEventStore();
 const user = useSupabaseUser();
 const supabase = useSupabaseClient();
 const authStore = useAuthStore();
+const config = useRuntimeConfig();
 const loggedIn = ref(false);
 const showMenu = ref(false);
 const eventsFetched = ref(false);
+
+// Check if current user is admin
+const isAdmin = computed(() => {
+  if (!user.value?.email) return false;
+  return user.value.email === config.public.admin;
+});
 const reversedVenues = computed(() => [...eventStore.venues].reverse());
 const townsWithSlug = computed(() => {
   return eventStore.towns.map(town => {
