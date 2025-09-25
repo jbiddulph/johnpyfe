@@ -15,10 +15,11 @@
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <li v-for="(event, index) in eventStore.events" :key="index">
-            <div class="flex justify-center">
-              <div v-if="userName === user?.user_metadata?.name">
-                  <UButton label="Delete" class="mr-2 text-xs" color="red" @click="openDeleteModal(event, event.id)" />
-                  <UButton label="Event" class="text-xs" color="amber" @click="openEditEventModal(event)" />
+            <!-- Admin controls -->
+            <div class="flex justify-center mb-2">
+              <div v-if="user && isAdmin">
+                  <UButton label="Delete" class="mr-2 text-xs" color="red" @click="openDeleteModal(event)" />
+                  <UButton label="Edit" class="text-xs" color="amber" @click="openEditEventModal(event)" />
               </div>
             </div>
             <event-listing 
@@ -95,12 +96,12 @@ const userName = ref('');
 const PAGE_SIZE = 104; // Define the page size constant
 const config = useRuntimeConfig()
 const { $supabase } = useNuxtApp();
-const user = ref(null);
+const { user, isAdmin, initializeAuth } = useAuth();
 // Fixed Supabase composables
 const props = defineProps({
   venueId: Number,
 });
-const imageUrl = (photoUrl) => {
+const imageUrl = (photoUrl: string) => {
   return photoUrl.replace('/media/', '');
 };
 const prevPage = () => {
@@ -152,7 +153,7 @@ const openAddEventModal = () => {
   content.value = {}      // Empty object for new events
   console.log("content for new event: ", content.value);
 }
-const openEditEventModal = (event) => {
+const openEditEventModal = (event: any) => {
   console.log("clicked");
   isAddEventOpen.value = true
   editMode.value = true
@@ -163,9 +164,9 @@ const handleCloseModal = () => {
   isAddEditOpen.value = false
   isDeleteOpen.value = false
   isAddEventOpen.value = false
-  toast.add({ title: 'Deleted Venue!' })
-  // fetch venues again
-  // venueStore.fetchVenues()
+  toast.add({ title: 'Event updated!' })
+  // Refresh the events list
+  eventStore.fetchAllEvents()
 }
 
 watch(isAddEditOpen, (newValue: any) => {
@@ -179,6 +180,9 @@ watch(isMapOpen, (newValue: any) => {
   }
 });
 onMounted( async() => {
+  // Initialize authentication
+  await initializeAuth();
+  
   // await eventStore.fetchAllEvents();
   userName.value = useRuntimeConfig().public.userName;
   try {
