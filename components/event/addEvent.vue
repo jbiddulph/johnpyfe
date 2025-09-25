@@ -340,7 +340,7 @@ const submitEventForm = async (curuser) => {
         // Check if event_images bucket exists
         const eventImagesBucket = buckets?.find(bucket => bucket.name === 'event_images');
         if (!eventImagesBucket) {
-          throw new Error('event_images bucket not found');
+          throw new Error(`event_images bucket not found. Available buckets: ${buckets?.map(b => b.name).join(', ')}`);
         }
         console.log("event_images bucket found:", eventImagesBucket);
         
