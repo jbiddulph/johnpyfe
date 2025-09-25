@@ -3,8 +3,8 @@
   command = "npm run build"
   
 [build.environment]
-  # Set Node.js version to 20.18.0 or higher
-  NODE_VERSION = "20.18.0"
+  # Set Node.js version to 20.19.0 or higher
+  NODE_VERSION = "20.19.0"
   NPM_VERSION = "10.8.2"
 
 # Headers for performance
