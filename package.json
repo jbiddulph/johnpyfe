@@ -4,13 +4,17 @@
   "type": "module",
   "scripts": {
     "build": "prisma generate && nuxt build",
+    "build:analyze": "node scripts/analyze-bundle.js",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "prisma generate && nuxt prepare"
+    "postinstall": "prisma generate && nuxt prepare",
+    "perf:audit": "npm run build:analyze && echo 'Check .nuxt/analyze/ for detailed reports'",
+    "perf:test": "npm run build && npm run preview"
   },
   "dependencies": {
     "@nuxt/fonts": "^0.10.2",
+    "@nuxt/image": "^1.11.0",
     "@nuxt/ui": "^2.14.1",
     "@nuxtjs/sitemap": "^6.1.5",
     "@nuxtjs/tailwindcss": "^6.11.4",

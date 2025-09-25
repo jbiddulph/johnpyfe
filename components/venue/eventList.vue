@@ -17,7 +17,7 @@
             <span>{{event.category}}</span>
           </template>
 
-          <img class="w-250 h-auto mr-4" :src="`${config.public.supabase.url}/storage/v1/object/public/event_images/${event.photo}`" alt="Event image" width="250px" />
+          <NuxtImg class="w-250 h-auto mr-4" :src="`${config.public.supabase.url}/storage/v1/object/public/event_images/${event.photo}`" alt="Event image" width="250" height="auto" preset="event" loading="lazy" />
           <template #footer>
             <span>on: {{ formatDate(event.event_start) }} </span><br />
             <small>for: {{ event.duration }} minutes</small><br />
