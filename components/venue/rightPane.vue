@@ -49,7 +49,8 @@
 import { useMapStore } from '@/store/map';
 import { useVenueStore } from "@/store/venue.js";
 import { useNoteStore } from "@/store/note.js";
-const user = useSupabaseUser();
+const { $supabase } = useNuxtApp();
+const user = ref(null);
 // Fixed Supabase composables
 const venueStore = useVenueStore();
 const noteStore = useNoteStore();

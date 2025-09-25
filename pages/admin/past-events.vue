@@ -112,14 +112,14 @@ useHead({
   ]
 });
 
-const user = useSupabaseUser();
-// Fixed Supabase composables
 const config = useRuntimeConfig();
+const { user, isAdmin, initializeAuth } = useAuth();
 
-// Check if user is admin
-const isAdmin = computed(() => {
-  if (!user.value?.email) return false;
-  return user.value.email === config.public.admin;
+// Initialize global authentication state
+onMounted(async () => {
+  console.log('Admin page mounted, initializing auth...');
+  await initializeAuth();
+  console.log('Auth initialized, user:', user.value?.email, 'isAdmin:', isAdmin.value);
 });
 
 // Redirect if not admin
@@ -169,18 +169,27 @@ const formatDate = (dateString: string) => {
 };
 
 const fetchPastEvents = async () => {
-  if (!isAdmin.value) return;
+  console.log('fetchPastEvents called, isAdmin:', isAdmin.value, 'user:', user.value?.email);
+  
+  if (!isAdmin.value) {
+    console.log('Not admin, skipping fetch');
+    return;
+  }
   
   loading.value = true;
   try {
     const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const response = await fetch(`${config.public.baseURL}/api/events/past?skip=${skip}&take=${itemsPerPage.value}`);
+    const url = `${config.public.baseURL}/api/events/past?skip=${skip}&take=${itemsPerPage.value}`;
+    console.log('Fetching from URL:', url);
+    
+    const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log('Fetched past events:', data.length, 'events');
     events.value = data;
     totalItems.value = data.length;
     
@@ -229,8 +238,9 @@ const handleCloseModal = () => {
   fetchPastEvents();
 };
 
-onMounted(() => {
-  if (isAdmin.value) {
+// Watch for admin status changes and fetch events
+watchEffect(() => {
+  if (isAdmin.value && user.value) {
     fetchPastEvents();
   }
 });

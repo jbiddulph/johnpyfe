@@ -126,8 +126,8 @@ const venueid = ref(props.venueid || 0);
 const isSaving = ref(false);
 const loading = ref(false);
 const selected = ref([]);
-const supabase = useSupabaseClient();
-const user = useSupabaseUser();
+const { $supabase } = useNuxtApp();
+const user = ref(null);
 // Fixed Supabase composables
 const userId = ref(user.value.id);
 

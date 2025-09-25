@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { useEventStore } from "@/store/event.js";
 const eventStore = useEventStore();
-const supabase = useSupabaseClient();
+const { $supabase } = useNuxtApp();
 // Fixed Supabase composables
 const props = defineProps({
   content: Object,

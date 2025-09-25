@@ -94,7 +94,8 @@ const events = ref([]);
 const userName = ref('');
 const PAGE_SIZE = 104; // Define the page size constant
 const config = useRuntimeConfig()
-const user = useSupabaseUser();
+const { $supabase } = useNuxtApp();
+const user = ref(null);
 // Fixed Supabase composables
 const props = defineProps({
   venueId: Number,

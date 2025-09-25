@@ -139,20 +139,25 @@ useHead({
   ],
 })
 const eventStore = useEventStore();
-const user = useSupabaseUser();
-const supabase = useSupabaseClient();
 const authStore = useAuthStore();
-// Fixed Supabase composables
 const config = useRuntimeConfig();
+const { user, isAdmin, isLoggedIn, initializeAuth } = useAuth();
 const loggedIn = ref(false);
+
+// Initialize global authentication state
+onMounted(async () => {
+  await initializeAuth();
+  loggedIn.value = isLoggedIn.value;
+});
+
+// Watch for login state changes
+watch(isLoggedIn, (newValue) => {
+  loggedIn.value = newValue;
+});
 const showMenu = ref(false);
 const eventsFetched = ref(false);
 
-// Check if current user is admin
-const isAdmin = computed(() => {
-  if (!user.value?.email) return false;
-  return user.value.email === config.public.admin;
-});
+// isAdmin is now provided by the useAuth composable
 const reversedVenues = computed(() => [...eventStore.venues].reverse());
 const townsWithSlug = computed(() => {
   return eventStore.towns.map(town => {
@@ -179,11 +184,14 @@ onMounted(async () => {
 });
 
 const logout = async () => {
-  // logout from Google 
-  const { error } = supabase.auth.signOut()
+  const { $supabase } = useNuxtApp();
+  
+  // logout from Supabase/Google 
+  const { error } = await $supabase.auth.signOut()
   if (error){
     console.log("Error: ", error)
   }
+  
   //logout JWT
   toggleMenu()
   await authStore.logoutUser();

@@ -126,7 +126,7 @@ import { useAuthStore } from "@/store/auth.js";
 import axios from "axios";
 const venueStore = useVenueStore();
 const authStore = useAuthStore();
-const supabase = useSupabaseClient();
+const { $supabase } = useNuxtApp();
 const venueid = ref(null);
 const isDetailsOpen = ref(false)
 const isAddEditOpen = ref(false)
@@ -139,7 +139,7 @@ const content = ref({});
 const currentPage = ref(1);
 const totalPages = ref(1);
 const paginatedVenues = ref([]);
-const user = useSupabaseUser();
+const user = ref(null);
 // Fixed Supabase composables
 // NEW STUFF
 const itemsPerPage = ref(104);

@@ -18,7 +18,7 @@
   
   const route = useRoute();
   const router = useRouter();
-  const supabase = useSupabaseClient();
+  const { $supabase } = useNuxtApp();
   // Fixed Supabase composables
   const loading = ref(true);
   const error = ref(null);

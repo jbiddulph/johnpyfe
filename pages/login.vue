@@ -49,17 +49,20 @@ import { useAuthStore } from "@/store/auth.js";
 const authStore = useAuthStore();
 const username = ref("");
 const password = ref("");
-const supabase = useSupabaseClient();
+const { $supabase } = useNuxtApp();
 // Fixed Supabase composables
 const handleGoogleLogin = async () => {
-  const {err} = await supabase.auth.signInWithOAuth({
+  console.log('Starting Google login...');
+  const {error} = await $supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${window.location.origin}/auth/confirm?redirect=/`
+      redirectTo: `${window.location.origin}/`
     }
   })
-  if(err) {
-    console.log("there was an error logging in: ", err);
+  if(error) {
+    console.log("there was an error logging in: ", error);
+  } else {
+    console.log('Google login initiated successfully');
   }
 }
 // const handleLogin = async () => {
