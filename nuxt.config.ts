@@ -17,6 +17,10 @@ export default defineNuxtConfig({
       admin: process.env.ADMIN_EMAIL,
       mapbox_token:
             "pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA",
+      supabase: {
+        url: process.env.SUPABASE_URL,
+        key: process.env.SUPABASE_KEY
+      }
     }
   },
   devtools: { enabled: true },
@@ -60,7 +64,7 @@ export default defineNuxtConfig({
     "@nuxt/ui",
     "@nuxtjs/color-mode",
     "nuxt-mapbox",
-    // "@nuxtjs/supabase", // Temporarily disabled for production build
+    // "@nuxtjs/supabase", // Temporarily disabled due to build issues
     "@nuxt/fonts",
     "@nuxtjs/robots",
     "@nuxtjs/sitemap",
