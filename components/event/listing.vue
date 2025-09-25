@@ -24,7 +24,7 @@
             :src="`${useRuntimeConfig().public.eventImgFolder}${event.photo}`" 
             alt="Event image" 
           />
-          <div class="w-full px-4 py-2 absolute center bottom-0 bg-gray-500 opacity-80 text-white" v-html="countdowns[index]"></div>
+          <div class="w-full px-4 pb-1 absolute center bottom-0 bg-black bg-opacity-70 text-white font-bold text-lg shadow-lg z-10" v-html="countdowns[index]"></div>
         </div>
       </div>
     </div>

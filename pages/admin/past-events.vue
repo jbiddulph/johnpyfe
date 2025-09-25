@@ -29,6 +29,12 @@
       
       <ul v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <li v-for="(event, index) in events" :key="event.id">
+          <!-- Admin controls -->
+          <div class="flex justify-center mb-2">
+            <UButton label="Delete" class="mr-2 text-xs" color="red" @click="openDeleteModal(event)" />
+            <UButton label="Edit" class="text-xs" color="amber" @click="openEditEventModal(event)" />
+          </div>
+          
           <div class="w-full items-center bg-white dark:bg-gray-900 rounded-md border border-gray-200">
             <div class="p-4">
               <h2 class="font-bold text-2xl">{{ event.event_title }}</h2>
@@ -60,7 +66,7 @@
                   :src="`${useRuntimeConfig().public.eventImgFolder}${event.photo}`" 
                   alt="Event image" 
                 />
-                <div class="w-full px-4 py-2 absolute center bottom-0 bg-red-600 opacity-90 text-white">
+                <div class="w-full px-4 pb-1 absolute center bottom-0 bg-red-600 bg-opacity-90 text-white font-bold text-lg shadow-lg z-10">
                   <div class="flex items-center justify-center">
                     <div class="flex items-center">
                       <span class="mr-2">🔴</span>
@@ -74,6 +80,26 @@
         </li>
       </ul>
     </div>
+    
+    <!-- Edit Event Modal -->
+    <UModal v-model="isEditEventOpen" prevent-close>
+      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <div class="flex justify-end">
+          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isEditEventOpen = false" />
+        </div>
+        <event-addEvent :editing="true" :event="content" @closeModal="handleCloseModal" />
+      </UCard>
+    </UModal>
+    
+    <!-- Delete Event Modal -->
+    <UModal v-model="isDeleteOpen" prevent-close>
+      <UCard :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <div class="flex justify-end">
+          <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="isDeleteOpen = false" />
+        </div>
+        <event-deleteEvent class="h-48" :content="content" @closeModal="handleCloseModal" />
+      </UCard>
+    </UModal>
   </div>
 </template>
 
@@ -107,6 +133,12 @@ const currentPage = ref(1);
 const totalPages = ref(1);
 const totalItems = ref(0);
 const itemsPerPage = ref(20);
+
+// Modal state
+const isEditEventOpen = ref(false);
+const isDeleteOpen = ref(false);
+const content = ref({});
+const toast = useToast();
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -172,6 +204,27 @@ const nextPage = () => {
     currentPage.value++;
     fetchPastEvents();
   }
+};
+
+// Modal methods
+const openEditEventModal = (event: any) => {
+  console.log("Opening edit modal for event:", event);
+  isEditEventOpen.value = true;
+  content.value = event;
+};
+
+const openDeleteModal = (event: any) => {
+  console.log("Opening delete modal for event:", event);
+  isDeleteOpen.value = true;
+  content.value = event;
+};
+
+const handleCloseModal = () => {
+  isEditEventOpen.value = false;
+  isDeleteOpen.value = false;
+  toast.add({ title: 'Event updated!' });
+  // Refresh the events list
+  fetchPastEvents();
 };
 
 onMounted(() => {
