@@ -7,7 +7,7 @@
     </p>
   </div>
 </div>
-<div class="header-img"><img src="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg" alt=""></div>
+<div class="header-img"><img src="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg" alt="" /></div>
 <div class="container mx-auto">
   <div v-if="!loggedIn">
     You are currently not logged in

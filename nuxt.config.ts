@@ -68,12 +68,12 @@ export default defineNuxtConfig({
     "@nuxt/fonts",
     "@nuxtjs/robots",
     "@nuxtjs/sitemap",
-    "@nuxt/image", // Add image optimization
+    // "@nuxt/image", // Temporarily disabled for testing
   ],
   // Image optimization
   image: {
-    // Enable next-gen formats (WebP, AVIF)
-    format: ['webp', 'avif'],
+    // Enable all formats including original formats
+    format: ['webp', 'avif', 'jpg', 'jpeg', 'png', 'svg'],
     // Optimize for different screen sizes
     screens: {
       xs: 320,
@@ -112,6 +112,18 @@ export default defineNuxtConfig({
           width: 1920,
           height: 400,
         }
+      }
+    },
+    // Allow external domains
+    domains: ['ukpubs.co.uk', 'localhost'],
+    // Provider configuration
+    providers: {
+      // Default provider settings
+      default: {
+        // Don't force format conversion for SVG
+        format: ['webp', 'avif', 'jpg', 'jpeg', 'png'],
+        // Preserve original format when possible
+        fallbackFormat: 'original'
       }
     }
   },
