@@ -255,10 +255,27 @@ const uploadPhoto = async () => {
     return;
   }
 
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowedTypes.includes(selectedFile.value.type)) {
+    toast.add({ title: 'Invalid file type!', description: 'Please select a JPG, PNG, WebP, or GIF image.' });
+    return;
+  }
+
+  // Validate file size (max 10MB)
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  if (selectedFile.value.size > maxSize) {
+    toast.add({ title: 'File too large!', description: 'Please select an image smaller than 10MB.' });
+    return;
+  }
+
   const fileName = Date.now().toString();
   const { data, error } = await supabase.storage
     .from("venue_images")
-    .upload(`public/${fileName}`, selectedFile.value);
+    .upload(`public/${fileName}`, selectedFile.value, {
+      cacheControl: '3600',
+      upsert: false
+    });
 
   if (error) {
     console.error('Error uploading photo:', error);

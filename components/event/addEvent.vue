@@ -84,7 +84,7 @@
           type="file"
           id="photo"
           name="photo"
-          accept="image/*"
+          accept="image/*,.webp,.jpg,.jpeg,.png,.gif"
           @change="handleFileUpload"
         />
       </div>
@@ -128,6 +128,7 @@ const loading = ref(false);
 const selected = ref([]);
 const { $supabase } = useNuxtApp();
 const { user, initializeAuth } = useAuth();
+const supabase = $supabase;
 
 // Initialize auth and get user ID
 const userId = computed(() => user.value?.id || null);
@@ -227,8 +228,27 @@ watch([eventDate, eventTime], () => {
 const handleFileUpload = (event) => {
   const file = event.target.files[0];
   if (file) {
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      console.error('Invalid file type. Please select a JPG, PNG, WebP, or GIF image.');
+      // Reset the input
+      event.target.value = '';
+      return;
+    }
+    
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      console.error('File too large. Please select an image smaller than 10MB.');
+      // Reset the input
+      event.target.value = '';
+      return;
+    }
+    
     formData.value.photo = file;
     newPhotoSelected.value = true; // Mark that a new photo has been selected
+    console.log('File selected:', file.name, 'Type:', file.type, 'Size:', file.size);
   }
 };
 
@@ -302,7 +322,11 @@ const submitEventForm = async (curuser) => {
       try {
         const fileName = Date.now().toString();
         console.log("Uploading to path:", `public/${fileName}`);
-        console.log("About to call supabase.storage.from('event_images').upload()");
+        console.log("File details:", {
+          name: formData.value.photo.name,
+          size: formData.value.photo.size,
+          type: formData.value.photo.type
+        });
         
         // Test if we can access the bucket first
         console.log("Testing bucket access...");
@@ -312,6 +336,13 @@ const submitEventForm = async (curuser) => {
         if (bucketError) {
           throw new Error(`Cannot access buckets: ${bucketError.message}`);
         }
+        
+        // Check if event_images bucket exists
+        const eventImagesBucket = buckets?.find(bucket => bucket.name === 'event_images');
+        if (!eventImagesBucket) {
+          throw new Error('event_images bucket not found');
+        }
+        console.log("event_images bucket found:", eventImagesBucket);
         
         // Test if we can access the specific bucket
         console.log("Testing event_images bucket access...");
@@ -324,14 +355,17 @@ const submitEventForm = async (curuser) => {
           throw new Error(`Cannot access event_images bucket: ${listError.message}`);
         }
         
-        // Add timeout to the upload (reduced to 5 seconds for faster feedback)
-        console.log("Starting upload with 5-second timeout...");
+        // Upload the file with longer timeout for larger files
+        console.log("Starting upload with 30-second timeout...");
         const uploadPromise = supabase.storage
           .from("event_images")
-          .upload(`public/${fileName}`, formData.value.photo);
+          .upload(`public/${fileName}`, formData.value.photo, {
+            cacheControl: '3600',
+            upsert: false
+          });
         
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Upload timeout after 5 seconds')), 5000)
+          setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
         );
         
         console.log("About to call Promise.race()...");
@@ -353,8 +387,8 @@ const submitEventForm = async (curuser) => {
       } catch (uploadError) {
         console.error("Upload failed:", uploadError);
         console.log("Upload error details:", uploadError.message);
-        // For now, let's skip photo upload and continue with empty photo
-        console.log("Skipping photo upload, continuing without photo");
+        // Show user-friendly error message
+        alert(`Photo upload failed: ${uploadError.message}. Please try again or continue without a photo.`);
         photoPath = "";
       }
     } else if (isEditMode.value && props.event?.photo) {
