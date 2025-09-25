@@ -60,7 +60,7 @@ export default defineNuxtConfig({
     "@nuxt/ui",
     "@nuxtjs/color-mode",
     "nuxt-mapbox",
-    "@nuxtjs/supabase",
+    // "@nuxtjs/supabase", // Temporarily disabled for production build
     "@nuxt/fonts",
     "@nuxtjs/robots",
     "@nuxtjs/sitemap",
