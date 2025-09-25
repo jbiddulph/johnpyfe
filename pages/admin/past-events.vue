@@ -61,12 +61,10 @@
                     <div class="time text-center text-black"><small>at</small> {{ formatDate(event.event_start).time }}</div>
                   </div>
                 </div>
-                <NuxtImg 
+                <img 
                   class="w-full h-[250px] object-cover opacity-75" 
                   :src="`${useRuntimeConfig().public.eventImgFolder}${event.photo}`" 
                   alt="Event image"
-                  preset="event"
-                  loading="lazy"
                   sizes="sm:100vw md:50vw lg:25vw"
                 />
                 <div class="w-full px-4 py-2 absolute center bottom-0 bg-red-600 bg-opacity-90 text-white font-bold text-lg shadow-lg z-10">

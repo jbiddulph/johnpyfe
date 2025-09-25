@@ -12,19 +12,39 @@ export const useSupabaseClient = () => {
       getSession: () => Promise.resolve({ data: { session: null } }),
       signInWithOAuth: async ({ provider, options }) => {
         console.log(`Mock ${provider} login initiated`);
-        console.log('Redirect URL:', options?.redirectTo);
+        console.log('Original redirect URL:', options?.redirectTo);
         
         // Simulate a successful OAuth flow
         if (typeof window !== 'undefined') {
-          // In browser environment, simulate redirect
+          // Set the mock user as logged in
+          mockUser = {
+            id: 'mock-user-id',
+            email: 'john.mbiddulph@gmail.com',
+            user_metadata: {
+              name: 'John Biddulph'
+            }
+          };
+          
+          // In browser environment, simulate redirect to main site instead of /auth/confirm
           setTimeout(() => {
-            window.location.href = options?.redirectTo || '/auth/confirm';
+            // Extract the final redirect destination from the redirectTo URL
+            const finalRedirect = options?.redirectTo?.includes('redirect=') 
+              ? new URLSearchParams(options.redirectTo.split('?')[1]).get('redirect') || '/'
+              : '/';
+            
+            console.log('Redirecting to:', finalRedirect);
+            window.location.href = finalRedirect;
           }, 1000);
         }
         
         return { error: null };
       },
-      signOut: () => Promise.resolve({ error: null })
+      signOut: () => {
+        // Clear the mock user
+        mockUser = null;
+        console.log('Mock user logged out');
+        return Promise.resolve({ error: null });
+      }
     },
     storage: {
       from: () => ({
@@ -35,15 +55,19 @@ export const useSupabaseClient = () => {
   }
 }
 
+// Global user state for mock authentication
+let mockUser = null;
+
 export const useSupabaseUser = () => {
-  // Return a mock user ref with proper typing
-  return ref({
-    id: 'mock-user-id',
-    email: 'mock@example.com',
-    user_metadata: {
-      name: 'Mock User'
-    }
-  })
+  // Return a mock user ref that starts as null (not logged in)
+  const user = ref(mockUser);
+  
+  // Watch for changes to the global mock user
+  watch(() => mockUser, (newUser) => {
+    user.value = newUser;
+  }, { immediate: true });
+  
+  return user;
 }
 
 export const useSupabaseSession = () => {

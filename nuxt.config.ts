@@ -43,14 +43,14 @@ export default defineNuxtConfig({
     minify: true,
   },
   
-  // Critical CSS inlining
-  app: {
-    head: {
-      link: [
-        { rel: 'preload', href: '/assets/css/critical.css', as: 'style' }
-      ]
-    }
-  },
+  // Critical CSS inlining (commented out until critical.css file exists)
+  // app: {
+  //   head: {
+  //     link: [
+  //       { rel: 'preload', href: '/assets/css/critical.css', as: 'style' }
+  //     ]
+  //   }
+  // },
   
   // Vite optimizations
   vite: {
