@@ -3,12 +3,18 @@ const user = ref(null);
 const isInitialized = ref(false);
 
 export const useAuth = () => {
-  const { $supabase } = useNuxtApp();
+  const nuxtApp = useNuxtApp();
+  const $supabase = nuxtApp.$supabase;
   const config = useRuntimeConfig();
 
   // Initialize authentication state (only once)
   const initializeAuth = async () => {
     if (isInitialized.value) return;
+    if (!$supabase) {
+      isInitialized.value = true;
+      user.value = null;
+      return;
+    }
     
     console.log('Initializing global auth state...');
     

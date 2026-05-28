@@ -2,7 +2,7 @@
   <div class="container mx-auto p-4">
     <div class="flex w-full justify-between items-center">
       <h1 class="text-4xl font-bold my-8">Venues</h1>
-      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
+      <UButton v-if="user && isAdmin" icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
     </div>
     <div class="flex w-full justify-between items-center mb-4">
       <input v-model="searchQuery" type="text" placeholder="Search by venue name" class="input" />
@@ -152,6 +152,8 @@ const selectedFile = ref<File | null>(null);
 const searchQuery = ref('');
 const selectedTown = ref('');
 const towns = ref([]); // List of towns for the dropdown
+const getVenueCacheKey = () => `venues:${currentPage.value}:${itemsPerPage.value}`;
+
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
@@ -165,9 +167,31 @@ const nextPage = () => {
   // }
 }
 const fetchAllVenues = async () => {
+  let hasCachedVenues = false;
+
   try {
     const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
+    const cacheKey = getVenueCacheKey();
+
+    if (process.client) {
+      const cachedVenues = sessionStorage.getItem(cacheKey);
+      if (cachedVenues) {
+        try {
+          const parsedVenues = JSON.parse(cachedVenues);
+          if (Array.isArray(parsedVenues)) {
+            venues.value = parsedVenues;
+            totalItems.value = parsedVenues.length;
+            towns.value = [...new Set(parsedVenues.map((venue: any) => venue.town))];
+            totalPages.value = Math.max(1, Math.ceil(totalItems.value / itemsPerPage.value));
+            hasCachedVenues = true;
+          }
+        } catch {
+          sessionStorage.removeItem(cacheKey);
+        }
+      }
+    }
+
+    const response = await fetch(`/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -179,6 +203,9 @@ const fetchAllVenues = async () => {
       venues.value = data;
       totalItems.value = data.length;
       towns.value = [...new Set(data.map((venue: any) => venue.town))]; // Extract unique towns
+      if (process.client) {
+        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+      }
     } else {
       console.error("Unexpected data format:", data);
       venues.value = [];
@@ -190,6 +217,10 @@ const fetchAllVenues = async () => {
     totalPages.value = totalPagesCount;
   } catch (error) {
     console.error('Error loading venues:', error);
+    if (hasCachedVenues) {
+      return;
+    }
+
     venues.value = [];
     totalItems.value = 0;
     towns.value = [];
@@ -377,8 +408,10 @@ watch(isMapOpen, (newValue: any) => {
 });
 
 onMounted(async () => {
-  await initializeAuth();
   fetchAllVenues();
+  initializeAuth().catch((error: unknown) => {
+    console.error('Error initializing auth:', error);
+  });
   // userName.value = process.env.USER_NAME;
   userName.value = useRuntimeConfig().public.admin;
 });
