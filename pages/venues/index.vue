@@ -2,7 +2,7 @@
   <div class="container mx-auto p-4">
     <div class="flex w-full justify-between items-center">
       <h1 class="text-4xl font-bold my-8">Venues</h1>
-      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
+      <UButton v-if="user && isAdmin" icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
     </div>
     <div class="flex w-full justify-between items-center mb-4">
       <input v-model="searchQuery" type="text" placeholder="Search by venue name" class="input" />
@@ -152,6 +152,8 @@ const selectedFile = ref<File | null>(null);
 const searchQuery = ref('');
 const selectedTown = ref('');
 const towns = ref([]); // List of towns for the dropdown
+const getVenueCacheKey = () => `venues:${currentPage.value}:${itemsPerPage.value}`;
+
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
@@ -165,9 +167,31 @@ const nextPage = () => {
   // }
 }
 const fetchAllVenues = async () => {
+  let hasCachedVenues = false;
+
   try {
     const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
+    const cacheKey = getVenueCacheKey();
+
+    if (process.client) {
+      const cachedVenues = sessionStorage.getItem(cacheKey);
+      if (cachedVenues) {
+        try {
+          const parsedVenues = JSON.parse(cachedVenues);
+          if (Array.isArray(parsedVenues)) {
+            venues.value = parsedVenues;
+            totalItems.value = parsedVenues.length;
+            towns.value = [...new Set(parsedVenues.map((venue: any) => venue.town))];
+            totalPages.value = Math.max(1, Math.ceil(totalItems.value / itemsPerPage.value));
+            hasCachedVenues = true;
+          }
+        } catch {
+          sessionStorage.removeItem(cacheKey);
+        }
+      }
+    }
+
+    const response = await fetch(`/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -179,6 +203,9 @@ const fetchAllVenues = async () => {
       venues.value = data;
       totalItems.value = data.length;
       towns.value = [...new Set(data.map((venue: any) => venue.town))]; // Extract unique towns
+      if (process.client) {
+        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+      }
     } else {
       console.error("Unexpected data format:", data);
       venues.value = [];
@@ -190,6 +217,10 @@ const fetchAllVenues = async () => {
     totalPages.value = totalPagesCount;
   } catch (error) {
     console.error('Error loading venues:', error);
+    if (hasCachedVenues) {
+      return;
+    }
+
     venues.value = [];
     totalItems.value = 0;
     towns.value = [];
@@ -249,31 +280,85 @@ const handleFileUpload = (event: Event) => {
     selectedFile.value = target.files[0];
   }
 }
+
+const compressVenueImage = async (file: File): Promise<File> => {
+  const image = new Image();
+  const imageUrl = URL.createObjectURL(file);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('Unable to read selected image.'));
+      image.src = imageUrl;
+    });
+
+    const maxWidth = 1200;
+    const maxHeight = 900;
+    const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+    const width = Math.round(image.naturalWidth * scale);
+    const height = Math.round(image.naturalHeight * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Unable to prepare selected image.');
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/webp', 0.82);
+    });
+
+    if (!blob) {
+      throw new Error('Unable to compress selected image.');
+    }
+
+    const compressedName = file.name.replace(/\.[^.]+$/, '.webp');
+    return new File([blob], compressedName, {
+      type: 'image/webp',
+      lastModified: Date.now()
+    });
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
+}
+
 const uploadPhoto = async () => {
   if (!selectedFile.value) {
     toast.add({ title: 'No file selected!' });
     return;
   }
 
-  // Validate file type
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   if (!allowedTypes.includes(selectedFile.value.type)) {
-    toast.add({ title: 'Invalid file type!', description: 'Please select a JPG, PNG, WebP, or GIF image.' });
+    toast.add({ title: 'Invalid file type!', description: 'Please select a JPG, PNG, or WebP image.' });
     return;
   }
 
-  // Validate file size (max 10MB)
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  const maxSize = 10 * 1024 * 1024;
   if (selectedFile.value.size > maxSize) {
     toast.add({ title: 'File too large!', description: 'Please select an image smaller than 10MB.' });
     return;
   }
 
-  const fileName = Date.now().toString();
+  let uploadFile: File;
+  try {
+    uploadFile = await compressVenueImage(selectedFile.value);
+  } catch (error) {
+    console.error('Error compressing photo:', error);
+    toast.add({ title: 'Could not prepare image!', description: 'Please try a different image.' });
+    return;
+  }
+
+  const fileName = `${Date.now().toString()}.webp`;
   const { data, error } = await supabase.storage
     .from("venue_images")
-    .upload(`public/${fileName}`, selectedFile.value, {
-      cacheControl: '3600',
+    .upload(`public/${fileName}`, uploadFile, {
+      cacheControl: '31536000',
+      contentType: uploadFile.type,
       upsert: false
     });
 
@@ -323,8 +408,10 @@ watch(isMapOpen, (newValue: any) => {
 });
 
 onMounted(async () => {
-  await initializeAuth();
   fetchAllVenues();
+  initializeAuth().catch((error: unknown) => {
+    console.error('Error initializing auth:', error);
+  });
   // userName.value = process.env.USER_NAME;
   userName.value = useRuntimeConfig().public.admin;
 });
