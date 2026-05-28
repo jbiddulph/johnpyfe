@@ -249,31 +249,85 @@ const handleFileUpload = (event: Event) => {
     selectedFile.value = target.files[0];
   }
 }
+
+const compressVenueImage = async (file: File): Promise<File> => {
+  const image = new Image();
+  const imageUrl = URL.createObjectURL(file);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('Unable to read selected image.'));
+      image.src = imageUrl;
+    });
+
+    const maxWidth = 1200;
+    const maxHeight = 900;
+    const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+    const width = Math.round(image.naturalWidth * scale);
+    const height = Math.round(image.naturalHeight * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Unable to prepare selected image.');
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/webp', 0.82);
+    });
+
+    if (!blob) {
+      throw new Error('Unable to compress selected image.');
+    }
+
+    const compressedName = file.name.replace(/\.[^.]+$/, '.webp');
+    return new File([blob], compressedName, {
+      type: 'image/webp',
+      lastModified: Date.now()
+    });
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
+}
+
 const uploadPhoto = async () => {
   if (!selectedFile.value) {
     toast.add({ title: 'No file selected!' });
     return;
   }
 
-  // Validate file type
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   if (!allowedTypes.includes(selectedFile.value.type)) {
-    toast.add({ title: 'Invalid file type!', description: 'Please select a JPG, PNG, WebP, or GIF image.' });
+    toast.add({ title: 'Invalid file type!', description: 'Please select a JPG, PNG, or WebP image.' });
     return;
   }
 
-  // Validate file size (max 10MB)
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  const maxSize = 10 * 1024 * 1024;
   if (selectedFile.value.size > maxSize) {
     toast.add({ title: 'File too large!', description: 'Please select an image smaller than 10MB.' });
     return;
   }
 
-  const fileName = Date.now().toString();
+  let uploadFile: File;
+  try {
+    uploadFile = await compressVenueImage(selectedFile.value);
+  } catch (error) {
+    console.error('Error compressing photo:', error);
+    toast.add({ title: 'Could not prepare image!', description: 'Please try a different image.' });
+    return;
+  }
+
+  const fileName = `${Date.now().toString()}.webp`;
   const { data, error } = await supabase.storage
     .from("venue_images")
-    .upload(`public/${fileName}`, selectedFile.value, {
-      cacheControl: '3600',
+    .upload(`public/${fileName}`, uploadFile, {
+      cacheControl: '31536000',
+      contentType: uploadFile.type,
       upsert: false
     });
 
