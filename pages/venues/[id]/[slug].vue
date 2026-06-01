@@ -20,7 +20,7 @@
         <p class="text-2xl">{{ venue.address }}</p>
         <h2 class="text-3xl mt-4">City / Region</h2>
         <p class="text-2xl">
-          {{ venue.town }} / {{ venueRegion }} / {{ postalsearchDisplay }}
+          {{ venue.town }} / {{ venueRegion }}<template v-if="venuePostcode"> / {{ venuePostcode }}</template>
         </p>
         <h2 v-if="venue.telephone && venue.telephone !== 'NULL'" class="text-3xl mt-4">Telephone</h2>
         <p v-if="venue.telephone && venue.telephone !== 'NULL'" class="text-2xl">{{ venue.telephone }}</p>
@@ -30,7 +30,7 @@
         </p>
       </div>
     </div>
-    <div id="singlemap" style="height: 400px;" />
+    <venue-map :venue="venue" />
     <h2 class="text-4xl font-bold my-8">Events</h2>
     <ul v-if="venueEvents.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
       <li v-for="(event, index) in venueEvents" :key="event.id">
@@ -93,9 +93,9 @@ const venueRegion = computed(() => {
   return r && r !== 'NULL' ? r : '—'
 })
 
-const postalsearchDisplay = computed(() => {
-  const p = venue.value?.postalsearch
-  return p && p !== 'NULL' ? p : '—'
+const venuePostcode = computed(() => {
+  const p = venue.value?.postcode || venue.value?.postalsearch
+  return p && p !== 'NULL' ? p : ''
 })
 
 const venueWebsite = computed(() => {
@@ -123,39 +123,11 @@ onMounted(async () => {
   }
 
   eventStore.events = venueEvents.value
-
-  const v = venue.value
-  if (!v?.longitude || !v?.latitude) return
-
-  await nextTick()
-  if (!document.getElementById('singlemap')) return
-
-  const mapboxgl = (await import('mapbox-gl')).default
-  const token = config.public.mapbox_token
-  if (!token) return
-
-  mapboxgl.accessToken = token
-  const map = new mapboxgl.Map({
-    container: 'singlemap',
-    style: 'mapbox://styles/mapbox/streets-v11',
-    center: [Number(v.longitude), Number(v.latitude)],
-    zoom: 14,
-  })
-
-  map.on('load', () => {
-    new mapboxgl.Marker()
-      .setLngLat([Number(v.longitude), Number(v.latitude)])
-      .addTo(map)
-  })
 })
 </script>
 
 <style scoped>
 .venue-desc p {
   font-weight: 100;
-}
-#singlemap {
-  width: 100%;
-  height: 400px !important;
 }
 </style>
