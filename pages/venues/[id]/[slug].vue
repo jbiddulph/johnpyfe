@@ -67,7 +67,11 @@ if (!pending.value && !venue.value) {
   throw createError({ statusCode: 404, statusMessage: 'Venue not found' })
 }
 
-if (venue.value?.slug && slugParam.value && slugParam.value !== venue.value.slug) {
+if (
+  venue.value?.slug
+  && slugParam.value
+  && slugParam.value.toLowerCase() !== venue.value.slug.toLowerCase()
+) {
   await navigateTo(venuePath(venue.value.id, venue.value.slug), { redirectCode: 301 })
 }
 
