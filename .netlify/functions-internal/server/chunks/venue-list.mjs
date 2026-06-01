@@ -1,2 +1,0 @@
-function parseVenuePagination(e){var a,n;const t=Math.max(0,Number.parseInt(String(null!=(a=e.skip)?a:0),10)||0),s=Number.parseInt(String(null!=(n=e.take)?n:104),10)||104;return{skip:t,take:Math.min(104,Math.max(1,s))}}function paginatedVenueResponse(e,a,n,t){return{items:e,total:a,page:Math.floor(n/t)+1,pageSize:t,totalPages:Math.max(1,Math.ceil(a/t))}}const e={id:!0,slug:!0,venuename:!0,address:!0,town:!0,postcode:!0};export{paginatedVenueResponse as a,parseVenuePagination as p,e as v};
-//# sourceMappingURL=venue-list.mjs.map

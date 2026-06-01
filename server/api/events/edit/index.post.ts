@@ -1,8 +1,8 @@
+import { prisma } from '../../../utils/prisma'
 import Joi from "joi";
-import { PrismaClient } from "@prisma/client";
 import { createError } from "h3";
 
-const prisma = new PrismaClient();
+;
 
 // Define Joi schema for validation
 const schema = Joi.object({

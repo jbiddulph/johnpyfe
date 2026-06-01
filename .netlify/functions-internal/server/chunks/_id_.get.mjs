@@ -1,2 +1,0 @@
-import{d as t,c as e}from"./nitro/netlify.mjs";import{PrismaClient as o}from"@prisma/client";import"node:http";import"node:https";import"node:fs";import"node:path";import"vue";import"consola/core";const i=new o,n=t((async t=>{const{id:o}=t.context.params,n=await i.event.findUnique({where:{id:parseInt(o)},include:{city:!0,category:!0,listing:!0}});if(!n)throw e({statusCode:404,message:`Venue with venueID of ${o} does not exist`});return n}));export{n as default};
-//# sourceMappingURL=_id_.get.mjs.map

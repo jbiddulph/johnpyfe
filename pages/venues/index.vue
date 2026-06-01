@@ -13,15 +13,18 @@
     </div>
     <div class="pb-12">
       <!-- Pagination controls -->
-      <div class="flex justify-center mb-4  mt-2">
-        <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
-        <UButton label="Previous" @click="prevPage(currentPage.value - 1)" />
-        <UButton :label="currentPage" class="mx-4" variant="soft" />
-        <UButton label="Next" @click="nextPage(currentPage + 1)" />
-        <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
+      <p v-if="loadError" class="text-center text-red-600 mb-4">{{ loadError }}</p>
+      <p v-else-if="totalItems > 0" class="text-center text-sm text-gray-600 mb-4">
+        {{ totalItems }} venues — page {{ currentPage }} of {{ totalPages }}
+      </p>
+      <div class="flex justify-center mb-4 mt-2">
+        <UButton label="Previous" :disabled="currentPage <= 1 || loading" @click="prevPage" />
+        <UButton :label="String(currentPage)" class="mx-4" variant="soft" />
+        <UButton label="Next" :disabled="currentPage >= totalPages || loading" @click="nextPage" />
       </div>
-      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <li v-for="(venue, index) in filteredVenues" :key="index">
+      <p v-if="loading && !venues.length" class="text-center text-gray-600 mb-4">Loading venues…</p>
+      <ul v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <li v-for="venue in filteredVenues" :key="venue.id">
           <UCard class="h-[250px]">
             <template #header>
               <h3 class="font-bold">{{ venue.venuename }}</h3>
@@ -151,57 +154,62 @@ const PAGE_SIZE = 104; // Define the page size constant
 const selectedFile = ref<File | null>(null);
 const searchQuery = ref('');
 const selectedTown = ref('');
-const towns = ref([]); // List of towns for the dropdown
+const towns = ref<string[]>([]);
+const loading = ref(false);
+const loadError = ref('');
+
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
     fetchAllVenues();
   }
-}
+};
+
 const nextPage = () => {
-  // if (currentPage.value * itemsPerPage.value < totalItems.value) {
+  if (currentPage.value < totalPages.value) {
     currentPage.value++;
     fetchAllVenues();
-  // }
-}
-const fetchAllVenues = async () => {
-  try {
-    const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (Array.isArray(data)) {
-      venues.value = data;
-      totalItems.value = data.length;
-      towns.value = [...new Set(data.map((venue: any) => venue.town))]; // Extract unique towns
-    } else {
-      console.error("Unexpected data format:", data);
-      venues.value = [];
-      totalItems.value = 0;
-      towns.value = [];
-    }
-    
-    const totalPagesCount = Math.ceil(totalItems.value / itemsPerPage.value);
-    totalPages.value = totalPagesCount;
-  } catch (error) {
-    console.error('Error loading venues:', error);
-    venues.value = [];
-    totalItems.value = 0;
-    towns.value = [];
-    totalPages.value = 1;
   }
 };
+
+const fetchAllVenues = async () => {
+  loading.value = true;
+  loadError.value = '';
+  try {
+    const skip = (currentPage.value - 1) * itemsPerPage.value;
+    const data = await $fetch<{
+      items: typeof venues.value;
+      total: number;
+      totalPages: number;
+    }>(`/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
+
+    venues.value = data.items ?? [];
+    totalItems.value = data.total ?? 0;
+    totalPages.value = data.totalPages ?? 1;
+  } catch (error) {
+    console.error('Error loading venues:', error);
+    loadError.value = 'Could not load venues. Please try again in a moment.';
+    venues.value = [];
+    totalItems.value = 0;
+    totalPages.value = 1;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const fetchTowns = async () => {
+  try {
+    towns.value = await $fetch<string[]>('/api/venues/towns-list');
+  } catch {
+    towns.value = [];
+  }
+};
+
 const filteredVenues = computed(() => {
-  return venues.value.filter(venue => {
-    return (
-      venue.venuename.toLowerCase().includes(searchQuery.value.toLowerCase()) &&
-      (selectedTown.value === '' || venue.town === selectedTown.value)
-    );
+  const q = searchQuery.value.toLowerCase();
+  return venues.value.filter((venue) => {
+    const name = venue.venuename?.toLowerCase() ?? '';
+    return name.includes(q) && (selectedTown.value === '' || venue.town === selectedTown.value);
   });
 });
 const openDetailsModal = (venue: object) => {
@@ -324,8 +332,7 @@ watch(isMapOpen, (newValue: any) => {
 
 onMounted(async () => {
   await initializeAuth();
-  fetchAllVenues();
-  // userName.value = process.env.USER_NAME;
+  await Promise.all([fetchAllVenues(), fetchTowns()]);
   userName.value = useRuntimeConfig().public.admin;
 });
 

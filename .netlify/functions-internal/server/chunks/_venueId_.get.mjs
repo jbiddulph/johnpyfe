@@ -1,2 +1,0 @@
-import{d as t,c as e}from"./nitro/netlify.mjs";import{PrismaClient as o}from"@prisma/client";import"node:http";import"node:https";import"node:fs";import"node:path";import"vue";import"consola/core";const n=new o,r=t((async t=>{const{venueId:o}=t.context.params,r=new Date,s=await n.event.findMany({where:{listingId:parseInt(o),event_start:{gt:r}},include:{city:!0,category:!0,listing:!0},orderBy:{event_start:"asc"}});if(!s)throw e({statusCode:404,message:`Venue with venueID of ${o} does not exist`});return s}));export{r as default};
-//# sourceMappingURL=_venueId_.get.mjs.map

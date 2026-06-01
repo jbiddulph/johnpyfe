@@ -1,1 +1,0 @@
-{"version":3,"file":"venue-urls.mjs","sources":["../../../../server/api/venue-urls.ts"],"sourcesContent":null,"names":["venueUrls","defineEventHandler","getSitemapUrls"],"mappings":"4PAGA,MAAAA,EAAAC,GAAA,IAAAC"}

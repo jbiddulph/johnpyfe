@@ -434,8 +434,8 @@ const fetchInitialData = async () => {
     cities.value = citiesResponse || []
     
     // Fetch venues
-    const venuesResponse = await $fetch(`${config.public.baseURL}/api/venues`)
-    venues.value = venuesResponse?.data || []
+    const venuesResponse = await $fetch(`${config.public.baseURL}/api/venues?skip=0&take=5000&all=1`)
+    venues.value = Array.isArray(venuesResponse) ? venuesResponse : (venuesResponse?.items ?? [])
     
     // Fetch categories
     const categoriesResponse = await $fetch(`${config.public.baseURL}/api/categories`)

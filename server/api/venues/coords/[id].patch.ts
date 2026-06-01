@@ -1,7 +1,6 @@
+import { prisma } from '../../../utils/prisma'
 import Joi from "joi";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+;
 const schema = Joi.object({
   latitude: Joi.string().required(),
   longitude: Joi.string().required(),

@@ -1,8 +1,8 @@
+import { prisma } from '../../../utils/prisma'
 import { defineEventHandler, createError, readBody } from 'h3';
-import { PrismaClient } from '@prisma/client';
 import Joi from 'joi';
 
-const prisma = new PrismaClient();
+;
 
 const eventSchema = Joi.object({
   event_title: Joi.string().required().max(200),

@@ -1,2 +1,0 @@
-import{d as t}from"./nitro/netlify.mjs";import{PrismaClient as e}from"@prisma/client";import"node:http";import"node:https";import"node:fs";import"node:path";import"vue";import"consola/core";const i=new e,o=t((async t=>await i.event.findMany({where:{event_title:{contains:"Untitled",mode:"insensitive"}},include:{category:!0,listing:!0,city:!0},orderBy:{created_at:"desc"},take:20})));export{o as default};
-//# sourceMappingURL=untitled.mjs.map

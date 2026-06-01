@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { cleanDbString, formatPlaceName, slugifyPlace } from '../../utils/format-venue'
+import { cleanDbString, formatPlaceName, isPlausibleCountyName, slugifyPlace } from '../../utils/format-venue'
 
 export type ResolvedPlace = {
   slug: string
@@ -63,6 +63,7 @@ export async function findCountyBySlug(slug: string): Promise<{
   const matches = rows
     .map((r) => cleanDbString(r.county))
     .filter((name): name is string => Boolean(name))
+    .filter((name) => isPlausibleCountyName(name))
     .filter((name) => slugifyPlace(name) === slug)
 
   if (!matches.length) return null
@@ -201,7 +202,7 @@ export async function listCountySlugs(): Promise<Array<{ slug: string; name: str
   const bySlug = new Map<string, string>()
   for (const row of rows) {
     const name = cleanDbString(row.county)
-    if (!name) continue
+    if (!name || !isPlausibleCountyName(name)) continue
     const slug = slugifyPlace(name)
     if (!slug || bySlug.has(slug)) continue
     bySlug.set(slug, name)

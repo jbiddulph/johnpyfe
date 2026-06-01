@@ -1,1 +1,0 @@
-{"version":3,"file":"prisma.mjs","sources":["../../../../server/utils/prisma.ts"],"sourcesContent":null,"names":["_a","globalForPrisma","globalThis","prisma","PrismaClient","log"],"mappings":"8CAAA,IAAAA,EAEA,MAAMC,EAAkBC,WAEXC,EACX,OAAAH,EAAAC,EAAgBE,QAAhBH,EACA,IAAII,EAAa,CACfC,IAAkE,CAAC,WAGvEJ,EAAgBE,OAASA"}

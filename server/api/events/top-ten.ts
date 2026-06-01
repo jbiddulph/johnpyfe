@@ -1,70 +1,76 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../../utils/prisma'
 
-const prisma = new PrismaClient();
+/** Top venues and towns by upcoming event count (bounded queries for serverless). */
+export default defineEventHandler(async () => {
+  const now = new Date()
 
-export default defineEventHandler(async (event) => {
-  const now = new Date();
-  
-  const paginatedVenues = await prisma.event.findMany({
-    where: {
-      event_start: {
-        gt: now // Only return events that start after now
-      }
-    },
-    include: {
-      city: true,
-      category: true,
-      listing: true,
-    },
-    orderBy: {
-      event_start: 'asc' // Order by event start date, earliest first
-    }
-  });
+  try {
+    const [venueGroups, townGroups] = await Promise.all([
+      prisma.event.groupBy({
+        by: ['listingId'],
+        where: { event_start: { gt: now } },
+        _count: { _all: true },
+        orderBy: { _count: { _all: 'desc' } },
+        take: 10,
+      }),
+      prisma.event.groupBy({
+        by: ['cityId'],
+        where: { event_start: { gt: now } },
+        _count: { _all: true },
+        orderBy: { _count: { _all: 'desc' } },
+        take: 10,
+      }),
+    ])
 
-  // Grouping events by venue and town
-  const groupedByVenue = paginatedVenues.reduce((acc, event) => {
-    const venueName = event.listing.venuename;
-    const venueId = event.listing.id;
-    const town = event.city.name;
-    const slug = event.listing.slug;
+    const venueIds = venueGroups.map((g) => g.listingId)
+    const cityIds = townGroups.map((g) => g.cityId)
 
-    // Group by venue
-    if (acc.venues[venueName]) {
-      acc.venues[venueName].count += 1;
-    } else {
-      acc.venues[venueName] = {
-        venueName,
-        venueId,
-        town,
-        slug,
-        count: 1,
-      };
-    }
+    const [venues, cities] = await Promise.all([
+      venueIds.length
+        ? prisma.venue.findMany({
+            where: { id: { in: venueIds } },
+            select: { id: true, venuename: true, slug: true, town: true },
+          })
+        : [],
+      cityIds.length
+        ? prisma.city.findMany({
+            where: { id: { in: cityIds } },
+            select: { id: true, name: true, slug: true },
+          })
+        : [],
+    ])
 
-    // Group by town
-    if (acc.towns[town]) {
-      acc.towns[town].eventCount += 1;
-    } else {
-      acc.towns[town] = {
-        town,
-        eventCount: 1,
-      };
-    }
+    const venueById = new Map(venues.map((v) => [v.id, v]))
+    const cityById = new Map(cities.map((c) => [c.id, c]))
 
-    return acc;
-  }, { venues: {}, towns: {} });
+    const limitedVenues = venueGroups
+      .map((g) => {
+        const venue = venueById.get(g.listingId)
+        if (!venue) return null
+        return {
+          venueName: venue.venuename,
+          venueId: venue.id,
+          town: venue.town,
+          slug: venue.slug,
+          count: g._count._all,
+        }
+      })
+      .filter(Boolean)
 
-  // Convert grouped data into arrays for both venue and town information
-  const venuesWithEventCounts = Object.values(groupedByVenue.venues);
-  const townsWithEventCounts = Object.values(groupedByVenue.towns);
+    const limitedTowns = townGroups
+      .map((g) => {
+        const city = cityById.get(g.cityId)
+        if (!city) return null
+        return {
+          town: city.name,
+          eventCount: g._count._all,
+        }
+      })
+      .filter(Boolean)
 
-  // Sort by count in ascending order
-  const sortedVenues = venuesWithEventCounts.sort((a, b) => a.count - b.count);
-  const sortedTowns = townsWithEventCounts.sort((a, b) => a.eventCount - b.eventCount);
-
-  // Limit to the first 10 entries
-  const limitedVenues = sortedVenues.slice(0, 10);
-  const limitedTowns = sortedTowns.slice(0, 10);
-
-  return { limitedVenues, limitedTowns };
-});
+    return { limitedVenues, limitedTowns }
+  } catch (error) {
+    console.error('[api/events/top-ten] failed:', error)
+    return { limitedVenues: [], limitedTowns: [] }
+  }
+})

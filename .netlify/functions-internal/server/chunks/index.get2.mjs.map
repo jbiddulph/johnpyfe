@@ -1,1 +1,0 @@
-{"version":3,"file":"index.get2.mjs","sources":["../../../../server/api/cities/index.get.ts"],"sourcesContent":null,"names":["prisma","PrismaClient","index_get","defineEventHandler","async","city","findMany"],"mappings":"8LAEA,MAAAA,EAAA,IAAAC,EAEAC,EAAAC,GAAAC,eACAJ,EAAAK,KAAAC"}

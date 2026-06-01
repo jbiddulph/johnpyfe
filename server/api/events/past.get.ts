@@ -1,7 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient()
-
+import { prisma } from '../../utils/prisma'
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const skip = query.skip ? parseInt(query.skip as string) : 0;
