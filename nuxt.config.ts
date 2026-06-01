@@ -45,10 +45,10 @@ export default defineNuxtConfig({
   // Optimize rendering
   ssr: true,
   routeRules: {
-    '/admin/**': { index: false },
-    '/login': { index: false },
-    '/register': { index: false },
-    '/auth/**': { index: false },
+    '/admin/**': { robots: false },
+    '/login': { robots: false },
+    '/register': { robots: false },
+    '/auth/**': { robots: false },
   },
   nitro: {
     compressPublicAssets: true,
@@ -153,8 +153,20 @@ export default defineNuxtConfig({
     }
   },
   robots: {
-    disallow: ['/admin', '/admin/', '/login', '/register', '/auth'],
-    sitemap: '/sitemap.xml',
+    groups: [
+      {
+        userAgent: '*',
+        disallow: [
+          '/admin',
+          '/admin/',
+          '/login',
+          '/register',
+          '/auth',
+          '/auth/',
+        ],
+      },
+    ],
+    sitemap: ['/sitemap.xml'],
   },
   sitemap: {
     sources: ['/api/sitemap-urls'],
