@@ -127,6 +127,8 @@ const toast = useToast();
 import { useVenueStore } from "@/store/venue.js";
 import { useAuthStore } from "@/store/auth.js";
 import axios from "axios";
+
+const requestFetch = useRequestFetch();
 const venueStore = useVenueStore();
 const authStore = useAuthStore();
 const { $supabase } = useNuxtApp();
@@ -158,6 +160,30 @@ const towns = ref<string[]>([]);
 const loading = ref(false);
 const loadError = ref('');
 
+type VenuesPage = {
+  items: typeof venues.value;
+  total: number;
+  totalPages: number;
+};
+
+function applyVenuesPage(data: VenuesPage) {
+  venues.value = data.items ?? [];
+  totalItems.value = data.total ?? 0;
+  totalPages.value = data.totalPages ?? 1;
+}
+
+const { data: initialVenues, error: initialVenuesError } = await useAsyncData(
+  'venues-list-page-1',
+  () => requestFetch<VenuesPage>('/api/venues?skip=0&take=104'),
+);
+
+if (initialVenuesError.value) {
+  loadError.value =
+    'Could not load venues. The database may be unreachable — check Netlify DATABASE_URL uses Supabase port 6543 (transaction pooler).';
+} else if (initialVenues.value) {
+  applyVenuesPage(initialVenues.value);
+}
+
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
@@ -177,18 +203,14 @@ const fetchAllVenues = async () => {
   loadError.value = '';
   try {
     const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const data = await $fetch<{
-      items: typeof venues.value;
-      total: number;
-      totalPages: number;
-    }>(`/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
-
-    venues.value = data.items ?? [];
-    totalItems.value = data.total ?? 0;
-    totalPages.value = data.totalPages ?? 1;
+    const data = await requestFetch<VenuesPage>(
+      `/api/venues?skip=${skip}&take=${itemsPerPage.value}`,
+    );
+    applyVenuesPage(data);
   } catch (error) {
     console.error('Error loading venues:', error);
-    loadError.value = 'Could not load venues. Please try again in a moment.';
+    loadError.value =
+      'Could not load venues. Please try again — if this persists, verify DATABASE_URL on Netlify (Supabase port 6543, not 5432).';
     venues.value = [];
     totalItems.value = 0;
     totalPages.value = 1;
@@ -332,7 +354,10 @@ watch(isMapOpen, (newValue: any) => {
 
 onMounted(async () => {
   await initializeAuth();
-  await Promise.all([fetchAllVenues(), fetchTowns()]);
+  if (!venues.value.length && !loadError.value) {
+    await fetchAllVenues();
+  }
+  await fetchTowns();
   userName.value = useRuntimeConfig().public.admin;
 });
 
