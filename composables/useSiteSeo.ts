@@ -27,7 +27,7 @@ export function useSiteSeo(options: SiteSeoOptions) {
   const canonical = `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`
   const image = options.image?.startsWith('http')
     ? options.image
-    : `${siteUrl}${options.image ?? '/favicon-192x192.png'}`
+    : `${siteUrl}${options.image ?? '/ukpubs-logo.png'}`
 
   useSeoMeta({
     title: options.title,

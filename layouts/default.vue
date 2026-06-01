@@ -3,7 +3,7 @@
     <nav class="bg-white border-gray-200 dark:bg-gray-900">
       <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 sticky">
         <NuxtLink to="/" class="h-12 flex items-center space-x-3 rtl:space-x-reverse">
-            <img src="/assets/2907054.png" class="h-8 w-8" alt="UK Pubs Logo" width="32" height="32" />
+            <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" />
             <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white" title="Pubs in the UK">UKPubs.co.uk</span>
         </NuxtLink>
         <button @click="toggleMenu" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="navbar-default" aria-expanded="false">
@@ -129,7 +129,7 @@ useSeoMeta({
   description: 'Events listings website for pubs and venues in the UK',
   ogTitle: 'Pubs, bars and venues in and around the UK',
   ogDescription: 'Live music, comedy, gigs, quizzes and other events at your local pub',
-  ogImage: `${siteUrl}/favicon-192x192.png`,
+  ogImage: `${siteUrl}/ukpubs-logo.png`,
   ogUrl: siteUrl,
   ogLocale: 'en_GB',
   twitterCard: 'summary_large_image',
