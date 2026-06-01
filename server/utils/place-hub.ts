@@ -193,24 +193,40 @@ export async function listTownSlugs(): Promise<Array<{ slug: string; name: strin
   }))
 }
 
-export async function listCountySlugs(): Promise<Array<{ slug: string; name: string; displayName: string }>> {
+export async function listCountySlugs(): Promise<
+  Array<{ slug: string; name: string; displayName: string; venueCount: number }>
+> {
   const rows = await prisma.venue.groupBy({
     by: ['county'],
     where: { is_live: '1' },
+    _count: { _all: true },
   })
 
-  const bySlug = new Map<string, string>()
+  const bySlug = new Map<
+    string,
+    { name: string; displayName: string; venueCount: number }
+  >()
+
   for (const row of rows) {
     const name = cleanDbString(row.county)
     if (!name || !isPlausibleCountyName(name)) continue
     const slug = slugifyPlace(name)
-    if (!slug || bySlug.has(slug)) continue
-    bySlug.set(slug, name)
+    if (!slug) continue
+
+    const existing = bySlug.get(slug)
+    if (existing) {
+      existing.venueCount += row._count._all
+    } else {
+      bySlug.set(slug, {
+        name,
+        displayName: formatPlaceName(name),
+        venueCount: row._count._all,
+      })
+    }
   }
 
-  return [...bySlug.entries()].map(([slug, name]) => ({
+  return [...bySlug.entries()].map(([slug, data]) => ({
     slug,
-    name,
-    displayName: formatPlaceName(name),
+    ...data,
   }))
 }

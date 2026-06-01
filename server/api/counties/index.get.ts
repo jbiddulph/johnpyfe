@@ -1,6 +1,7 @@
+import { prisma } from '../../utils/prisma'
 import { listCountySlugs } from '../../utils/place-hub'
 
-/** All county hub pages (derived from live venues). */
+/** All county hub pages with venue counts. */
 export default defineEventHandler(async () => {
   const counties = await listCountySlugs()
   return counties

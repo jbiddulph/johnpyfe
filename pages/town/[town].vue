@@ -2,13 +2,15 @@
   <div>
     <div class="relative">
       <img
-        :src="`/assets/images/headers/${route.params.town}.jpg`"
+        v-if="!headerImageMissing"
+        :src="headerImageSrc"
         :alt="`Events in ${townName}`"
         :title="townName"
-        class="w-full h-auto object-cover"
-        @error="onHeaderImageError"
+        class="w-full h-auto object-cover min-h-[280px] md:min-h-[360px]"
+        @error="headerImageMissing = true"
       />
-      <h1 class="text-6xl md:text-8xl absolute inset-0 flex items-center justify-center text-white drop-shadow-md">
+      <TownHeaderMap v-else :town-name="townName" />
+      <h1 class="text-6xl md:text-8xl absolute inset-0 flex items-center justify-center text-white drop-shadow-md pointer-events-none">
         {{ townName }}
       </h1>
     </div>
@@ -36,6 +38,8 @@
 const route = useRoute()
 const requestFetch = useRequestFetch()
 const townSlug = String(route.params.town)
+const headerImageMissing = ref(false)
+const headerImageSrc = computed(() => `/assets/images/headers/${townSlug}.jpg`)
 
 const { data: townData, error } = await useAsyncData(`town-${townSlug}`, () =>
   requestFetch(`/api/towns/${townSlug}`),
@@ -69,11 +73,6 @@ useSiteSeo({
   path: canonicalPath,
   jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
 })
-
-function onHeaderImageError(event) {
-  const img = event.target
-  img.style.display = 'none'
-}
 
 onMounted(() => {
   const eventStore = useEventStore()

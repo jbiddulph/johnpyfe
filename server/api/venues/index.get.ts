@@ -1,15 +1,29 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '../../utils/prisma'
 import {
   paginatedVenueResponse,
   parseVenuePagination,
 } from '../../utils/venue-list'
 
+function buildVenueListWhere(query: Record<string, unknown>): Prisma.VenueWhereInput {
+  const where: Prisma.VenueWhereInput = {}
+  const town = String(query.town || '').trim()
+  const q = String(query.q || '').trim()
+
+  if (town) {
+    where.town = { equals: town, mode: 'insensitive' }
+  }
+  if (q.length > 0) {
+    where.venuename = { contains: q, mode: 'insensitive' }
+  }
+
+  return where
+}
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const { skip, take } = parseVenuePagination(query)
-
-  // Match historical /venues list: all rows, paginated (no is_live filter).
-  const where = {}
+  const where = buildVenueListWhere(query)
 
   try {
     const [items, total] = await prisma.$transaction([

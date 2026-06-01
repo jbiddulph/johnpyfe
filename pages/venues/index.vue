@@ -4,9 +4,23 @@
       <h1 class="text-4xl font-bold my-8">Venues</h1>
       <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
     </div>
-    <div class="flex w-full justify-between items-center mb-4">
-      <input v-model="searchQuery" type="text" placeholder="Search by venue name" class="input" />
-      <select v-model="selectedTown" class="select">
+    <div class="flex flex-wrap gap-3 items-center mb-4">
+      <div class="flex gap-2 flex-1 min-w-[220px]">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search by venue name"
+          class="input flex-1"
+          @keyup.enter="runSearch"
+        />
+        <UButton
+          v-if="showSearchGo"
+          label="Go"
+          color="amber"
+          @click="runSearch"
+        />
+      </div>
+      <select v-model="selectedTown" class="select min-w-[180px]" @change="onTownChange">
         <option value="">All Towns</option>
         <option v-for="town in towns" :key="town.value" :value="town.value">{{ town.label }}</option>
       </select>
@@ -14,8 +28,17 @@
     <div class="pb-12">
       <!-- Pagination controls -->
       <p v-if="loadError" class="text-center text-red-600 mb-4">{{ loadError }}</p>
-      <p v-else-if="totalItems > 0" class="text-center text-sm text-gray-600 mb-4">
-        {{ totalItems }} venues — page {{ currentPage }} of {{ totalPages }}
+      <p v-if="!loadError && (activeSearch || selectedTown || totalItems > 0)" class="text-center text-sm text-gray-600 mb-4">
+        <template v-if="activeSearch || selectedTown">
+          <span v-if="activeSearch">Search: “{{ activeSearch }}”</span>
+          <span v-if="activeSearch && selectedTown"> · </span>
+          <span v-if="selectedTown">Town: {{ selectedTownLabel }}</span>
+          <button type="button" class="ml-2 text-amber-600 hover:underline" @click="clearFilters">
+            Clear filters
+          </button>
+          <span class="mx-2">·</span>
+        </template>
+        {{ totalItems }} venues<span v-if="totalPages > 1"> — page {{ currentPage }} of {{ totalPages }}</span>
       </p>
       <div class="flex justify-center mb-4 mt-2">
         <UButton label="Previous" :disabled="currentPage <= 1 || loading" @click="prevPage" />
@@ -24,7 +47,7 @@
       </div>
       <p v-if="loading && !venues.length" class="text-center text-gray-600 mb-4">Loading venues…</p>
       <ul v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <li v-for="venue in filteredVenues" :key="venue.id">
+        <li v-for="venue in venues" :key="venue.id">
           <UCard class="h-[250px]">
             <template #header>
               <h3 class="font-bold">{{ venue.venuename }}</h3>
@@ -155,6 +178,7 @@ const userID = process.env.USER_ID;
 const PAGE_SIZE = 104; // Define the page size constant
 const selectedFile = ref<File | null>(null);
 const searchQuery = ref('');
+const activeSearch = ref('');
 const selectedTown = ref('');
 const towns = ref<Array<{ label: string; value: string }>>([]);
 const loading = ref(false);
@@ -174,15 +198,46 @@ function applyVenuesPage(data: VenuesPage) {
 
 const { data: initialVenues, error: initialVenuesError } = await useAsyncData(
   'venues-list-page-1',
-  () => requestFetch<VenuesPage>('/api/venues?skip=0&take=104'),
+  () => requestFetch<VenuesPage>(buildVenuesUrl(1)),
 );
 
-if (initialVenuesError.value) {
-  loadError.value =
-    'Could not load venues. The database may be unreachable — check Netlify DATABASE_URL uses Supabase port 6543 (transaction pooler).';
-} else if (initialVenues.value) {
-  applyVenuesPage(initialVenues.value);
+function buildVenuesUrl(page = currentPage.value) {
+  const params = new URLSearchParams({
+    skip: String((page - 1) * itemsPerPage.value),
+    take: String(itemsPerPage.value),
+  });
+  if (selectedTown.value) params.set('town', selectedTown.value);
+  if (activeSearch.value) params.set('q', activeSearch.value);
+  return `/api/venues?${params}`;
 }
+
+const showSearchGo = computed(() => searchQuery.value.trim().length > 4);
+
+function runSearch() {
+  const q = searchQuery.value.trim();
+  if (q.length <= 4) return;
+  activeSearch.value = q;
+  currentPage.value = 1;
+  fetchAllVenues();
+}
+
+function clearFilters() {
+  searchQuery.value = '';
+  activeSearch.value = '';
+  selectedTown.value = '';
+  currentPage.value = 1;
+  fetchAllVenues();
+}
+
+function onTownChange() {
+  currentPage.value = 1;
+  fetchAllVenues();
+}
+
+const selectedTownLabel = computed(() => {
+  const match = towns.value.find((t) => t.value === selectedTown.value);
+  return match?.label ?? selectedTown.value;
+});
 
 const prevPage = () => {
   if (currentPage.value > 1) {
@@ -198,14 +253,18 @@ const nextPage = () => {
   }
 };
 
+if (initialVenuesError.value) {
+  loadError.value =
+    'Could not load venues. The database may be unreachable — check Netlify DATABASE_URL uses Supabase port 6543 (transaction pooler).';
+} else if (initialVenues.value) {
+  applyVenuesPage(initialVenues.value);
+}
+
 const fetchAllVenues = async () => {
   loading.value = true;
   loadError.value = '';
   try {
-    const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const data = await requestFetch<VenuesPage>(
-      `/api/venues?skip=${skip}&take=${itemsPerPage.value}`,
-    );
+    const data = await requestFetch<VenuesPage>(buildVenuesUrl());
     applyVenuesPage(data);
   } catch (error) {
     console.error('Error loading venues:', error);
@@ -229,16 +288,6 @@ const fetchTowns = async () => {
   }
 };
 
-const filteredVenues = computed(() => {
-  const q = searchQuery.value.toLowerCase();
-  const townFilter = selectedTown.value.toLowerCase();
-  return venues.value.filter((venue) => {
-    const name = venue.venuename?.toLowerCase() ?? '';
-    const venueTown = venue.town?.toLowerCase() ?? '';
-    const townMatch = !townFilter || venueTown === townFilter;
-    return name.includes(q) && townMatch;
-  });
-});
 const openDetailsModal = (venue: object) => {
   isDetailsOpen.value = true
   content.value = venue

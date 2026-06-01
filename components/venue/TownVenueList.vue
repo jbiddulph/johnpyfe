@@ -20,9 +20,11 @@
       <li v-for="venue in venues" :key="venue.id">
         <NuxtLink
           :to="venuePath(venue.id, venue.slug)"
-          class="block rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-gray-800 transition-colors"
+          class="group block rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-gray-800 transition-colors"
         >
-          <span class="font-semibold text-lg text-gray-900 dark:text-white">{{ venue.venuename }}</span>
+          <span class="font-semibold text-lg text-amber-600 group-hover:underline dark:text-amber-500">
+            {{ venue.venuename }}
+          </span>
           <span v-if="venueAddress(venue)" class="block text-sm text-gray-600 dark:text-gray-400 mt-1">
             {{ venueAddress(venue) }}
           </span>
