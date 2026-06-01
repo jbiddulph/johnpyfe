@@ -8,19 +8,19 @@
         class="w-full h-auto object-cover min-h-[200px] max-h-[280px]"
         @error="headerImageMissing = true"
       />
-      <div class="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30">
-        <h1 class="text-5xl md:text-7xl font-bold text-amber-500 drop-shadow-lg px-4 text-center">
+      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <h1 class="text-6xl md:text-8xl font-light text-white drop-shadow-md px-4 text-center">
           {{ townName }}
         </h1>
       </div>
     </div>
     <div class="relative">
-      <TownHeaderMap :town-name="townName" :venues="mapVenues" />
+      <PlaceHeaderMap :place-name="townName" :venues="mapVenues" />
       <div
         v-if="headerImageMissing"
-        class="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/25"
+        class="absolute inset-0 flex items-center justify-center pointer-events-none"
       >
-        <h1 class="text-5xl md:text-7xl font-bold text-amber-500 drop-shadow-lg px-4 text-center">
+        <h1 class="text-6xl md:text-8xl font-light text-white drop-shadow-md px-4 text-center">
           {{ townName }}
         </h1>
       </div>
@@ -36,9 +36,9 @@
       <TownVenueList
         :town-name="townName"
         :town="resolvedTownName"
-        :initial-items="townVenues.items"
-        :initial-total="townVenues.total"
-        :initial-total-pages="townVenues.totalPages"
+        :initial-items="initialVenueItems"
+        :initial-total="initialVenueTotal"
+        :initial-total-pages="initialVenueTotalPages"
       />
       <h2 class="text-4xl font-bold my-8">Events in {{ townName }}</h2>
       <ul v-if="townEvents.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -76,13 +76,24 @@ const { data: townVenuesData } = await useAsyncData(
   `town-venues-${townSlug}`,
   () =>
     requestFetch(
-      `/api/venues/town?town=${encodeURIComponent(resolvedTownName)}&skip=0&take=500&all=1`,
+      `/api/venues/town?town=${encodeURIComponent(resolvedTownName)}&skip=0&take=104`,
     ),
   { default: () => ({ items: [], total: 0, totalPages: 1 }) },
 )
 
-const townVenues = computed(() => townVenuesData.value ?? { items: [], total: 0, totalPages: 1 })
-const mapVenues = computed(() => townVenues.value.items ?? [])
+const { data: mapVenuesData } = await useAsyncData(
+  `town-map-venues-${townSlug}`,
+  () =>
+    requestFetch(
+      `/api/venues/town?town=${encodeURIComponent(resolvedTownName)}&skip=0&take=500&all=1`,
+    ),
+  { default: () => ({ items: [] }) },
+)
+
+const initialVenueItems = computed(() => townVenuesData.value?.items ?? [])
+const initialVenueTotal = computed(() => townVenuesData.value?.total ?? 0)
+const initialVenueTotalPages = computed(() => townVenuesData.value?.totalPages ?? 1)
+const mapVenues = computed(() => mapVenuesData.value?.items ?? [])
 
 const breadcrumbItems = computed(() => {
   const items = [{ label: 'Home', to: '/' }]

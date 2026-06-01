@@ -67,11 +67,20 @@ const props = defineProps<{
 }>()
 
 const requestFetch = useRequestFetch()
-const venues = ref<VenueItem[]>(props.initialItems ?? [])
+const venues = ref<VenueItem[]>([])
 const currentPage = ref(1)
-const totalPages = ref(props.initialTotalPages ?? 1)
-const totalCount = ref(props.initialTotal ?? props.initialItems?.length ?? 0)
+const totalPages = ref(1)
+const totalCount = ref(0)
 const loading = ref(false)
+
+function applyInitialPage() {
+  if (props.initialItems?.length) {
+    venues.value = [...props.initialItems]
+    totalCount.value = props.initialTotal ?? props.initialItems.length
+    totalPages.value = props.initialTotalPages ?? 1
+    currentPage.value = 1
+  }
+}
 
 function venueAddress(venue: VenueItem) {
   return [cleanDbString(venue.address), cleanDbString(venue.postcode)]
@@ -109,9 +118,13 @@ async function fetchVenues() {
     totalCount.value = data.total ?? 0
     totalPages.value = data.totalPages ?? 1
   } catch {
-    venues.value = []
-    totalCount.value = 0
-    totalPages.value = 1
+    if (currentPage.value === 1 && props.initialItems?.length) {
+      applyInitialPage()
+    } else {
+      venues.value = []
+      totalCount.value = 0
+      totalPages.value = 1
+    }
   } finally {
     loading.value = false
   }
@@ -140,14 +153,29 @@ function scrollToTop() {
 }
 
 watch(
+  () => [props.initialItems, props.initialTotal, props.initialTotalPages],
+  () => {
+    if (currentPage.value === 1) {
+      applyInitialPage()
+    }
+  },
+  { immediate: true, deep: true },
+)
+
+watch(
   () => [props.town, props.county],
   () => {
     currentPage.value = 1
-    fetchVenues()
+    if (props.initialItems?.length) {
+      applyInitialPage()
+    } else {
+      fetchVenues()
+    }
   },
 )
 
 onMounted(() => {
+  applyInitialPage()
   if (!venues.value.length && (props.town || props.county)) {
     fetchVenues()
   }
