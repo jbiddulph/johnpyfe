@@ -1,3 +1,5 @@
+import { cleanDbString, formatPhone, isValidWebsite } from '../utils/format-venue'
+
 type SiteSeoOptions = {
   title: string
   description: string
@@ -18,6 +20,26 @@ export function venuePath(id: number | string, slug: string) {
 
 export function townPath(slug: string) {
   return `/town/${slug}`
+}
+
+export function countyPath(slug: string) {
+  return `/county/${slug}`
+}
+
+export function breadcrumbJsonLd(
+  items: Array<{ label: string; to?: string }>,
+  baseUrl: string,
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.label,
+      ...(item.to ? { item: `${baseUrl}${item.to}` } : {}),
+    })),
+  }
 }
 
 export function useSiteSeo(options: SiteSeoOptions) {
@@ -78,20 +100,22 @@ export function venueJsonLd(
 ) {
   const lat = venue.latitude ? Number.parseFloat(venue.latitude) : undefined
   const lng = venue.longitude ? Number.parseFloat(venue.longitude) : undefined
+  const phone = formatPhone(venue.telephone)
+  const website = isValidWebsite(venue.website) ? cleanDbString(venue.website) : null
 
   return {
     '@context': 'https://schema.org',
     '@type': 'BarOrPub',
     name: venue.venuename,
     url: canonical,
-    ...(venue.website ? { sameAs: venue.website } : {}),
-    ...(venue.telephone ? { telephone: venue.telephone } : {}),
+    ...(website ? { sameAs: website } : {}),
+    ...(phone ? { telephone: phone } : {}),
     address: {
       '@type': 'PostalAddress',
-      streetAddress: venue.address,
-      addressLocality: venue.town,
-      addressRegion: venue.county || venue.postalsearch,
-      postalCode: venue.postcode,
+      streetAddress: cleanDbString(venue.address) ?? undefined,
+      addressLocality: cleanDbString(venue.town) ?? undefined,
+      addressRegion: cleanDbString(venue.county) || cleanDbString(venue.postalsearch) || undefined,
+      postalCode: cleanDbString(venue.postcode) ?? undefined,
       addressCountry: 'GB',
     },
     ...(!Number.isNaN(lat) && !Number.isNaN(lng)

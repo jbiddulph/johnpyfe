@@ -1,0 +1,2 @@
+import{d as t,a as o,c as r}from"./nitro/netlify.mjs";import{a as s}from"./place-hub.mjs";import"node:http";import"node:https";import"node:fs";import"node:path";import"vue";import"consola/core";import"./prisma.mjs";import"@prisma/client";const e=t((async t=>{const{county:e}=o(t),a=String(e||"").trim();if(!a)throw r({statusCode:400,statusMessage:"county query required"});const i=await s(a);return i?{slug:i.slug,name:i.displayName,href:i.href}:{slug:null,name:null,href:null}}));export{e as default};
+//# sourceMappingURL=resolve.get.mjs.map

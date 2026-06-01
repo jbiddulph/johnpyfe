@@ -226,7 +226,7 @@ export const useEventStore = defineStore({
     },
     async fetchTownEvents(townSlug) {
       try {
-        const response = await fetch(`/api/events/town/${townSlug}`);
+        const response = await fetch(`/api/towns/${townSlug}`);
         const data = await response.json();
         console.log("Town Events:", data);
         if (data && data.cityName && Array.isArray(data.events)) {

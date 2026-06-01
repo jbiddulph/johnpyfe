@@ -4,7 +4,7 @@
     <div class="w-full items-center bg-white dark:bg-gray-900 rounded-md">
       <div class="p-4">
         <h2 class="font-bold text-2xl">{{ event.event_title }}</h2>
-        <h3>{{ event.category.name }} at <NuxtLink :to="`/venues/${event.listing.id}/${event.listing.slug}`">{{ event.listing.venuename }}</NuxtLink></h3>
+        <h3>{{ event.category.name }} at <NuxtLink :to="venuePath(event.listing.id, event.listing.slug)">{{ event.listing.venuename }}</NuxtLink></h3>
         <span><NuxtLink :to="`/town/${event.city.slug}`">{{ event.city.name }}</NuxtLink></span>
       </div>
       <div>

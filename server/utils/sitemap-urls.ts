@@ -1,6 +1,7 @@
 import { prisma } from './prisma'
+import { listCountySlugs, listTownSlugs } from './place-hub'
 
-const STATIC_ROUTES = ['/', '/events', '/venues', '/map'] as const
+const STATIC_ROUTES = ['/', '/events', '/venues', '/map', '/counties'] as const
 
 /** DB stores literal "NULL" strings — Invalid Date breaks sitemap XML generation. */
 function safeLastmod(value: unknown, fallback: Date): Date {
@@ -47,15 +48,20 @@ async function buildSitemapUrls(now: Date) {
     priority: 0.7,
   }))
 
-  const cities = await prisma.city.findMany({
-    select: { slug: true },
-  })
-
-  const townUrls = cities.map((city) => ({
-    loc: `/town/${city.slug}`,
+  const townHubs = await listTownSlugs()
+  const townUrls = townHubs.map((town) => ({
+    loc: `/town/${town.slug}`,
     lastmod: now,
     changefreq: 'daily' as const,
     priority: 0.75,
+  }))
+
+  const countyHubs = await listCountySlugs()
+  const countyUrls = countyHubs.map((county) => ({
+    loc: `/county/${county.slug}`,
+    lastmod: now,
+    changefreq: 'weekly' as const,
+    priority: 0.72,
   }))
 
   const events = await prisma.event.findMany({
@@ -72,5 +78,5 @@ async function buildSitemapUrls(now: Date) {
     priority: 0.65,
   }))
 
-  return [...staticUrls, ...townUrls, ...eventUrls, ...venueUrls]
+  return [...staticUrls, ...townUrls, ...countyUrls, ...eventUrls, ...venueUrls]
 }
