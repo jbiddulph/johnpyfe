@@ -122,24 +122,25 @@
 <script lang="ts" setup>
 import { useAuthStore } from "~/store/auth.js";
 import { useEventStore } from '~/store/event.js';
+const siteUrl = siteBaseUrl()
+
 useSeoMeta({
   title: 'Pubs and venues listings in the UK',
   description: 'Events listings website for pubs and venues in the UK',
-  og: {
-    title: 'Pubs, bars and venues in and around the UK',
-    description: 'Live music, comedy, gigs, quizzes and other events at your local pub',
-  },
+  ogTitle: 'Pubs, bars and venues in and around the UK',
+  ogDescription: 'Live music, comedy, gigs, quizzes and other events at your local pub',
+  ogImage: `${siteUrl}/favicon-192x192.png`,
+  ogUrl: siteUrl,
+  ogLocale: 'en_GB',
+  twitterCard: 'summary_large_image',
 })
 
-// Use `useHead` for more control, such as custom meta tags or other head elements
 useHead({
-  title: 'UK Pubs',
+  titleTemplate: (title) => (title ? `${title} | UK Pubs` : 'UK Pubs'),
   meta: [
-    { name: 'description', content: 'UK Pub listings, events at venues and bars in the uk' },
-    { name: 'robots', content: 'index, follow' },
     { name: 'author', content: 'John Biddulph - UK Pubs' },
-    { property: 'og:image', content: '/favicon-96x96.png' },  // Example of custom meta tag
   ],
+  link: [{ rel: 'canonical', href: siteUrl }],
 })
 const eventStore = useEventStore();
 const authStore = useAuthStore();

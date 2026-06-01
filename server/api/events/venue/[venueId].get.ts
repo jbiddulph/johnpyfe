@@ -14,6 +14,11 @@ export default defineEventHandler(async (event) => {
         gt: now // Only return events that start after now
       }
     },
+    include: {
+      city: true,
+      category: true,
+      listing: true,
+    },
     orderBy: {
       event_start: 'asc' // Order by event start date, earliest first
     }

@@ -38,6 +38,12 @@ import { useVenueStore } from "@/store/venue.js";
 import { useEventStore } from "@/store/event.js";
 import mapboxgl from 'mapbox-gl';
 
+useSiteSeo({
+  title: 'Map of UK pubs and venues',
+  description: 'Explore pubs and venues on an interactive map. Find events and listings near you.',
+  path: '/map',
+})
+
 // State variables
 const venueStore = useVenueStore();
 const eventStore = useEventStore();

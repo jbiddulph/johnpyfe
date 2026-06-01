@@ -2,11 +2,16 @@
   <div class="container mx-auto p-4">
     <h1 class="text-4xl font-bold my-8">
       <NuxtLink to="/events">
-        <span class="text-amber-500">Events</span></NuxtLink>
-        - {{ event.event_title }}
+        <span class="text-amber-500">Events</span>
+      </NuxtLink>
+      - {{ event.event_title }}
     </h1>
     <div class="flex flex-col md:flex-row">
-      <img :src="`${useRuntimeConfig().public.eventImgFolder}/${event.photo}`" alt="Event image" class="w-full md:w-1/2 h-auto object-cover" />
+      <img
+        :src="`${config.public.eventImgFolder}/${event.photo}`"
+        :alt="event.event_title"
+        class="w-full md:w-1/2 h-auto object-cover"
+      />
       <div class="md:ml-8">
         <p><strong>Description:</strong> {{ event?.description }}</p>
         <p><strong>Cost:</strong> {{ event?.cost }}</p>
@@ -14,44 +19,50 @@
         <p><strong>Start Time:</strong> {{ event?.event_start }}</p>
         <p><strong>Category:</strong> {{ event?.category?.name }}</p>
         <p><strong>City:</strong> {{ event?.city?.name }}</p>
-        <p><strong>Venue:</strong> {{ event?.listing?.venuename }}</p>
-        <!-- {{ event?.listing }} -->
-        <p><strong>Website:</strong> <a :href="event?.website" target="_blank">{{ event.website }}</a></p>
+        <p>
+          <strong>Venue:</strong>
+          <NuxtLink
+            v-if="event?.listing"
+            :to="venuePath(event.listing.id, event.listing.slug)"
+          >
+            {{ event?.listing?.venuename }}
+          </NuxtLink>
+        </p>
+        <p v-if="event?.website">
+          <strong>Website:</strong>
+          <a :href="event.website" target="_blank" rel="noopener">{{ event.website }}</a>
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { useEventStore } from '@/store/event.js';
+const route = useRoute()
+const config = useRuntimeConfig()
+const eventId = route.params.id
 
-const route = useRoute();
-const eventStore = useEventStore();
-const event = ref({});
+const { data: event, error } = await useAsyncData(`event-${eventId}`, () =>
+  $fetch(`/api/events/${eventId}`),
+)
 
-onMounted(async () => {
-  const eventId = route.params.id;
-  event.value = await eventStore.fetchEventDetails(eventId);
-  document.title = event.value.event_title;
-  updateMetaKeywords(event.value);
-});
-
-watch(event, (newEvent) => {
-  console.log(newEvent.event_title);
-  document.title = newEvent.event_title;
-  updateMetaKeywords(newEvent);
-});
-
-function updateMetaKeywords(event) {
-  const keywords = event.description || '';
-  let metaTag = document.querySelector('meta[name="keywords"]');
-  if (!metaTag) {
-    metaTag = document.createElement('meta');
-    metaTag.name = 'keywords';
-    document.head.appendChild(metaTag);
-  }
-  metaTag.content = keywords;
+if (error.value || !event.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Event not found' })
 }
+
+const canonicalPath = `/events/${event.value.id}`
+const venueName = event.value.listing?.venuename
+const town = event.value.listing?.town || event.value.city?.name
+const seoTitle = `${event.value.event_title}${venueName ? ` at ${venueName}` : ''}`
+const seoDescription =
+  event.value.description?.slice(0, 160) ||
+  `${event.value.event_title}${town ? ` in ${town}` : ''} — find pubs, gigs and events on UK Pubs.`
+
+useSiteSeo({
+  title: seoTitle,
+  description: seoDescription,
+  path: canonicalPath,
+  type: 'article',
+  jsonLd: eventJsonLd(event.value, `${siteBaseUrl()}${canonicalPath}`),
+})
 </script>

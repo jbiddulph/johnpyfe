@@ -1,5 +1,12 @@
+const mapboxToken = process.env.NUXT_PUBLIC_MAPBOX_TOKEN || ''
 
 export default defineNuxtConfig({
+  site: {
+    url: process.env.NUXT_PUBLIC_APP_URL ?? 'https://ukpubs.co.uk',
+    name: 'UK Pubs',
+    description: 'Events listings for pubs and venues across the UK — live music, comedy, quizzes and more.',
+    defaultLocale: 'en-GB',
+  },
   css: [
     'mapbox-gl/dist/mapbox-gl.css'
   ],
@@ -10,13 +17,12 @@ export default defineNuxtConfig({
       apiURL: process.env.NUXT_PUBLIC_API_URL ?? "https://ukpubs.co.uk",
       userName: process.env.USER_NAME,
       googleMaps: {
-        key: 'AIzaSyBWiPC71sMkSoaa0TNrioE8CP1Ll5HmpZ4'
+        key: process.env.NUXT_PUBLIC_GOOGLE_MAPS_KEY || '',
       },
       eventImgFolder: process.env.EVENT_IMG_FOLDER,
       venueImgFolder: process.env.VENUE_IMG_FOLDER,
       admin: process.env.ADMIN_EMAIL,
-      mapbox_token:
-            "pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA",
+      mapbox_token: mapboxToken,
       supabase: {
         url: process.env.SUPABASE_URL,
         key: process.env.SUPABASE_KEY
@@ -38,6 +44,12 @@ export default defineNuxtConfig({
   
   // Optimize rendering
   ssr: true,
+  routeRules: {
+    '/admin/**': { index: false },
+    '/login': { index: false },
+    '/register': { index: false },
+    '/auth/**': { index: false },
+  },
   nitro: {
     compressPublicAssets: true,
     minify: true,
@@ -140,10 +152,15 @@ export default defineNuxtConfig({
       inject: true, // Automatically inject font styles
     }
   },
+  robots: {
+    disallow: ['/admin', '/admin/', '/login', '/register', '/auth'],
+    sitemap: '/sitemap.xml',
+  },
   sitemap: {
-    sources: ['https://ukpubs.co.uk/api/venue-urls'],
+    sources: ['/api/sitemap-urls'],
+    exclude: ['/admin/**', '/login', '/register', '/auth/**'],
   },
   mapbox: {
-    accessToken: 'pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA'
+    accessToken: mapboxToken,
   },
 })
