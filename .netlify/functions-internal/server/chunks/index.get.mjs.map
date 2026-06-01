@@ -1,0 +1,1 @@
+{"version":3,"file":"index.get.mjs","sources":["../../../../server/api/categories/index.get.ts"],"sourcesContent":null,"names":["prisma","PrismaClient","index_get","defineEventHandler","async","category","findMany"],"mappings":"8LAEA,MAAAA,EAAA,IAAAC,EAEAC,EAAAC,GAAAC,eACAJ,EAAAK,SAAAC"}

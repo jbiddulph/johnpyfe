@@ -1,0 +1,2 @@
+import{d as e,g as o}from"./nitro/netlify.mjs";import{PrismaClient as t}from"@prisma/client";import"node:http";import"node:https";import"node:fs";import"node:path";import"vue";import"consola/core";const n=new t,r=e((async e=>{const{town:t}=o(e),r={town:{equals:t,mode:"insensitive"}};return await n.venue.groupBy({by:["venuename"],_count:{venuename:!0},where:r,orderBy:{_count:{venuename:"desc"}},take:500})}));export{r as default};
+//# sourceMappingURL=index.get5.mjs.map

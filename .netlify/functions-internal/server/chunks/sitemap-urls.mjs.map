@@ -1,0 +1,1 @@
+{"version":3,"file":"sitemap-urls.mjs","sources":["../../../../server/api/sitemap-urls.ts"],"sourcesContent":null,"names":["sitemapUrls","defineEventHandler","getSitemapUrls"],"mappings":"oOAEA,MAAAA,EAAAC,GAAA,IAAAC"}

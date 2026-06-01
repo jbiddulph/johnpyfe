@@ -1,8 +1,11 @@
+import { resolveSiteUrl } from './utils/site-url'
+
 const mapboxToken = process.env.NUXT_PUBLIC_MAPBOX_TOKEN || ''
+const siteUrl = resolveSiteUrl()
 
 export default defineNuxtConfig({
   site: {
-    url: process.env.NUXT_PUBLIC_APP_URL ?? 'https://ukpubs.co.uk',
+    url: siteUrl,
     name: 'UK Pubs',
     description: 'Events listings for pubs and venues across the UK — live music, comedy, quizzes and more.',
     defaultLocale: 'en-GB',
@@ -13,8 +16,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       baseURL: process.env.BASE_URL,
-      appURL: process.env.NUXT_PUBLIC_APP_URL ?? "https://ukpubs.co.uk",
-      apiURL: process.env.NUXT_PUBLIC_API_URL ?? "https://ukpubs.co.uk",
+      appURL: siteUrl,
+      apiURL: process.env.NUXT_PUBLIC_API_URL?.replace(/\/$/, '') || siteUrl,
       userName: process.env.USER_NAME,
       googleMaps: {
         key: process.env.NUXT_PUBLIC_GOOGLE_MAPS_KEY || '',
@@ -51,6 +54,7 @@ export default defineNuxtConfig({
     '/auth/**': { robots: false },
   },
   nitro: {
+    preset: 'netlify',
     compressPublicAssets: true,
     minify: true,
   },
@@ -166,11 +170,16 @@ export default defineNuxtConfig({
         ],
       },
     ],
-    sitemap: ['/sitemap.xml'],
+    sitemap: ['/sitemap_index.xml'],
   },
   sitemap: {
+    // DB-backed URLs; split into chunks so Netlify can build XML without 500s
+    sitemaps: true,
+    defaultSitemapsChunkSize: 4500,
+    excludeAppSources: ['pages', 'nuxt:prerender'],
     sources: ['/api/sitemap-urls'],
-    exclude: ['/admin/**', '/login', '/register', '/auth/**'],
+    exclude: ['/admin/**', '/login', '/register', '/auth/**', '/map/map'],
+    cacheMaxAgeSeconds: 3600,
   },
   mapbox: {
     accessToken: mapboxToken,

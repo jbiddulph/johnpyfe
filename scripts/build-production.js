@@ -13,6 +13,7 @@ if (!fs.existsSync('.env')) {
 # Minimal environment variables for build
 SUPABASE_URL=https://placeholder.supabase.co
 SUPABASE_KEY=placeholder_key
+NUXT_SITE_URL=https://ukpubs.co.uk
 BASE_URL=https://ukpubs.co.uk
 NUXT_PUBLIC_APP_URL=https://ukpubs.co.uk
 NUXT_PUBLIC_API_URL=https://ukpubs.co.uk

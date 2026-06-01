@@ -1,12 +1,24 @@
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from './prisma'
 
 const STATIC_ROUTES = ['/', '/events', '/venues', '/map'] as const
 
 export async function getSitemapUrls() {
   const now = new Date()
 
+  try {
+    return await buildSitemapUrls(now)
+  } catch (error) {
+    console.error('[sitemap] Failed to load URLs from database:', error)
+    return STATIC_ROUTES.map((loc) => ({
+      loc,
+      lastmod: now,
+      changefreq: 'daily' as const,
+      priority: loc === '/' ? 1 : 0.8,
+    }))
+  }
+}
+
+async function buildSitemapUrls(now: Date) {
   const staticUrls = STATIC_ROUTES.map((loc) => ({
     loc,
     lastmod: now,

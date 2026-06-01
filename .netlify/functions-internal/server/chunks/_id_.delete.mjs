@@ -1,0 +1,2 @@
+import{d as t,c as e}from"./nitro/netlify.mjs";import{PrismaClient as o}from"@prisma/client";import"node:http";import"node:https";import"node:fs";import"node:path";import"vue";import"consola/core";const r=new o,n=t((async t=>{const{id:o}=t.context.params,n=await r.event.delete({where:{id:parseInt(o)}});if(!n)throw e({statusCode:404,message:`Venue with venueID of ${o} does not exist`});return n}));export{n as default};
+//# sourceMappingURL=_id_.delete.mjs.map

@@ -1,0 +1,2 @@
+import{d as t}from"./nitro/netlify.mjs";import{p as o}from"./prisma.mjs";import"node:http";import"node:https";import"node:fs";import"node:path";import"vue";import"consola/core";import"@prisma/client";const e=t((async()=>{const[t,e,n]=await Promise.all([o.venue.count({where:{is_live:"1"}}),o.event.count({where:{event_start:{gt:new Date}}}),o.city.count()]);return{ok:!0,venueCount:t,upcomingEventCount:e,cityCount:n}}));export{e as default};
+//# sourceMappingURL=db.get.mjs.map

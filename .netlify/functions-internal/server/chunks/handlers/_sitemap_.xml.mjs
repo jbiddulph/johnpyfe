@@ -1,0 +1,2 @@
+import{d as t,y as s,A as e,B as a,C as o,c as m,D as p}from"../nitro/netlify.mjs";import"node:http";import"node:https";import"node:fs";import"node:path";import"vue";import"consola/core";const i=t((async t=>{const i=s(t),{sitemaps:r}=i,n=e(a((o(t,"sitemap")||t.path)?.replace(".xml","").replace(i.sitemapsPathPrefix,""))),c=void 0!==r.chunks&&!Number.isNaN(Number(n));return n&&(n in r||c)?p(t,c?{...r.chunks,sitemapName:n}:r[n],i):m({statusCode:404,message:`Sitemap "${n}" not found.`})}));export{i as default};
+//# sourceMappingURL=_sitemap_.xml.mjs.map
