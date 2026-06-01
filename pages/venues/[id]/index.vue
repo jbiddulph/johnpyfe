@@ -3,13 +3,11 @@
 const route = useRoute()
 const id = Array.isArray(route.params.id) ? route.params.id[0] : String(route.params.id)
 
-const { data: venue, error } = await useFetch(`/api/venues/${id}`, {
-  key: `venue-redirect-${id}`,
-})
+const venue = await $fetch(useApiUrl(`/api/venues/${id}`)).catch(() => null)
 
-if (error.value || !venue.value) {
+if (!venue) {
   throw createError({ statusCode: 404, statusMessage: 'Venue not found' })
 }
 
-await navigateTo(venuePath(venue.value.id, venue.value.slug), { redirectCode: 301 })
+await navigateTo(venuePath(venue.id, venue.slug), { redirectCode: 301 })
 </script>

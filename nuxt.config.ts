@@ -15,9 +15,9 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     public: {
-      baseURL: process.env.BASE_URL,
+      baseURL: (process.env.BASE_URL || process.env.NUXT_PUBLIC_APP_URL || siteUrl).replace(/\/$/, ''),
       appURL: siteUrl,
-      apiURL: process.env.NUXT_PUBLIC_API_URL?.replace(/\/$/, '') || siteUrl,
+      apiURL: (process.env.NUXT_PUBLIC_API_URL || process.env.NUXT_PUBLIC_APP_URL || siteUrl).replace(/\/$/, ''),
       userName: process.env.USER_NAME,
       googleMaps: {
         key: process.env.NUXT_PUBLIC_GOOGLE_MAPS_KEY || '',
@@ -175,11 +175,14 @@ export default defineNuxtConfig({
   sitemap: {
     // DB-backed URLs; split into chunks so Netlify can build XML without 500s
     sitemaps: true,
-    defaultSitemapsChunkSize: 4500,
+    defaultSitemapsChunkSize: 2500,
+    sitemapsPathPrefix: '/sitemaps/',
+    autoLastmod: false,
+    discoverImages: false,
     excludeAppSources: ['pages', 'nuxt:prerender'],
     sources: ['/api/sitemap-urls'],
     exclude: ['/admin/**', '/login', '/register', '/auth/**', '/map/map'],
-    cacheMaxAgeSeconds: 3600,
+    cacheMaxAgeSeconds: 600,
   },
   mapbox: {
     accessToken: mapboxToken,

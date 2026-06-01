@@ -2,6 +2,14 @@ import { prisma } from './prisma'
 
 const STATIC_ROUTES = ['/', '/events', '/venues', '/map'] as const
 
+/** DB stores literal "NULL" strings — Invalid Date breaks sitemap XML generation. */
+function safeLastmod(value: unknown, fallback: Date): Date {
+  if (value == null || value === 'NULL' || value === '') return fallback
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value
+  const parsed = new Date(String(value))
+  return Number.isNaN(parsed.getTime()) ? fallback : parsed
+}
+
 export async function getSitemapUrls() {
   const now = new Date()
 
@@ -34,7 +42,7 @@ async function buildSitemapUrls(now: Date) {
 
   const venueUrls = venues.map((venue) => ({
     loc: `/venues/${venue.id}/${venue.slug}`,
-    lastmod: venue.updated_at ? new Date(venue.updated_at) : now,
+    lastmod: safeLastmod(venue.updated_at, now),
     changefreq: 'weekly' as const,
     priority: 0.7,
   }))
@@ -59,7 +67,7 @@ async function buildSitemapUrls(now: Date) {
 
   const eventUrls = events.map((event) => ({
     loc: `/events/${event.id}`,
-    lastmod: event.created_at,
+    lastmod: safeLastmod(event.created_at, now),
     changefreq: 'daily' as const,
     priority: 0.65,
   }))
