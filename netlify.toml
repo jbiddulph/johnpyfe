@@ -10,6 +10,8 @@
   NUXT_SITE_URL = "https://ukpubs.co.uk"
   NUXT_PUBLIC_APP_URL = "https://ukpubs.co.uk"
   NUXT_PUBLIC_API_URL = "https://ukpubs.co.uk"
+  # Set your Mapbox public token in Netlify UI (Site settings → Environment variables)
+  # NUXT_PUBLIC_MAPBOX_TOKEN = "pk.eyJ..."
 
 # Headers for performance
 [[headers]]

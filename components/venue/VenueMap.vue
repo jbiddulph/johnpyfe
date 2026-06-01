@@ -3,15 +3,10 @@
     <h2 class="text-3xl font-bold mb-4">Location</h2>
     <ClientOnly>
       <div v-if="hasCoords">
-        <div v-show="useMapbox" ref="mapEl" class="venue-map__canvas" />
-        <iframe
-          v-if="!useMapbox"
-          class="venue-map__iframe"
-          :src="osmEmbedUrl"
-          title="Map location"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-        />
+        <div v-if="!hasMapboxToken" class="venue-map__canvas flex items-center justify-center bg-gray-100 text-gray-600 px-4 text-center">
+          Map is not configured. Add <code class="text-sm">NUXT_PUBLIC_MAPBOX_TOKEN</code> in your hosting environment variables.
+        </div>
+        <div v-else ref="mapEl" class="venue-map__canvas" />
         <p class="mt-3">
           <a
             :href="directionsUrl"
@@ -40,6 +35,7 @@ const props = defineProps({
 })
 
 const config = useRuntimeConfig()
+const mapboxToken = useMapboxToken()
 const mapEl = ref(null)
 let mapInstance = null
 
@@ -48,19 +44,7 @@ const lng = computed(() => Number(props.venue?.longitude))
 
 const hasCoords = computed(() => !Number.isNaN(lat.value) && !Number.isNaN(lng.value))
 
-const mapboxToken = computed(() => String(config.public.mapbox_token || '').trim())
-
-const useMapbox = computed(() => Boolean(mapboxToken.value))
-
-const osmEmbedUrl = computed(() => {
-  if (!hasCoords.value) return ''
-  const pad = 0.012
-  const minLng = lng.value - pad
-  const minLat = lat.value - pad
-  const maxLng = lng.value + pad
-  const maxLat = lat.value + pad
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${lat.value}%2C${lng.value}`
-})
+const hasMapboxToken = mapboxToken
 
 const directionsUrl = computed(() => {
   if (!hasCoords.value) return '#'
@@ -71,7 +55,7 @@ const directionsUrl = computed(() => {
 })
 
 async function initMapbox() {
-  if (!useMapbox.value || !hasCoords.value || !mapEl.value) return
+  if (!hasMapboxToken.value || !hasCoords.value || !mapEl.value) return
 
   const mapboxgl = (await import('mapbox-gl')).default
   mapboxgl.accessToken = mapboxToken.value
@@ -86,9 +70,11 @@ async function initMapbox() {
     style: 'mapbox://styles/mapbox/streets-v11',
     center: [lng.value, lat.value],
     zoom: 14,
+    accessToken: mapboxToken.value,
   })
 
   mapInstance.on('load', () => {
+    mapInstance.resize()
     const marker = new mapboxgl.Marker()
       .setLngLat([lng.value, lat.value])
       .addTo(mapInstance)
@@ -106,7 +92,7 @@ async function initMapbox() {
 
 onMounted(async () => {
   await nextTick()
-  if (useMapbox.value) await initMapbox()
+  await initMapbox()
 })
 
 onBeforeUnmount(() => {
@@ -120,7 +106,7 @@ watch(
   () => [props.venue?.latitude, props.venue?.longitude, mapboxToken.value],
   async () => {
     await nextTick()
-    if (useMapbox.value) await initMapbox()
+    await initMapbox()
   },
 )
 </script>
@@ -132,13 +118,5 @@ watch(
   min-height: 400px;
   border-radius: 0.25rem;
   overflow: hidden;
-}
-
-.venue-map__iframe {
-  width: 100%;
-  height: 400px;
-  min-height: 400px;
-  border: 0;
-  border-radius: 0.25rem;
 }
 </style>
