@@ -14,7 +14,6 @@ export default defineEventHandler(async (event) => {
 
   const { skip, take } = parseVenuePagination(query)
   const where = {
-    is_live: '1',
     town: { equals: townName, mode: 'insensitive' as const },
     slug: { not: '' },
   }

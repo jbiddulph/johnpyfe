@@ -52,21 +52,25 @@ type VenueItem = {
   address?: string
   town?: string
   postcode?: string
+  latitude?: string
+  longitude?: string
 }
 
 const props = defineProps<{
   townName: string
   heading?: string
-  /** DB town name for /api/venues/town */
   town?: string
-  /** DB county name for /api/venues/county */
   county?: string
+  initialItems?: VenueItem[]
+  initialTotal?: number
+  initialTotalPages?: number
 }>()
 
-const venues = ref<VenueItem[]>([])
+const requestFetch = useRequestFetch()
+const venues = ref<VenueItem[]>(props.initialItems ?? [])
 const currentPage = ref(1)
-const totalPages = ref(1)
-const totalCount = ref(0)
+const totalPages = ref(props.initialTotalPages ?? 1)
+const totalCount = ref(props.initialTotal ?? props.initialItems?.length ?? 0)
 const loading = ref(false)
 
 function venueAddress(venue: VenueItem) {
@@ -95,7 +99,7 @@ async function fetchVenues() {
       url = `/api/venues/town?${params}`
     }
 
-    const data = await $fetch<{
+    const data = await requestFetch<{
       items: VenueItem[]
       total: number
       totalPages: number
@@ -143,5 +147,9 @@ watch(
   },
 )
 
-onMounted(fetchVenues)
+onMounted(() => {
+  if (!venues.value.length && (props.town || props.county)) {
+    fetchVenues()
+  }
+})
 </script>

@@ -34,4 +34,6 @@ export const venueHubSelect = {
   address: true,
   town: true,
   postcode: true,
+  latitude: true,
+  longitude: true,
 } as const
