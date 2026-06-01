@@ -8,7 +8,7 @@
       <input v-model="searchQuery" type="text" placeholder="Search by venue name" class="input" />
       <select v-model="selectedTown" class="select">
         <option value="">All Towns</option>
-        <option v-for="town in towns" :key="town" :value="town">{{ town }}</option>
+        <option v-for="town in towns" :key="town.value" :value="town.value">{{ town.label }}</option>
       </select>
     </div>
     <div class="pb-12">
@@ -156,7 +156,7 @@ const PAGE_SIZE = 104; // Define the page size constant
 const selectedFile = ref<File | null>(null);
 const searchQuery = ref('');
 const selectedTown = ref('');
-const towns = ref<string[]>([]);
+const towns = ref<Array<{ label: string; value: string }>>([]);
 const loading = ref(false);
 const loadError = ref('');
 
@@ -221,7 +221,9 @@ const fetchAllVenues = async () => {
 
 const fetchTowns = async () => {
   try {
-    towns.value = await $fetch<string[]>('/api/venues/towns-list');
+    towns.value = await requestFetch<Array<{ label: string; value: string }>>(
+      '/api/venues/towns-list',
+    );
   } catch {
     towns.value = [];
   }
@@ -229,9 +231,12 @@ const fetchTowns = async () => {
 
 const filteredVenues = computed(() => {
   const q = searchQuery.value.toLowerCase();
+  const townFilter = selectedTown.value.toLowerCase();
   return venues.value.filter((venue) => {
     const name = venue.venuename?.toLowerCase() ?? '';
-    return name.includes(q) && (selectedTown.value === '' || venue.town === selectedTown.value);
+    const venueTown = venue.town?.toLowerCase() ?? '';
+    const townMatch = !townFilter || venueTown === townFilter;
+    return name.includes(q) && townMatch;
   });
 });
 const openDetailsModal = (venue: object) => {

@@ -38,6 +38,22 @@ export function formatPhone(value: unknown): string | null {
   return cleanDbString(value)
 }
 
+/** Reject address-like junk stored in the town column. */
+export function isPlausibleTownName(value: unknown): boolean {
+  const s = cleanDbString(value)
+  if (!s) return false
+  if (/\d/.test(s)) return false
+  if (s.length > 40) return false
+  if (/[,.]/.test(s)) return false
+  const lower = s.toLowerCase()
+  if (/\b(street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|way|place|pl|hill|terrace|crescent|close)\b/.test(lower)) {
+    return false
+  }
+  const words = s.split(/\s+/).filter(Boolean)
+  if (words.length === 0 || words.length > 4) return false
+  return true
+}
+
 /** Reject address-like junk stored in the county column. */
 export function isPlausibleCountyName(value: unknown): boolean {
   const s = cleanDbString(value)

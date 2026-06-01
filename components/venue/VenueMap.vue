@@ -79,14 +79,14 @@ async function initMapbox() {
       .setLngLat([lng.value, lat.value])
       .addTo(mapInstance)
 
-    const popupHtml = [
-      `<strong>${props.venue.venuename}</strong>`,
-      [props.venue.address, props.venue.town, props.venue.county, props.venue.postcode]
-        .filter((p) => p && p !== 'NULL')
-        .join(', '),
-    ].join('<br>')
+    const addressLine = [props.venue.address, props.venue.town, props.venue.county, props.venue.postcode]
+      .filter((p) => p && p !== 'NULL')
+      .join(', ')
+    const popupHtml = `<div class="venue-map-popup__inner"><strong>${props.venue.venuename}</strong>${addressLine ? `<br>${addressLine}` : ''}</div>`
 
-    marker.setPopup(new mapboxgl.Popup({ offset: 24 }).setHTML(popupHtml))
+    marker.setPopup(
+      new mapboxgl.Popup({ offset: 24, className: 'venue-map-popup' }).setHTML(popupHtml),
+    )
   })
 }
 
@@ -118,5 +118,20 @@ watch(
   min-height: 400px;
   border-radius: 0.25rem;
   overflow: hidden;
+}
+</style>
+
+<!-- Mapbox popups are mounted on document.body; scoped styles do not reach them -->
+<style>
+.venue-map-popup .mapboxgl-popup-content {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+  padding: 12px 14px;
+  line-height: 1.45;
+}
+
+.venue-map-popup .mapboxgl-popup-content .venue-map-popup__inner,
+.venue-map-popup .mapboxgl-popup-content .venue-map-popup__inner strong {
+  color: #111827 !important;
 }
 </style>
