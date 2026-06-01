@@ -1,5 +1,8 @@
 <template>
-  <div class="container mx-auto p-4">
+  <div v-if="!venue" class="container mx-auto p-4 py-8 text-lg text-gray-600">
+    Loading venue…
+  </div>
+  <div v-else class="container mx-auto p-4">
     <h1 class="text-4xl font-bold my-8">
       <NuxtLink to="/venues">
         <span class="text-amber-500">Venues</span>
@@ -29,8 +32,8 @@
     </div>
     <div id="singlemap" style="height: 400px;" />
     <h2 class="text-4xl font-bold my-8">Events</h2>
-    <ul v-if="events.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-      <li v-for="(event, index) in events" :key="event.id">
+    <ul v-if="venueEvents.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <li v-for="(event, index) in venueEvents" :key="event.id">
         <event-listing :event="event" :index="index" />
       </li>
     </ul>
@@ -44,69 +47,85 @@ import { useEventStore } from '@/store/event.js'
 const route = useRoute()
 const config = useRuntimeConfig()
 const eventStore = useEventStore()
+const requestFetch = useRequestFetch()
 
 const venueId = getRouteParam(route.params.id)
 const slugFromRoute = getRouteParam(route.params.slug)
 
-let venue
-let events = []
+const { data: venue, error: venueError } = await useAsyncData(
+  `venue-${venueId}`,
+  () => requestFetch(`/api/venues/${venueId}`),
+)
 
-try {
-  venue = await $fetch(useApiUrl(`/api/venues/${venueId}`))
-} catch {
+if (venueError.value || !venue.value) {
   throw createError({ statusCode: 404, statusMessage: 'Venue not found' })
 }
 
 if (
-  venue.slug
+  venue.value.slug
   && slugFromRoute
-  && slugFromRoute.toLowerCase() !== String(venue.slug).toLowerCase()
+  && slugFromRoute.toLowerCase() !== String(venue.value.slug).toLowerCase()
 ) {
-  await navigateTo(venuePath(venue.id, venue.slug), { redirectCode: 301 })
+  await navigateTo(venuePath(venue.value.id, venue.value.slug), { redirectCode: 301 })
 }
 
-try {
-  events = await $fetch(useApiUrl(`/api/events/venue/${venueId}`))
-} catch {
-  events = []
-}
+const { data: events } = await useAsyncData(
+  `venue-events-${venueId}`,
+  () => requestFetch(`/api/events/venue/${venueId}`),
+  { default: () => [] },
+)
 
-const canonicalPath = venuePath(venue.id, venue.slug)
+const venueEvents = computed(() => events.value ?? [])
+
+const v = venue.value
+const canonicalPath = venuePath(v.id, v.slug)
 useSiteSeo({
-  title: `${venue.venuename} — pub & venue in ${venue.town}, ${venue.county}`,
-  description: `Events, listings and details for ${venue.venuename} in ${venue.town}, ${venue.county}. Find gigs, quizzes and live entertainment near you.`,
+  title: `${v.venuename} — pub & venue in ${v.town}, ${v.county}`,
+  description: `Events, listings and details for ${v.venuename} in ${v.town}, ${v.county}. Find gigs, quizzes and live entertainment near you.`,
   path: canonicalPath,
-  jsonLd: venueJsonLd(venue, `${siteBaseUrl()}${canonicalPath}`),
+  jsonLd: venueJsonLd(v, `${siteBaseUrl()}${canonicalPath}`),
 })
 
 const venueRegion = computed(() => {
-  const r = venue.local_authority || venue.county
+  const v = venue.value
+  if (!v) return '—'
+  const r = v.local_authority || v.county
   return r && r !== 'NULL' ? r : '—'
 })
 
 const postalsearchDisplay = computed(() => {
-  const p = venue.postalsearch
+  const p = venue.value?.postalsearch
   return p && p !== 'NULL' ? p : '—'
 })
 
 const venueWebsite = computed(() => {
-  const w = venue.website
+  const w = venue.value?.website
   if (!w || w === 'NULL' || !w.startsWith('http')) return null
   return w
 })
 
 const venueImageSrc = computed(() => {
-  if (!venue.photo || venue.photo === 'images/venues/awaiting.jpg') {
+  const v = venue.value
+  if (!v?.photo || v.photo === 'images/venues/awaiting.jpg') {
     return '/assets/images/awaiting.jpg'
   }
   const folder = config.public.venueImgFolder || ''
-  return `${folder}${venue.photo}`
+  return `${folder}${v.photo}`
 })
 
 onMounted(async () => {
-  eventStore.events = events
+  if (!venue.value) {
+    try {
+      venue.value = await $fetch(useApiUrl(`/api/venues/${venueId}`))
+    } catch {
+      /* 404 already handled on server */
+    }
+  }
 
-  if (!venue.longitude || !venue.latitude) return
+  eventStore.events = venueEvents.value
+
+  const v = venue.value
+  if (!v?.longitude || !v?.latitude) return
 
   await nextTick()
   if (!document.getElementById('singlemap')) return
@@ -119,13 +138,13 @@ onMounted(async () => {
   const map = new mapboxgl.Map({
     container: 'singlemap',
     style: 'mapbox://styles/mapbox/streets-v11',
-    center: [Number(venue.longitude), Number(venue.latitude)],
+    center: [Number(v.longitude), Number(v.latitude)],
     zoom: 14,
   })
 
   map.on('load', () => {
     new mapboxgl.Marker()
-      .setLngLat([Number(venue.longitude), Number(venue.latitude)])
+      .setLngLat([Number(v.longitude), Number(v.latitude)])
       .addTo(map)
   })
 })

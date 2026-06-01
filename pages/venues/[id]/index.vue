@@ -3,7 +3,8 @@
 const route = useRoute()
 const id = Array.isArray(route.params.id) ? route.params.id[0] : String(route.params.id)
 
-const venue = await $fetch(useApiUrl(`/api/venues/${id}`)).catch(() => null)
+const requestFetch = useRequestFetch()
+const venue = await requestFetch(`/api/venues/${id}`).catch(() => null)
 
 if (!venue) {
   throw createError({ statusCode: 404, statusMessage: 'Venue not found' })
