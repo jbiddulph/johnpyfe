@@ -43,14 +43,9 @@
 
         <p v-if="venuesLoading && !venueList.length" class="text-lg text-gray-600">Loading venues…</p>
         <p v-else-if="!venueList.length" class="text-lg text-gray-600">No venue listings for this town yet.</p>
-        <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <li v-for="venue in venueList" :key="venue.id">
-            <NuxtLink :to="venuePath(venue.id, venue.slug)" class="hub-card">
-              <span class="hub-card__title">{{ venue.venuename }}</span>
-              <span v-if="venueAddressLine(venue)" class="hub-card__meta">
-                {{ venueAddressLine(venue) }}
-              </span>
-            </NuxtLink>
+            <VenueHubCard :venue="venue" />
           </li>
         </ul>
 
@@ -73,8 +68,6 @@
 </template>
 
 <script setup>
-import { cleanDbString } from '@/utils/format-venue'
-
 const VENUE_PAGE_SIZE = 104
 
 const route = useRoute()
@@ -143,10 +136,6 @@ const breadcrumbItems = computed(() => {
   items.push({ label: townName.value })
   return items
 })
-
-function venueAddressLine(venue) {
-  return [cleanDbString(venue.address), cleanDbString(venue.postcode)].filter(Boolean).join(', ')
-}
 
 async function fetchVenuePage(page = venuePage.value) {
   venuesLoading.value = true

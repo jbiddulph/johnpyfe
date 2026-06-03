@@ -58,27 +58,7 @@
       <p v-if="loading && !venues.length" class="text-center text-gray-600 mb-4">Loading venues…</p>
       <ul v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <li v-for="venue in venues" :key="venue.id">
-          <UCard
-            class="venue-card overflow-hidden"
-            :ui="{ body: { padding: 'p-4 pt-0' }, header: { padding: 'px-4 py-3' }, footer: { padding: 'px-4 py-3' } }"
-          >
-            <template #header>
-              <NuxtLink :to="venuePath(venue.id, venue.slug)" class="font-bold hover:text-amber-600 hover:underline">
-                {{ venue.venuename }}
-              </NuxtLink>
-            </template>
-            <VenueCardMedia :venue="venue" class="mb-3 -mx-4" />
-            <p class="text-sm text-gray-700">{{ venueAddressLine(venue) }}</p>
-            <p v-if="venuePhoneLine(venue)" class="text-sm mt-2">
-              <a :href="`tel:${venuePhoneLine(venue)!.replace(/\s/g, '')}`" class="text-amber-600 hover:underline">
-                {{ venuePhoneLine(venue) }}
-              </a>
-            </p>
-            <p v-if="venueWebsiteLine(venue)" class="text-sm mt-1">
-              <a :href="venueWebsiteLine(venue)!" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline break-all">
-                {{ venueWebsiteDisplay(venue) }}
-              </a>
-            </p>
+          <VenueHubCard :venue="venue" class="venue-card">
             <template #footer>
               <div class="flex justify-center">
                 <div v-if="user && isAdmin" class="controls">
@@ -101,7 +81,7 @@
                 </div>
               </div>
             </template>
-          </UCard>
+          </VenueHubCard>
         </li>
       </ul>
     </div>
@@ -175,11 +155,6 @@ useHead({
 const toast = useToast();
 import { useVenueStore } from "@/store/venue.js";
 import { useAuthStore } from "@/store/auth.js";
-import {
-  cleanDbString,
-  formatPhone,
-  normalizeWebsiteHref,
-} from '@/utils/format-venue'
 
 const requestFetch = useRequestFetch();
 const venueStore = useVenueStore();
@@ -226,28 +201,6 @@ function applyVenuesPage(data: VenuesPage) {
   venues.value = data.items ?? [];
   totalItems.value = data.total ?? 0;
   totalPages.value = data.totalPages ?? 1;
-}
-
-function venueAddressLine(venue: { address?: string; address2?: string; town?: string; county?: string; postcode?: string }) {
-  return [
-    cleanDbString(venue.address),
-    cleanDbString(venue.address2),
-    cleanDbString(venue.town),
-    cleanDbString(venue.county),
-    cleanDbString(venue.postcode),
-  ].filter(Boolean).join(', ')
-}
-
-function venuePhoneLine(venue: { telephone?: string }) {
-  return formatPhone(venue.telephone)
-}
-
-function venueWebsiteLine(venue: { website?: string }) {
-  return normalizeWebsiteHref(venue.website)
-}
-
-function venueWebsiteDisplay(venue: { website?: string }) {
-  return cleanDbString(venue.website) || venueWebsiteLine(venue) || ''
 }
 
 const { data: initialVenues, error: initialVenuesError } = await useAsyncData(
@@ -498,10 +451,6 @@ onMounted(async () => {
 <style lang="scss" scoped>
 .venue-card {
   min-height: 360px;
-}
-
-.venue-card :deep(.venue-card-media) {
-  margin-top: 0;
 }
 
 .controls button span{

@@ -48,7 +48,10 @@ const staticMapUrl = computed(() => {
 
 <style scoped>
 .venue-card-media {
+  display: block;
   width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .venue-card-media__img {

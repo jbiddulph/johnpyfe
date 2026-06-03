@@ -16,14 +16,9 @@
     <p v-else-if="!venues.length" class="text-lg text-gray-600">
       No venue listings{{ town ? ` for this town` : county ? ` in this county` : '' }} yet.
     </p>
-    <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <li v-for="venue in venues" :key="venue.id">
-        <NuxtLink :to="venuePath(venue.id, venue.slug)" class="hub-card">
-          <span class="hub-card__title">{{ venue.venuename }}</span>
-          <span v-if="venueAddress(venue)" class="hub-card__meta">
-            {{ venueAddress(venue) }}
-          </span>
-        </NuxtLink>
+        <VenueHubCard :venue="venue" />
       </li>
     </ul>
 
@@ -36,7 +31,6 @@
 </template>
 
 <script setup lang="ts">
-import { cleanDbString } from '@/utils/format-venue'
 
 const VENUE_PAGE_SIZE = 104
 
@@ -49,6 +43,9 @@ type VenueItem = {
   postcode?: string
   latitude?: string
   longitude?: string
+  photo?: string
+  telephone?: string
+  website?: string
 }
 
 const props = defineProps<{
@@ -75,12 +72,6 @@ function applyInitialPage() {
     totalPages.value = props.initialTotalPages ?? 1
     currentPage.value = 1
   }
-}
-
-function venueAddress(venue: VenueItem) {
-  return [cleanDbString(venue.address), cleanDbString(venue.postcode)]
-    .filter(Boolean)
-    .join(', ')
 }
 
 async function fetchVenues() {
