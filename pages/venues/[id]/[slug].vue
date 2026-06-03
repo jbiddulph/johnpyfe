@@ -10,34 +10,39 @@
         — {{ venueTownLabel }}<template v-if="venueCountyLabel">, {{ venueCountyLabel }}</template>
       </span>
     </h1>
-    <div class="flex flex-col md:flex-row">
-      <img
-        :src="venueImageSrc"
-        :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
-        class="w-full md:w-1/2 h-auto object-cover"
-      />
-      <div class="md:ml-8 venue-desc">
+    <div class="flex flex-col md:flex-row gap-6">
+      <div class="w-full md:w-1/2">
+        <img
+          v-if="venuePhotoUrl"
+          :src="venuePhotoUrl"
+          :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
+          class="w-full h-auto max-h-[420px] object-cover rounded-md"
+        />
+        <venue-map
+          v-else-if="venueHasMapCoords"
+          :venue="venue"
+          compact
+          :show-directions="false"
+        />
+      </div>
+      <div class="md:w-1/2 venue-desc">
         <h2 class="text-3xl">Address</h2>
         <p class="text-2xl">{{ venueAddressLine || '—' }}</p>
+        <p v-if="venuePhone" class="text-xl mt-3">
+          <a :href="`tel:${venuePhone.replace(/\s/g, '')}`" class="text-amber-600 hover:underline">{{ venuePhone }}</a>
+        </p>
+        <p v-if="venueWebsiteHref" class="text-xl mt-2">
+          <a :href="venueWebsiteHref" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline break-all">
+            {{ venueWebsiteLabel }}
+          </a>
+        </p>
         <h2 class="text-3xl mt-4">City / Region</h2>
         <p class="text-2xl">
           {{ venueTownLabel || '—' }} / {{ venueRegion }}<template v-if="venuePostcode"> / {{ venuePostcode }}</template>
         </p>
-        <template v-if="venuePhone">
-          <h2 class="text-3xl mt-4">Telephone</h2>
-          <p class="text-2xl">
-            <a :href="`tel:${venuePhone.replace(/\s/g, '')}`">{{ venuePhone }}</a>
-          </p>
-        </template>
-        <template v-if="venueWebsite">
-          <h2 class="text-3xl mt-4">Website</h2>
-          <p class="text-2xl">
-            <a :href="venueWebsite" target="_blank" rel="noopener noreferrer">{{ venueWebsite }}</a>
-          </p>
-        </template>
       </div>
     </div>
-    <venue-map :venue="venue" />
+    <venue-map v-if="venuePhotoUrl && venueHasMapCoords" :venue="venue" />
     <h2 class="text-4xl font-bold my-8">Events</h2>
     <ul v-if="venueEvents.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
       <li v-for="(event, index) in venueEvents" :key="event.id">
@@ -54,7 +59,9 @@ import {
   cleanDbString,
   formatPhone,
   formatPlaceName,
-  isValidWebsite,
+  normalizeWebsiteHref,
+  resolveVenuePhotoUrl,
+  venueHasCoords,
 } from '@/utils/format-venue'
 
 const route = useRoute()
@@ -130,10 +137,18 @@ const venuePostcode = computed(() => cleanDbString(venue.value?.postcode) || cle
 
 const venuePhone = computed(() => formatPhone(venue.value?.telephone))
 
-const venueWebsite = computed(() => {
-  const w = venue.value?.website
-  return isValidWebsite(w) ? cleanDbString(w) : null
-})
+const venueWebsiteHref = computed(() => normalizeWebsiteHref(venue.value?.website))
+
+const venueWebsiteLabel = computed(() => cleanDbString(venue.value?.website) || venueWebsiteHref.value)
+
+const venueHasMapCoords = computed(() => venueHasCoords(venue.value))
+
+const photoConfig = computed(() => ({
+  venueImgFolder: config.public.venueImgFolder,
+  supabaseUrl: config.public.supabase?.url,
+}))
+
+const venuePhotoUrl = computed(() => resolveVenuePhotoUrl(venue.value?.photo, photoConfig.value))
 
 const breadcrumbItems = computed(() => {
   const v = venue.value
@@ -167,15 +182,6 @@ useSiteSeo({
     venueJsonLd(v, `${siteUrl}${canonicalPath}`),
     breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
   ],
-})
-
-const venueImageSrc = computed(() => {
-  const v = venue.value
-  if (!v?.photo || v.photo === 'images/venues/awaiting.jpg') {
-    return '/assets/images/awaiting.jpg'
-  }
-  const folder = config.public.venueImgFolder || ''
-  return `${folder}${v.photo}`
 })
 
 onMounted(async () => {

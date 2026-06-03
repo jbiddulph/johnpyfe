@@ -70,3 +70,59 @@ export function isValidWebsite(value: unknown): boolean {
   if (!s) return false
   return s.startsWith('http://') || s.startsWith('https://')
 }
+
+/** Display href for a website field that may omit the scheme. */
+export function normalizeWebsiteHref(value: unknown): string | null {
+  const s = cleanDbString(value)
+  if (!s) return null
+  if (s.startsWith('http://') || s.startsWith('https://')) return s
+  if (s.includes('.') && !s.includes(' ')) return `https://${s}`
+  return null
+}
+
+export function parseVenueCoord(value: unknown): number | null {
+  const n = Number(value)
+  return Number.isFinite(n) && n !== 0 ? n : null
+}
+
+export function venueHasCoords(venue: { latitude?: unknown; longitude?: unknown } | null | undefined): boolean {
+  if (!venue) return false
+  return parseVenueCoord(venue.latitude) != null && parseVenueCoord(venue.longitude) != null
+}
+
+type VenuePhotoConfig = {
+  venueImgFolder?: string
+  supabaseUrl?: string
+}
+
+/** Returns a usable image URL, or null for placeholders / missing photos. */
+export function resolveVenuePhotoUrl(photo: unknown, config: VenuePhotoConfig = {}): string | null {
+  const p = cleanDbString(photo)
+  if (!p) return null
+  if (p.toLowerCase().includes('awaiting')) return null
+
+  if (p.startsWith('http://') || p.startsWith('https://')) return p
+
+  if (p.startsWith('public/') && config.supabaseUrl) {
+    const base = config.supabaseUrl.replace(/\/$/, '')
+    return `${base}/storage/v1/object/public/venue_images/${p}`
+  }
+
+  const folder = config.venueImgFolder || ''
+  if (folder) return `${folder}${p}`
+  if (p.startsWith('/')) return p
+  return null
+}
+
+export function venueStaticMapUrl(
+  venue: { latitude?: unknown; longitude?: unknown },
+  token: string,
+  width = 400,
+  height = 200,
+): string | null {
+  const lat = parseVenueCoord(venue.latitude)
+  const lng = parseVenueCoord(venue.longitude)
+  if (lat == null || lng == null || !token) return null
+  const pin = `pin-s+ea580c(${lng},${lat})`
+  return `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${pin}/${lng},${lat},14,0/${width}x${height}@2x?access_token=${encodeURIComponent(token)}`
+}

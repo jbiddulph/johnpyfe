@@ -9,6 +9,9 @@
     <div class="container mx-auto p-4 my-8">
       <Breadcrumbs :items="breadcrumbItems" />
       <h1 class="text-4xl font-bold mb-4">Browse by county</h1>
+      <p v-if="mapLoadError" class="text-sm text-amber-700 mb-4">
+        Map pins could not be loaded. County list is still available below.
+      </p>
       <p v-if="totalCount > 0" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
         {{ totalCount }} {{ totalCount === 1 ? 'county' : 'counties' }}
         <span v-if="totalPages > 1"> — page {{ currentPage }} of {{ totalPages }}</span>
@@ -55,19 +58,30 @@ const COUNTY_PAGE_SIZE = 104
 
 const requestFetch = useRequestFetch()
 const hoveredCountySlug = ref(null)
+const mapVenues = ref([])
+const mapLoadError = ref(false)
 
 const { data: countiesData } = await useAsyncData('counties-index', () =>
   requestFetch('/api/counties'),
   { default: () => [] },
 )
 
-const { data: mapVenuesData } = await useAsyncData('counties-map-venues', () =>
-  requestFetch('/api/venues/map'),
-  { default: () => [] },
-)
+async function loadMapVenues() {
+  mapLoadError.value = false
+  try {
+    mapVenues.value = await requestFetch('/api/venues/map')
+  } catch (error) {
+    console.error('Failed to load map venues:', error)
+    mapVenues.value = []
+    mapLoadError.value = true
+  }
+}
+
+onMounted(() => {
+  loadMapVenues()
+})
 
 const allCounties = computed(() => countiesData.value ?? [])
-const mapVenues = computed(() => mapVenuesData.value ?? [])
 const currentPage = ref(1)
 const totalCount = computed(() => allCounties.value.length)
 const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / COUNTY_PAGE_SIZE)))

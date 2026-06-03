@@ -1,13 +1,13 @@
 <template>
-  <div class="venue-map my-8">
-    <h2 class="text-3xl font-bold mb-4">Location</h2>
+  <div class="venue-map" :class="{ 'my-8': !compact, 'my-4': compact }">
+    <h2 v-if="!compact" class="text-3xl font-bold mb-4">Location</h2>
     <ClientOnly>
       <div v-if="hasCoords">
         <div v-if="!hasMapboxToken" class="venue-map__canvas flex items-center justify-center bg-gray-100 text-gray-600 px-4 text-center">
           Map is not configured. Add <code class="text-sm">NUXT_PUBLIC_MAPBOX_TOKEN</code> in your hosting environment variables.
         </div>
-        <div v-else ref="mapEl" class="venue-map__canvas" />
-        <p class="mt-3">
+        <div v-else ref="mapEl" class="venue-map__canvas" :class="{ 'venue-map__canvas--compact': compact }" />
+        <p v-if="showDirections && !compact" class="mt-3">
           <a
             :href="directionsUrl"
             target="_blank"
@@ -31,6 +31,14 @@ const props = defineProps({
   venue: {
     type: Object,
     required: true,
+  },
+  compact: {
+    type: Boolean,
+    default: false,
+  },
+  showDirections: {
+    type: Boolean,
+    default: true,
   },
 })
 
@@ -118,6 +126,11 @@ watch(
   min-height: 400px;
   border-radius: 0.25rem;
   overflow: hidden;
+}
+
+.venue-map__canvas--compact {
+  height: 280px;
+  min-height: 280px;
 }
 </style>
 

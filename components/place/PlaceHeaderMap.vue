@@ -58,6 +58,7 @@ let clusterLayersReady = false
 let highlightLayerReady = false
 let mapHandlersBound = false
 let highlightHandlersBound = false
+let hasAppliedInitialFit = false
 
 function parseCoord(value) {
   const n = Number(value)
@@ -145,11 +146,14 @@ function removeClusterLayers() {
   clusterLayersReady = false
 }
 
-function fitMapToVenues(mapboxgl, plotted) {
+function fitMapToVenues(mapboxgl, plotted, force = false) {
   if (!mapInstance) return
 
   if (props.fitMode === 'uk') {
-    mapInstance.fitBounds(UK_BOUNDS, { padding: 32, maxZoom: 5.5 })
+    if (!hasAppliedInitialFit || force) {
+      mapInstance.fitBounds(UK_BOUNDS, { padding: 32, maxZoom: 5.5 })
+      hasAppliedInitialFit = true
+    }
     return
   }
 
@@ -265,7 +269,7 @@ function ensureClusterLayers(map) {
     filter: ['has', 'point_count'],
     layout: {
       'text-field': ['get', 'point_count_abbreviated'],
-      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+      'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
       'text-size': 12,
     },
     paint: {
@@ -380,7 +384,7 @@ function updateVenueClusters() {
     ensureClusterLayers(mapInstance)
     const source = mapInstance.getSource(SOURCE_ID)
     source?.setData(buildVenueGeoJson(plotted))
-    fitMapToVenues(mapboxglModule, plotted)
+    fitMapToVenues(mapboxglModule, plotted, plotted.length > 0)
     updateCountyHighlight()
   }
 
@@ -405,6 +409,7 @@ async function initMap() {
     mapInstance = null
     mapHandlersBound = false
     highlightHandlersBound = false
+    hasAppliedInitialFit = false
   }
 
   const plotted = venuesWithCoords()
@@ -447,11 +452,21 @@ watch(
     await nextTick()
     if (mapInstance) {
       updateVenueClusters()
-    } else {
+    } else if (mapEl.value && mapboxToken.value) {
       await initMap()
     }
   },
   { deep: true },
+)
+
+watch(
+  () => props.venues?.length ?? 0,
+  async (count) => {
+    if (count > 0 && mapInstance) {
+      await nextTick()
+      updateVenueClusters()
+    }
+  },
 )
 
 watch(

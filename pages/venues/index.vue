@@ -48,11 +48,24 @@
       <p v-if="loading && !venues.length" class="text-center text-gray-600 mb-4">Loading venues…</p>
       <ul v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <li v-for="venue in venues" :key="venue.id">
-          <UCard class="h-[250px]">
+          <UCard class="venue-card">
             <template #header>
-              <h3 class="font-bold">{{ venue.venuename }}</h3>
+              <NuxtLink :to="venuePath(venue.id, venue.slug)" class="font-bold hover:text-amber-600 hover:underline">
+                {{ venue.venuename }}
+              </NuxtLink>
             </template>
-            <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
+            <VenueCardMedia :venue="venue" class="mb-3" />
+            <p class="text-sm text-gray-700">{{ venueAddressLine(venue) }}</p>
+            <p v-if="venuePhoneLine(venue)" class="text-sm mt-2">
+              <a :href="`tel:${venuePhoneLine(venue)!.replace(/\s/g, '')}`" class="text-amber-600 hover:underline">
+                {{ venuePhoneLine(venue) }}
+              </a>
+            </p>
+            <p v-if="venueWebsiteLine(venue)" class="text-sm mt-1">
+              <a :href="venueWebsiteLine(venue)!" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline break-all">
+                {{ venueWebsiteDisplay(venue) }}
+              </a>
+            </p>
             <template #footer>
               <div class="flex justify-center">
                 <div v-if="user && isAdmin" class="controls">
@@ -149,7 +162,11 @@ useHead({
 const toast = useToast();
 import { useVenueStore } from "@/store/venue.js";
 import { useAuthStore } from "@/store/auth.js";
-import axios from "axios";
+import {
+  cleanDbString,
+  formatPhone,
+  normalizeWebsiteHref,
+} from '@/utils/format-venue'
 
 const requestFetch = useRequestFetch();
 const venueStore = useVenueStore();
@@ -194,6 +211,28 @@ function applyVenuesPage(data: VenuesPage) {
   venues.value = data.items ?? [];
   totalItems.value = data.total ?? 0;
   totalPages.value = data.totalPages ?? 1;
+}
+
+function venueAddressLine(venue: { address?: string; address2?: string; town?: string; county?: string; postcode?: string }) {
+  return [
+    cleanDbString(venue.address),
+    cleanDbString(venue.address2),
+    cleanDbString(venue.town),
+    cleanDbString(venue.county),
+    cleanDbString(venue.postcode),
+  ].filter(Boolean).join(', ')
+}
+
+function venuePhoneLine(venue: { telephone?: string }) {
+  return formatPhone(venue.telephone)
+}
+
+function venueWebsiteLine(venue: { website?: string }) {
+  return normalizeWebsiteHref(venue.website)
+}
+
+function venueWebsiteDisplay(venue: { website?: string }) {
+  return cleanDbString(venue.website) || venueWebsiteLine(venue) || ''
 }
 
 const { data: initialVenues, error: initialVenuesError } = await useAsyncData(
@@ -419,6 +458,10 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+.venue-card {
+  min-height: 360px;
+}
+
 .controls button span{
   font-size: 0.8em!important;
 }
