@@ -17,12 +17,9 @@
     </p>
     <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <li v-for="town in paginatedTowns" :key="town.slug">
-        <NuxtLink
-          :to="town.href!"
-          class="block rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-gray-800 transition-colors"
-        >
-          <span class="font-semibold text-lg text-gray-900 dark:text-white">{{ town.displayName }}</span>
-          <span class="block text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <NuxtLink :to="town.href!" class="hub-card">
+          <span class="hub-card__title">{{ town.displayName }}</span>
+          <span class="hub-card__meta">
             {{ town.venueCount }} {{ town.venueCount === 1 ? 'venue' : 'venues' }}
           </span>
         </NuxtLink>

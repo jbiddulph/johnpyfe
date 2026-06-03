@@ -11,7 +11,8 @@ export default defineNuxtConfig({
     defaultLocale: 'en-GB',
   },
   css: [
-    'mapbox-gl/dist/mapbox-gl.css'
+    'mapbox-gl/dist/mapbox-gl.css',
+    '~/assets/css/hub-cards.css',
   ],
   runtimeConfig: {
     public: {

@@ -18,14 +18,9 @@
     </p>
     <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <li v-for="venue in venues" :key="venue.id">
-        <NuxtLink
-          :to="venuePath(venue.id, venue.slug)"
-          class="group block rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-gray-800 transition-colors"
-        >
-          <span class="font-semibold text-lg text-amber-600 group-hover:underline dark:text-amber-500">
-            {{ venue.venuename }}
-          </span>
-          <span v-if="venueAddress(venue)" class="block text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <NuxtLink :to="venuePath(venue.id, venue.slug)" class="hub-card">
+          <span class="hub-card__title">{{ venue.venuename }}</span>
+          <span v-if="venueAddress(venue)" class="hub-card__meta">
             {{ venueAddress(venue) }}
           </span>
         </NuxtLink>

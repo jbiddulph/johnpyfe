@@ -27,19 +27,40 @@
     </div>
     <div class="container mx-auto p-4 my-8">
       <Breadcrumbs :items="breadcrumbItems" />
-      <p v-if="countyHub" class="text-lg text-gray-600 dark:text-gray-400 mb-6">
-        Part of
-        <NuxtLink :to="countyHub.href" class="text-amber-600 hover:underline dark:text-amber-500">
-          {{ countyHub.displayName }}
-        </NuxtLink>
-      </p>
-      <TownVenueList
-        :town-name="townName"
-        :town="resolvedTownName"
-        :initial-items="initialVenueItems"
-        :initial-total="initialVenueTotal"
-        :initial-total-pages="initialVenueTotalPages"
-      />
+
+      <section class="my-10">
+        <h2 class="text-3xl font-bold mb-4">Pubs and venues in {{ townName }}</h2>
+        <p v-if="venueTotal > 0" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          {{ venueTotal }} {{ venueTotal === 1 ? 'venue' : 'venues' }}
+          <span v-if="venueTotalPages > 1"> — page {{ venuePage }} of {{ venueTotalPages }}</span>
+        </p>
+
+        <div v-if="venueTotalPages > 1" class="flex justify-center mb-4">
+          <UButton label="Previous" :disabled="venuePage <= 1 || venuesLoading" @click="prevVenuePage" />
+          <UButton :label="String(venuePage)" class="mx-4" variant="soft" />
+          <UButton label="Next" :disabled="venuePage >= venueTotalPages || venuesLoading" @click="nextVenuePage" />
+        </div>
+
+        <p v-if="venuesLoading && !venueList.length" class="text-lg text-gray-600">Loading venues…</p>
+        <p v-else-if="!venueList.length" class="text-lg text-gray-600">No venue listings for this town yet.</p>
+        <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <li v-for="venue in venueList" :key="venue.id">
+            <NuxtLink :to="venuePath(venue.id, venue.slug)" class="hub-card">
+              <span class="hub-card__title">{{ venue.venuename }}</span>
+              <span v-if="venueAddressLine(venue)" class="hub-card__meta">
+                {{ venueAddressLine(venue) }}
+              </span>
+            </NuxtLink>
+          </li>
+        </ul>
+
+        <div v-if="venueTotalPages > 1" class="flex justify-center mt-6">
+          <UButton label="Previous" :disabled="venuePage <= 1 || venuesLoading" @click="prevVenuePage" />
+          <UButton :label="String(venuePage)" class="mx-4" variant="soft" />
+          <UButton label="Next" :disabled="venuePage >= venueTotalPages || venuesLoading" @click="nextVenuePage" />
+        </div>
+      </section>
+
       <h2 class="text-4xl font-bold my-8">Events in {{ townName }}</h2>
       <ul v-if="townEvents.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <li v-for="(event, index) in townEvents" :key="event.id">
@@ -52,6 +73,10 @@
 </template>
 
 <script setup>
+import { cleanDbString } from '@/utils/format-venue'
+
+const VENUE_PAGE_SIZE = 104
+
 const route = useRoute()
 const requestFetch = useRequestFetch()
 const townSlug = String(route.params.town)
@@ -76,7 +101,7 @@ const { data: townVenuesData } = await useAsyncData(
   `town-venues-${townSlug}`,
   () =>
     requestFetch(
-      `/api/venues/town?town=${encodeURIComponent(resolvedTownName)}&skip=0&take=104`,
+      `/api/venues/town?town=${encodeURIComponent(resolvedTownName)}&skip=0&take=${VENUE_PAGE_SIZE}`,
     ),
   { default: () => ({ items: [], total: 0, totalPages: 1 }) },
 )
@@ -90,21 +115,72 @@ const { data: mapVenuesData } = await useAsyncData(
   { default: () => ({ items: [] }) },
 )
 
-const initialVenueItems = computed(() => townVenuesData.value?.items ?? [])
-const initialVenueTotal = computed(() => townVenuesData.value?.total ?? 0)
-const initialVenueTotalPages = computed(() => townVenuesData.value?.totalPages ?? 1)
+const venueList = ref(townVenuesData.value?.items ?? [])
+const venuePage = ref(1)
+const venueTotal = ref(townVenuesData.value?.total ?? 0)
+const venueTotalPages = ref(townVenuesData.value?.totalPages ?? 1)
+const venuesLoading = ref(false)
 const mapVenues = computed(() => mapVenuesData.value?.items ?? [])
 
+const countyBreadcrumb = computed(() => {
+  if (countyHub.value?.href) {
+    return {
+      label: countyHub.value.displayName,
+      to: countyHub.value.href,
+    }
+  }
+  return null
+})
+
 const breadcrumbItems = computed(() => {
-  const items = [{ label: 'Home', to: '/' }]
-  const county = countyHub.value
-  if (county?.href) {
-    items.push({ label: 'Counties', to: '/counties' })
-    items.push({ label: county.displayName, to: county.href })
+  const items = [
+    { label: 'Home', to: '/' },
+    { label: 'Counties', to: '/counties' },
+  ]
+  if (countyBreadcrumb.value) {
+    items.push(countyBreadcrumb.value)
   }
   items.push({ label: townName.value })
   return items
 })
+
+function venueAddressLine(venue) {
+  return [cleanDbString(venue.address), cleanDbString(venue.postcode)].filter(Boolean).join(', ')
+}
+
+async function fetchVenuePage(page = venuePage.value) {
+  venuesLoading.value = true
+  try {
+    const skip = (page - 1) * VENUE_PAGE_SIZE
+    const data = await requestFetch(
+      `/api/venues/town?town=${encodeURIComponent(resolvedTownName)}&skip=${skip}&take=${VENUE_PAGE_SIZE}`,
+    )
+    venueList.value = data.items ?? []
+    venueTotal.value = data.total ?? 0
+    venueTotalPages.value = data.totalPages ?? 1
+    venuePage.value = page
+  } catch {
+    venueList.value = []
+    venueTotal.value = 0
+    venueTotalPages.value = 1
+  } finally {
+    venuesLoading.value = false
+  }
+}
+
+function prevVenuePage() {
+  if (venuePage.value > 1) {
+    fetchVenuePage(venuePage.value - 1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+function nextVenuePage() {
+  if (venuePage.value < venueTotalPages.value) {
+    fetchVenuePage(venuePage.value + 1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
 
 const siteUrl = siteBaseUrl()
 useSiteSeo({

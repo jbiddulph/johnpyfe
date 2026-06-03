@@ -18,14 +18,9 @@
 
     <ul v-if="paginatedCounties.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <li v-for="county in paginatedCounties" :key="county.slug">
-        <NuxtLink
-          :to="county.href"
-          class="group block rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-gray-800 transition-colors"
-        >
-          <span class="font-semibold text-lg text-amber-600 group-hover:underline dark:text-amber-500">
-            {{ county.displayName }}
-          </span>
-          <span class="block text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <NuxtLink :to="county.href" class="hub-card">
+          <span class="hub-card__title">{{ county.displayName }}</span>
+          <span class="hub-card__meta">
             {{ county.venueCount }} {{ county.venueCount === 1 ? 'venue' : 'venues' }}
           </span>
         </NuxtLink>

@@ -149,7 +149,6 @@ export async function getDominantCountyForTown(townName: string) {
   const rows = await prisma.venue.groupBy({
     by: ['county'],
     where: {
-      is_live: '1',
       town: { equals: townName, mode: 'insensitive' },
     },
     _count: { _all: true },
