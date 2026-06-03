@@ -14,6 +14,13 @@
 </template>
 
 <script setup>
+import { slugifyPlace } from '@/utils/format-venue'
+
+const UK_BOUNDS = [
+  [-8.65, 49.86],
+  [1.76, 60.86],
+]
+
 const props = defineProps({
   placeName: {
     type: String,
@@ -23,12 +30,24 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  /** 'bounds' fits venue coords; 'uk' shows the whole UK. */
+  fitMode: {
+    type: String,
+    default: 'bounds',
+  },
+  /** When set, dims other venues and highlights this county on the map. */
+  highlightCountySlug: {
+    type: String,
+    default: null,
+  },
 })
 
 const SOURCE_ID = 'place-venues'
+const HIGHLIGHT_SOURCE_ID = 'place-venues-highlight'
 const LAYER_CLUSTERS = 'place-venue-clusters'
 const LAYER_CLUSTER_COUNT = 'place-venue-cluster-count'
 const LAYER_UNCLUSTERED = 'place-venue-unclustered'
+const LAYER_HIGHLIGHT = 'place-venue-highlight'
 
 const mapboxToken = useMapboxToken()
 const mapEl = ref(null)
@@ -36,11 +55,17 @@ let mapInstance = null
 let mapboxglModule = null
 let venuePopup = null
 let clusterLayersReady = false
+let highlightLayerReady = false
 let mapHandlersBound = false
+let highlightHandlersBound = false
 
 function parseCoord(value) {
   const n = Number(value)
   return Number.isFinite(n) && n !== 0 ? n : null
+}
+
+function venueCountySlug(venue) {
+  return venue.countySlug || (venue.county ? slugifyPlace(venue.county) : '')
 }
 
 function venuesWithCoords() {
@@ -49,7 +74,7 @@ function venuesWithCoords() {
       const lat = parseCoord(v.latitude)
       const lng = parseCoord(v.longitude)
       if (lat == null || lng == null) return null
-      return { ...v, lat, lng }
+      return { ...v, lat, lng, countySlug: venueCountySlug(v) }
     })
     .filter(Boolean)
 }
@@ -68,6 +93,7 @@ function buildVenueGeoJson(plotted) {
         slug: String(venue.slug ?? ''),
         name: String(venue.venuename ?? ''),
         href: venuePath(venue.id, venue.slug),
+        countySlug: venue.countySlug || '',
       },
     })),
   }
@@ -93,8 +119,20 @@ function removeVenuePopup() {
   venuePopup = null
 }
 
+function removeHighlightLayer() {
+  if (!mapInstance) return
+  if (mapInstance.getLayer(LAYER_HIGHLIGHT)) {
+    mapInstance.removeLayer(LAYER_HIGHLIGHT)
+  }
+  if (mapInstance.getSource(HIGHLIGHT_SOURCE_ID)) {
+    mapInstance.removeSource(HIGHLIGHT_SOURCE_ID)
+  }
+  highlightLayerReady = false
+}
+
 function removeClusterLayers() {
   if (!mapInstance) return
+  removeHighlightLayer()
   const layerIds = [LAYER_CLUSTER_COUNT, LAYER_CLUSTERS, LAYER_UNCLUSTERED]
   for (const id of layerIds) {
     if (mapInstance.getLayer(id)) {
@@ -108,7 +146,14 @@ function removeClusterLayers() {
 }
 
 function fitMapToVenues(mapboxgl, plotted) {
-  if (!mapInstance || !plotted.length) return
+  if (!mapInstance) return
+
+  if (props.fitMode === 'uk') {
+    mapInstance.fitBounds(UK_BOUNDS, { padding: 32, maxZoom: 5.5 })
+    return
+  }
+
+  if (!plotted.length) return
 
   if (plotted.length === 1) {
     mapInstance.setCenter([plotted[0].lng, plotted[0].lat])
@@ -122,6 +167,19 @@ function fitMapToVenues(mapboxgl, plotted) {
     padding: 48,
     maxZoom: plotted.length > 20 ? 10 : 14,
   })
+}
+
+function showVenuePopup(map, mapboxgl, feature) {
+  const coords = feature.geometry.coordinates.slice()
+  const { href, name } = feature.properties
+  const safeName = escapeHtml(name)
+  const popupHtml = `<div class="place-map-popup__inner"><a href="${href}" class="place-map-popup__link"><strong>${safeName}</strong></a></div>`
+
+  removeVenuePopup()
+  venuePopup = new mapboxgl.Popup({ offset: 12, className: 'place-map-popup' })
+    .setLngLat(coords)
+    .setHTML(popupHtml)
+    .addTo(map)
 }
 
 function bindClusterHandlers(map, mapboxgl) {
@@ -147,18 +205,7 @@ function bindClusterHandlers(map, mapboxgl) {
 
   map.on('click', LAYER_UNCLUSTERED, (e) => {
     const feature = e.features?.[0]
-    if (!feature) return
-
-    const coords = feature.geometry.coordinates.slice()
-    const { href, name } = feature.properties
-    const safeName = escapeHtml(name)
-    const popupHtml = `<div class="place-map-popup__inner"><a href="${href}" class="place-map-popup__link"><strong>${safeName}</strong></a></div>`
-
-    removeVenuePopup()
-    venuePopup = new mapboxgl.Popup({ offset: 12, className: 'place-map-popup' })
-      .setLngLat(coords)
-      .setHTML(popupHtml)
-      .addTo(map)
+    if (feature) showVenuePopup(map, mapboxgl, feature)
   })
 
   const setPointer = () => {
@@ -177,12 +224,14 @@ function bindClusterHandlers(map, mapboxgl) {
 function ensureClusterLayers(map) {
   if (clusterLayersReady) return
 
+  const clusterRadius = props.fitMode === 'uk' ? 56 : 48
+
   map.addSource(SOURCE_ID, {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] },
     cluster: true,
     clusterMaxZoom: 14,
-    clusterRadius: 48,
+    clusterRadius,
   })
 
   map.addLayer({
@@ -241,6 +290,81 @@ function ensureClusterLayers(map) {
   clusterLayersReady = true
 }
 
+function ensureHighlightLayer(map) {
+  if (highlightLayerReady) return
+
+  map.addSource(HIGHLIGHT_SOURCE_ID, {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+  })
+
+  map.addLayer({
+    id: LAYER_HIGHLIGHT,
+    type: 'circle',
+    source: HIGHLIGHT_SOURCE_ID,
+    paint: {
+      'circle-color': '#ea580c',
+      'circle-radius': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        5,
+        6,
+        10,
+        9,
+        14,
+        11,
+      ],
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ffffff',
+      'circle-opacity': 0.95,
+    },
+    layout: {
+      visibility: 'none',
+    },
+  })
+
+  if (!highlightHandlersBound && mapboxglModule) {
+    highlightHandlersBound = true
+    map.on('click', LAYER_HIGHLIGHT, (e) => {
+      const feature = e.features?.[0]
+      if (feature) showVenuePopup(map, mapboxglModule, feature)
+    })
+    map.on('mouseenter', LAYER_HIGHLIGHT, () => {
+      map.getCanvas().style.cursor = 'pointer'
+    })
+    map.on('mouseleave', LAYER_HIGHLIGHT, () => {
+      map.getCanvas().style.cursor = ''
+    })
+  }
+
+  highlightLayerReady = true
+}
+
+function updateCountyHighlight() {
+  if (!mapInstance || !clusterLayersReady) return
+
+  ensureHighlightLayer(mapInstance)
+
+  const slug = props.highlightCountySlug
+  const plotted = venuesWithCoords()
+  const highlighted = slug ? plotted.filter((v) => v.countySlug === slug) : []
+
+  mapInstance.getSource(HIGHLIGHT_SOURCE_ID)?.setData(buildVenueGeoJson(highlighted))
+
+  const dimmed = Boolean(slug)
+  const baseOpacity = dimmed ? 0.2 : 0.9
+  mapInstance.setPaintProperty(LAYER_CLUSTERS, 'circle-opacity', baseOpacity)
+  mapInstance.setPaintProperty(LAYER_UNCLUSTERED, 'circle-opacity', baseOpacity)
+  mapInstance.setPaintProperty(LAYER_CLUSTER_COUNT, 'text-opacity', dimmed ? 0.25 : 1)
+
+  mapInstance.setLayoutProperty(
+    LAYER_HIGHLIGHT,
+    'visibility',
+    highlighted.length ? 'visible' : 'none',
+  )
+}
+
 function updateVenueClusters() {
   if (!mapInstance || !mapboxglModule) return
 
@@ -257,6 +381,7 @@ function updateVenueClusters() {
     const source = mapInstance.getSource(SOURCE_ID)
     source?.setData(buildVenueGeoJson(plotted))
     fitMapToVenues(mapboxglModule, plotted)
+    updateCountyHighlight()
   }
 
   if (mapInstance.isStyleLoaded()) {
@@ -279,18 +404,20 @@ async function initMap() {
     mapInstance.remove()
     mapInstance = null
     mapHandlersBound = false
+    highlightHandlersBound = false
   }
 
   const plotted = venuesWithCoords()
-  const center = plotted.length
+  const defaultCenter = props.fitMode === 'uk' ? [-2.5, 54.5] : [-1.5, 53.0]
+  const center = plotted.length && props.fitMode !== 'uk'
     ? [plotted[0].lng, plotted[0].lat]
-    : await geocodePlace(props.placeName)
+    : defaultCenter
 
   mapInstance = new mapboxgl.Map({
     container: mapEl.value,
     style: 'mapbox://styles/mapbox/streets-v11',
     center,
-    zoom: plotted.length ? 11 : 10,
+    zoom: props.fitMode === 'uk' ? 5 : plotted.length ? 11 : 10,
     accessToken: mapboxToken.value,
   })
 
@@ -327,6 +454,13 @@ watch(
   { deep: true },
 )
 
+watch(
+  () => props.highlightCountySlug,
+  () => {
+    updateCountyHighlight()
+  },
+)
+
 onBeforeUnmount(() => {
   removeVenuePopup()
   removeClusterLayers()
@@ -335,6 +469,7 @@ onBeforeUnmount(() => {
     mapInstance = null
   }
   mapHandlersBound = false
+  highlightHandlersBound = false
   mapboxglModule = null
 })
 </script>

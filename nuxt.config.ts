@@ -13,6 +13,7 @@ export default defineNuxtConfig({
   css: [
     'mapbox-gl/dist/mapbox-gl.css',
     '~/assets/css/hub-cards.css',
+    '~/assets/css/spinner.css',
   ],
   runtimeConfig: {
     public: {

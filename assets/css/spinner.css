@@ -1,0 +1,70 @@
+.place-route-spinner {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.place-route-spinner__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.dark .place-route-spinner__backdrop {
+  background: rgba(17, 24, 39, 0.72);
+}
+
+.place-route-spinner__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+}
+
+.dark .place-route-spinner__content {
+  background: #1f2937;
+}
+
+.place-route-spinner__ring {
+  width: 3rem;
+  height: 3rem;
+  border: 4px solid rgba(217, 119, 6, 0.2);
+  border-top-color: #d97706;
+  border-radius: 50%;
+  animation: place-route-spin 0.75s linear infinite;
+}
+
+.place-route-spinner__label {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.dark .place-route-spinner__label {
+  color: #e5e7eb;
+}
+
+@keyframes place-route-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.place-route-spinner-fade-enter-active,
+.place-route-spinner-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.place-route-spinner-fade-enter-from,
+.place-route-spinner-fade-leave-to {
+  opacity: 0;
+}

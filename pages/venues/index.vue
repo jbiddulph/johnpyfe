@@ -2,7 +2,7 @@
   <div class="container mx-auto p-4">
     <div class="flex w-full justify-between items-center">
       <h1 class="text-4xl font-bold my-8">Venues</h1>
-      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
+      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal" />
     </div>
     <div class="flex flex-wrap gap-3 items-center mb-4">
       <div class="flex gap-2 flex-1 min-w-[220px]">
@@ -296,9 +296,10 @@ const editDetailsModal = (venue: object) => {
   isDetailsOpen.value = true
   content.value = venue
 }
-const openAddModal = (venue: object) => {
+const openAddModal = () => {
+  editMode.value = false
+  venueid.value = null
   isAddEditOpen.value = true
-  content.value = venue
 }
 const openDeleteModal = (venue: object) => {
   isDeleteOpen.value = true
@@ -390,9 +391,9 @@ const handleCloseModal = () => {
   isAddEditOpen.value = false
   isDeleteOpen.value = false
   isAddEventOpen.value = false
-  toast.add({ title: 'Deleted Venue!' })
-  //fetch venues again
-  // venueStore.fetchVenues()
+  editMode.value = false
+  venueid.value = null
+  fetchAllVenues()
 }
 
 watch(isAddEditOpen, (newValue: any) => {

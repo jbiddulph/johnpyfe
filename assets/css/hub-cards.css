@@ -3,6 +3,10 @@
   @apply hover:border-amber-500;
 }
 
+.hub-card--active {
+  @apply border-amber-500 ring-2 ring-amber-400/40;
+}
+
 .hub-card__title {
   @apply font-semibold text-lg text-amber-600 hover:underline dark:text-amber-500;
 }
