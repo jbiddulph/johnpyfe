@@ -8,10 +8,14 @@ import {
 function buildVenueListWhere(query: Record<string, unknown>): Prisma.VenueWhereInput {
   const where: Prisma.VenueWhereInput = {}
   const town = String(query.town || '').trim()
+  const county = String(query.county || '').trim()
   const q = String(query.q || '').trim()
 
   if (town) {
     where.town = { equals: town, mode: 'insensitive' }
+  }
+  if (county) {
+    where.county = { equals: county, mode: 'insensitive' }
   }
   if (q.length > 0) {
     where.venuename = { contains: q, mode: 'insensitive' }

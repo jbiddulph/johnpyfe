@@ -95,11 +95,25 @@ type VenuePhotoConfig = {
   supabaseUrl?: string
 }
 
+const DEFAULT_VENUE_PHOTO_MARKERS = [
+  'standing.jpg',
+  'awaiting.jpg',
+  'images/venues/awaiting',
+]
+
+/** True for missing photos and generic placeholder images (e.g. standing.jpg). */
+export function isDefaultVenuePhoto(photo: unknown): boolean {
+  const p = cleanDbString(photo)
+  if (!p) return true
+  const lower = p.toLowerCase()
+  return DEFAULT_VENUE_PHOTO_MARKERS.some((marker) => lower.includes(marker))
+}
+
 /** Returns a usable image URL, or null for placeholders / missing photos. */
 export function resolveVenuePhotoUrl(photo: unknown, config: VenuePhotoConfig = {}): string | null {
-  const p = cleanDbString(photo)
-  if (!p) return null
-  if (p.toLowerCase().includes('awaiting')) return null
+  if (isDefaultVenuePhoto(photo)) return null
+
+  const p = cleanDbString(photo)!
 
   if (p.startsWith('http://') || p.startsWith('https://')) return p
 

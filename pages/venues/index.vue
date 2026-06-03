@@ -1,8 +1,16 @@
 <template>
   <div class="container mx-auto p-4">
-    <div class="flex w-full justify-between items-center">
+    <div class="flex w-full flex-wrap justify-between items-center gap-4">
       <h1 class="text-4xl font-bold my-8">Venues</h1>
-      <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal" />
+      <div class="flex flex-wrap items-center gap-3 ml-auto">
+        <select v-model="selectedCounty" class="select min-w-[200px]" @change="onCountyChange">
+          <option value="">All Counties</option>
+          <option v-for="county in counties" :key="county.value" :value="county.value">
+            {{ county.label }}
+          </option>
+        </select>
+        <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal" />
+      </div>
     </div>
     <div class="flex flex-wrap gap-3 items-center mb-4">
       <div class="flex gap-2 flex-1 min-w-[220px]">
@@ -28,10 +36,12 @@
     <div class="pb-12">
       <!-- Pagination controls -->
       <p v-if="loadError" class="text-center text-red-600 mb-4">{{ loadError }}</p>
-      <p v-if="!loadError && (activeSearch || selectedTown || totalItems > 0)" class="text-center text-sm text-gray-600 mb-4">
-        <template v-if="activeSearch || selectedTown">
+      <p v-if="!loadError && (activeSearch || selectedTown || selectedCounty || totalItems > 0)" class="text-center text-sm text-gray-600 mb-4">
+        <template v-if="activeSearch || selectedTown || selectedCounty">
           <span v-if="activeSearch">Search: “{{ activeSearch }}”</span>
-          <span v-if="activeSearch && selectedTown"> · </span>
+          <span v-if="activeSearch && (selectedTown || selectedCounty)"> · </span>
+          <span v-if="selectedCounty">County: {{ selectedCountyLabel }}</span>
+          <span v-if="selectedCounty && selectedTown"> · </span>
           <span v-if="selectedTown">Town: {{ selectedTownLabel }}</span>
           <button type="button" class="ml-2 text-amber-600 hover:underline" @click="clearFilters">
             Clear filters
@@ -48,13 +58,16 @@
       <p v-if="loading && !venues.length" class="text-center text-gray-600 mb-4">Loading venues…</p>
       <ul v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <li v-for="venue in venues" :key="venue.id">
-          <UCard class="venue-card">
+          <UCard
+            class="venue-card overflow-hidden"
+            :ui="{ body: { padding: 'p-4 pt-0' }, header: { padding: 'px-4 py-3' }, footer: { padding: 'px-4 py-3' } }"
+          >
             <template #header>
               <NuxtLink :to="venuePath(venue.id, venue.slug)" class="font-bold hover:text-amber-600 hover:underline">
                 {{ venue.venuename }}
               </NuxtLink>
             </template>
-            <VenueCardMedia :venue="venue" class="mb-3" />
+            <VenueCardMedia :venue="venue" class="mb-3 -mx-4" />
             <p class="text-sm text-gray-700">{{ venueAddressLine(venue) }}</p>
             <p v-if="venuePhoneLine(venue)" class="text-sm mt-2">
               <a :href="`tel:${venuePhoneLine(venue)!.replace(/\s/g, '')}`" class="text-amber-600 hover:underline">
@@ -197,7 +210,9 @@ const selectedFile = ref<File | null>(null);
 const searchQuery = ref('');
 const activeSearch = ref('');
 const selectedTown = ref('');
+const selectedCounty = ref('');
 const towns = ref<Array<{ label: string; value: string }>>([]);
+const counties = ref<Array<{ label: string; value: string }>>([]);
 const loading = ref(false);
 const loadError = ref('');
 
@@ -246,6 +261,7 @@ function buildVenuesUrl(page = currentPage.value) {
     take: String(itemsPerPage.value),
   });
   if (selectedTown.value) params.set('town', selectedTown.value);
+  if (selectedCounty.value) params.set('county', selectedCounty.value);
   if (activeSearch.value) params.set('q', activeSearch.value);
   return `/api/venues?${params}`;
 }
@@ -264,6 +280,7 @@ function clearFilters() {
   searchQuery.value = '';
   activeSearch.value = '';
   selectedTown.value = '';
+  selectedCounty.value = '';
   currentPage.value = 1;
   fetchAllVenues();
 }
@@ -273,9 +290,19 @@ function onTownChange() {
   fetchAllVenues();
 }
 
+function onCountyChange() {
+  currentPage.value = 1;
+  fetchAllVenues();
+}
+
 const selectedTownLabel = computed(() => {
   const match = towns.value.find((t) => t.value === selectedTown.value);
   return match?.label ?? selectedTown.value;
+});
+
+const selectedCountyLabel = computed(() => {
+  const match = counties.value.find((c) => c.value === selectedCounty.value);
+  return match?.label ?? selectedCounty.value;
 });
 
 const prevPage = () => {
@@ -324,6 +351,16 @@ const fetchTowns = async () => {
     );
   } catch {
     towns.value = [];
+  }
+};
+
+const fetchCounties = async () => {
+  try {
+    counties.value = await requestFetch<Array<{ label: string; value: string }>>(
+      '/api/venues/counties-list',
+    );
+  } catch {
+    counties.value = [];
   }
 };
 
@@ -452,6 +489,7 @@ onMounted(async () => {
     await fetchAllVenues();
   }
   await fetchTowns();
+  await fetchCounties();
   userName.value = useRuntimeConfig().public.admin;
 });
 
@@ -460,6 +498,10 @@ onMounted(async () => {
 <style lang="scss" scoped>
 .venue-card {
   min-height: 360px;
+}
+
+.venue-card :deep(.venue-card-media) {
+  margin-top: 0;
 }
 
 .controls button span{

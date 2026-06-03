@@ -1,54 +1,34 @@
 <template>
-  <div>
-    <PlaceHeaderMap
-      place-name="United Kingdom"
-      :venues="mapVenues"
-      fit-mode="uk"
-      :highlight-county-slug="hoveredCountySlug"
-    />
-    <div class="container mx-auto p-4 my-8">
-      <Breadcrumbs :items="breadcrumbItems" />
-      <h1 class="text-4xl font-bold mb-4">Browse by county</h1>
-      <p v-if="mapLoadError" class="text-sm text-amber-700 mb-4">
-        Map pins could not be loaded. County list is still available below.
-      </p>
-      <p v-if="totalCount > 0" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-        {{ totalCount }} {{ totalCount === 1 ? 'county' : 'counties' }}
-        <span v-if="totalPages > 1"> — page {{ currentPage }} of {{ totalPages }}</span>
-      </p>
+  <div class="container mx-auto p-4 my-8">
+    <Breadcrumbs :items="breadcrumbItems" />
+    <h1 class="text-4xl font-bold mb-4">Browse by county</h1>
+    <p v-if="totalCount > 0" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+      {{ totalCount }} {{ totalCount === 1 ? 'county' : 'counties' }}
+      <span v-if="totalPages > 1"> — page {{ currentPage }} of {{ totalPages }}</span>
+    </p>
 
-      <div v-if="totalPages > 1" class="flex justify-center mb-4">
-        <UButton label="Previous" :disabled="currentPage <= 1" @click="prevPage" />
-        <UButton :label="String(currentPage)" class="mx-4" variant="soft" />
-        <UButton label="Next" :disabled="currentPage >= totalPages" @click="nextPage" />
-      </div>
+    <div v-if="totalPages > 1" class="flex justify-center mb-4">
+      <UButton label="Previous" :disabled="currentPage <= 1" @click="prevPage" />
+      <UButton :label="String(currentPage)" class="mx-4" variant="soft" />
+      <UButton label="Next" :disabled="currentPage >= totalPages" @click="nextPage" />
+    </div>
 
-      <ul v-if="paginatedCounties.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <li
-          v-for="county in paginatedCounties"
-          :key="county.slug"
-          @mouseenter="hoveredCountySlug = county.slug"
-          @mouseleave="hoveredCountySlug = null"
-        >
-          <NuxtLink
-            :to="county.href"
-            class="hub-card"
-            :class="{ 'hub-card--active': hoveredCountySlug === county.slug }"
-          >
-            <span class="hub-card__title">{{ county.displayName }}</span>
-            <span class="hub-card__meta">
-              {{ county.venueCount }} {{ county.venueCount === 1 ? 'venue' : 'venues' }}
-            </span>
-          </NuxtLink>
-        </li>
-      </ul>
-      <p v-else class="text-lg text-gray-600">No counties available yet.</p>
+    <ul v-if="paginatedCounties.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <li v-for="county in paginatedCounties" :key="county.slug">
+        <NuxtLink :to="county.href" class="hub-card">
+          <span class="hub-card__title">{{ county.displayName }}</span>
+          <span class="hub-card__meta">
+            {{ county.venueCount }} {{ county.venueCount === 1 ? 'venue' : 'venues' }}
+          </span>
+        </NuxtLink>
+      </li>
+    </ul>
+    <p v-else class="text-lg text-gray-600">No counties available yet.</p>
 
-      <div v-if="totalPages > 1" class="flex justify-center mt-6">
-        <UButton label="Previous" :disabled="currentPage <= 1" @click="prevPage" />
-        <UButton :label="String(currentPage)" class="mx-4" variant="soft" />
-        <UButton label="Next" :disabled="currentPage >= totalPages" @click="nextPage" />
-      </div>
+    <div v-if="totalPages > 1" class="flex justify-center mt-6">
+      <UButton label="Previous" :disabled="currentPage <= 1" @click="prevPage" />
+      <UButton :label="String(currentPage)" class="mx-4" variant="soft" />
+      <UButton label="Next" :disabled="currentPage >= totalPages" @click="nextPage" />
     </div>
   </div>
 </template>
@@ -57,29 +37,11 @@
 const COUNTY_PAGE_SIZE = 104
 
 const requestFetch = useRequestFetch()
-const hoveredCountySlug = ref(null)
-const mapVenues = ref([])
-const mapLoadError = ref(false)
 
 const { data: countiesData } = await useAsyncData('counties-index', () =>
   requestFetch('/api/counties'),
   { default: () => [] },
 )
-
-async function loadMapVenues() {
-  mapLoadError.value = false
-  try {
-    mapVenues.value = await requestFetch('/api/venues/map')
-  } catch (error) {
-    console.error('Failed to load map venues:', error)
-    mapVenues.value = []
-    mapLoadError.value = true
-  }
-}
-
-onMounted(() => {
-  loadMapVenues()
-})
 
 const allCounties = computed(() => countiesData.value ?? [])
 const currentPage = ref(1)

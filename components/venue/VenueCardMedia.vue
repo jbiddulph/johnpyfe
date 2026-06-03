@@ -1,5 +1,5 @@
 <template>
-  <NuxtLink :to="venuePath(venue.id, venue.slug)" class="venue-card-media block overflow-hidden rounded-md bg-gray-100">
+  <NuxtLink :to="venuePath(venue.id, venue.slug)" class="venue-card-media block bg-gray-100">
     <img
       v-if="photoUrl"
       :src="photoUrl"
@@ -42,24 +42,25 @@ const photoUrl = computed(() => resolveVenuePhotoUrl(props.venue?.photo, photoCo
 
 const staticMapUrl = computed(() => {
   if (photoUrl.value) return null
-  return venueStaticMapUrl(props.venue, mapboxToken.value, 480, 180)
+  return venueStaticMapUrl(props.venue, mapboxToken.value, 640, 220)
 })
 </script>
 
 <style scoped>
 .venue-card-media {
-  height: 140px;
+  width: 100%;
 }
 
 .venue-card-media__img {
   width: 100%;
-  height: 140px;
+  height: 180px;
   object-fit: cover;
   display: block;
 }
 
 .venue-card-media__placeholder {
-  height: 140px;
+  width: 100%;
+  height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
