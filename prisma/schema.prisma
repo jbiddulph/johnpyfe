@@ -83,3 +83,15 @@ model Note {
   listingId           Int
   listing             Venue @relation(fields: [listingId], references: [id], onDelete: Cascade)
 }
+
+model Stadium {
+  id           BigInt    @id @default(autoincrement())
+  club         String    @db.VarChar(255)
+  stadium_name String    @map("stadium_name") @db.VarChar(255)
+  latitude     Decimal   @db.Decimal(10, 7)
+  longitude    Decimal   @db.Decimal(10, 7)
+  created_at   DateTime? @map("created_at")
+  updated_at   DateTime? @map("updated_at")
+
+  @@map("stadiums")
+}
