@@ -1,5 +1,6 @@
 import { prisma } from '../../utils/prisma'
-import { cleanDbString, formatPlaceName, isPlausibleCountyName } from '../../../utils/format-venue'
+import { cleanDbString, formatPlaceName } from '../../../utils/format-venue'
+import { canonicalUkCountyName, isKnownUkCounty } from '../../utils/uk-counties'
 
 export type CountyFilterOption = {
   label: string
@@ -13,17 +14,18 @@ export default defineEventHandler(async (): Promise<CountyFilterOption[]> => {
     _count: { _all: true },
   })
 
-  const byLower = new Map<string, string>()
+  const byCanonical = new Map<string, string>()
   for (const row of rows) {
-    const name = cleanDbString(row.county)
-    if (!name || !isPlausibleCountyName(name)) continue
-    const key = name.toLowerCase()
-    if (!byLower.has(key)) {
-      byLower.set(key, name)
+    const raw = cleanDbString(row.county)
+    if (!raw || !isKnownUkCounty(raw)) continue
+    const canonical = canonicalUkCountyName(raw)!
+    const key = canonical.toLowerCase()
+    if (!byCanonical.has(key)) {
+      byCanonical.set(key, canonical)
     }
   }
 
-  return [...byLower.values()]
+  return [...byCanonical.values()]
     .sort((a, b) => a.localeCompare(b))
     .map((name) => ({
       label: formatPlaceName(name),

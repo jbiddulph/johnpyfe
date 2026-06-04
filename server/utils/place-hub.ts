@@ -1,5 +1,11 @@
 import { prisma } from './prisma'
-import { cleanDbString, formatPlaceName, isPlausibleCountyName, slugifyPlace } from '../../utils/format-venue'
+import { cleanDbString, formatPlaceName, slugifyPlace } from '../../utils/format-venue'
+import {
+  canonicalCountySlug,
+  canonicalUkCountyName,
+  countyLookupKey,
+  isKnownUkCounty,
+} from './uk-counties'
 
 export type ResolvedPlace = {
   slug: string
@@ -37,23 +43,26 @@ export async function resolveTown(townName: string): Promise<ResolvedPlace | nul
 }
 
 export async function resolveCounty(countyName: string): Promise<ResolvedPlace | null> {
-  const name = cleanDbString(countyName)
-  if (!name) return null
-  const slug = slugifyPlace(name)
+  const raw = cleanDbString(countyName)
+  if (!raw || !isKnownUkCounty(raw)) return null
+  const canonical = canonicalUkCountyName(raw)!
+  const slug = canonicalCountySlug(canonical)
   if (!slug) return null
   return {
     slug,
-    name,
-    displayName: formatPlaceName(name),
+    name: canonical,
+    displayName: formatPlaceName(canonical),
     href: `/county/${slug}`,
   }
 }
 
-/** Match a county slug to the canonical DB county value (handles SUFFOLK vs Suffolk). */
+/** Match a county slug to the canonical county (handles SUFFOLK vs Suffolk, excludes town names in county column). */
 export async function findCountyBySlug(slug: string): Promise<{
   name: string
   displayName: string
   slug: string
+  /** Raw Venue.county values that map to this canonical county. */
+  countyValues: string[]
 } | null> {
   const rows = await prisma.venue.groupBy({
     by: ['county'],
@@ -63,30 +72,19 @@ export async function findCountyBySlug(slug: string): Promise<{
   const matches = rows
     .map((r) => cleanDbString(r.county))
     .filter((name): name is string => Boolean(name))
-    .filter((name) => isPlausibleCountyName(name))
-    .filter((name) => slugifyPlace(name) === slug)
+    .filter((name) => isKnownUkCounty(name))
+    .filter((name) => canonicalCountySlug(name) === slug)
 
   if (!matches.length) return null
 
-  let bestName = matches[0]
-  let bestCount = 0
-  for (const candidate of [...new Set(matches)]) {
-    const count = await prisma.venue.count({
-      where: {
-        is_live: '1',
-        county: { equals: candidate, mode: 'insensitive' },
-      },
-    })
-    if (count > bestCount) {
-      bestCount = count
-      bestName = candidate
-    }
-  }
+  const canonical = canonicalUkCountyName(matches[0])!
+  const countyValues = [...new Set(matches)]
 
   return {
-    name: bestName,
-    displayName: formatPlaceName(bestName),
-    slug: slugifyPlace(bestName),
+    name: canonical,
+    displayName: formatPlaceName(canonical),
+    slug: canonicalCountySlug(canonical) ?? slug,
+    countyValues,
   }
 }
 
@@ -207,19 +205,22 @@ export async function listCountySlugs(): Promise<
   >()
 
   for (const row of rows) {
-    const name = cleanDbString(row.county)
-    if (!name || !isPlausibleCountyName(name)) continue
-    const slug = slugifyPlace(name)
-    if (!slug) continue
+    const raw = cleanDbString(row.county)
+    if (!raw || !isKnownUkCounty(raw)) continue
+
+    const canonical = canonicalUkCountyName(raw)!
+    const key = countyLookupKey(canonical)!
+    const slug = canonicalCountySlug(canonical)!
+    const count = Number(row._count?._all ?? 0)
 
     const existing = bySlug.get(slug)
     if (existing) {
-      existing.venueCount += row._count._all
+      existing.venueCount += count
     } else {
       bySlug.set(slug, {
-        name,
-        displayName: formatPlaceName(name),
-        venueCount: row._count._all,
+        name: canonical,
+        displayName: formatPlaceName(canonical),
+        venueCount: count,
       })
     }
   }

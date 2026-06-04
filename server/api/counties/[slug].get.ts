@@ -20,7 +20,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date()
-  const countyFilter = { equals: county.name, mode: 'insensitive' as const }
+  const countyFilter = {
+    OR: county.countyValues.map((value) => ({
+      equals: value,
+      mode: 'insensitive' as const,
+    })),
+  }
 
   const townRows = await prisma.venue.groupBy({
     by: ['town'],

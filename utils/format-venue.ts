@@ -54,7 +54,7 @@ export function isPlausibleTownName(value: unknown): boolean {
   return true
 }
 
-/** Reject address-like junk stored in the county column. */
+/** Reject address-like junk stored in the county column (basic sanity only). */
 export function isPlausibleCountyName(value: unknown): boolean {
   const s = cleanDbString(value)
   if (!s) return false
