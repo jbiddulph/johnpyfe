@@ -90,6 +90,16 @@ export function venueHasCoords(venue: { latitude?: unknown; longitude?: unknown 
   return parseVenueCoord(venue.latitude) != null && parseVenueCoord(venue.longitude) != null
 }
 
+/** Human-readable straight-line distance for nearby venue cards. */
+export function formatDistanceMiles(miles: number | null | undefined): string {
+  const m = Number(miles)
+  if (!Number.isFinite(m) || m < 0) return ''
+  if (m < 0.05) return 'Less than 0.1 mile'
+  const rounded = m < 10 ? m.toFixed(1) : Math.round(m).toString()
+  const n = Number.parseFloat(rounded)
+  return `${rounded} mile${n === 1 ? '' : 's'}`
+}
+
 type VenuePhotoConfig = {
   venueImgFolder?: string
   supabaseUrl?: string

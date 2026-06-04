@@ -43,6 +43,29 @@
       </div>
     </div>
     <venue-map v-if="venuePhotoUrl && venueHasMapCoords" :venue="venue" />
+
+    <section v-if="venueHasMapCoords" class="my-10">
+      <h2 class="text-4xl font-bold mb-2">Other pubs close by</h2>
+      <p class="text-lg text-gray-600 dark:text-gray-400 mb-6">
+        Venues within {{ nearbyRadiusMiles }} mile{{ nearbyRadiusMiles === 1 ? '' : 's' }} of this pub.
+      </p>
+      <p v-if="nearbyPending" class="text-lg text-gray-600">Loading nearby venues…</p>
+      <p v-else-if="!nearbyPubs.length" class="text-lg text-gray-600">
+        No other venues found within {{ nearbyRadiusMiles }} mile{{ nearbyRadiusMiles === 1 ? '' : 's' }}.
+      </p>
+      <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <li v-for="near in nearbyPubs" :key="near.id">
+          <VenueHubCard :venue="near">
+            <template #footer>
+              <p class="text-sm text-gray-600 dark:text-gray-400 text-center">
+                {{ formatDistanceMiles(near.distanceMiles) }} away
+              </p>
+            </template>
+          </VenueHubCard>
+        </li>
+      </ul>
+    </section>
+
     <h2 class="text-4xl font-bold my-8">Events</h2>
     <ul v-if="venueEvents.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
       <li v-for="(event, index) in venueEvents" :key="event.id">
@@ -57,6 +80,7 @@
 import { useEventStore } from '@/store/event.js'
 import {
   cleanDbString,
+  formatDistanceMiles,
   formatPhone,
   formatPlaceName,
   normalizeWebsiteHref,
@@ -113,7 +137,18 @@ const { data: events } = await useAsyncData(
   { default: () => [] },
 )
 
+const { data: nearbyData, pending: nearbyPending } = await useAsyncData(
+  `venue-nearby-${venueId}`,
+  () =>
+    venueHasCoords(venue.value)
+      ? requestFetch(`/api/venues/${venueId}/nearby`)
+      : Promise.resolve({ items: [], radiusMiles: 1 }),
+  { default: () => ({ items: [], radiusMiles: 1 }) },
+)
+
 const venueEvents = computed(() => events.value ?? [])
+const nearbyPubs = computed(() => nearbyData.value?.items ?? [])
+const nearbyRadiusMiles = computed(() => nearbyData.value?.radiusMiles ?? 1)
 
 const venueTownLabel = computed(() => formatPlaceName(venue.value?.town))
 const venueCountyLabel = computed(() => formatPlaceName(venue.value?.county))
