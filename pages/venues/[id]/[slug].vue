@@ -21,6 +21,7 @@
         <venue-map
           v-else-if="venueHasMapCoords"
           :venue="venue"
+          :nearby-venues="nearbyPubs"
           compact
           :show-directions="false"
         />
@@ -42,7 +43,11 @@
         </p>
       </div>
     </div>
-    <venue-map v-if="venuePhotoUrl && venueHasMapCoords" :venue="venue" />
+    <venue-map
+      v-if="venuePhotoUrl && venueHasMapCoords"
+      :venue="venue"
+      :nearby-venues="nearbyPubs"
+    />
 
     <section v-if="venueHasMapCoords" class="my-10">
       <h2 class="text-4xl font-bold mb-2">Other pubs close by</h2>
