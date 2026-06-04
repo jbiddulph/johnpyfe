@@ -32,6 +32,8 @@ model Venue {
   longitude           String
   local_authority     String
   website             String
+  features            String? @db.VarChar(5000)
+  description         String? @db.VarChar(5000)
   photo               String
   is_live             String
   created_at          String
