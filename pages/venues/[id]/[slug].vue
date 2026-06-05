@@ -43,6 +43,19 @@
         </p>
       </div>
     </div>
+
+    <section v-if="venueDescription" class="my-8">
+      <h2 class="text-3xl font-bold">About</h2>
+      <p class="text-xl text-gray-700 dark:text-gray-300 mt-3 leading-relaxed">{{ venueDescription }}</p>
+    </section>
+
+    <section v-if="venueFeatureItems.length" class="my-8">
+      <h2 class="text-3xl font-bold">Features</h2>
+      <ul class="list-disc list-inside text-xl mt-3 space-y-2 text-gray-700 dark:text-gray-300">
+        <li v-for="(item, index) in venueFeatureItems" :key="index">{{ item }}</li>
+      </ul>
+    </section>
+
     <venue-map
       v-if="venuePhotoUrl && venueHasMapCoords"
       :venue="venue"
@@ -89,6 +102,7 @@ import {
   formatPhone,
   formatPlaceName,
   normalizeWebsiteHref,
+  parseVenueFeatures,
   resolveVenuePhotoUrl,
   venueHasCoords,
 } from '@/utils/format-venue'
@@ -189,6 +203,10 @@ const photoConfig = computed(() => ({
 }))
 
 const venuePhotoUrl = computed(() => resolveVenuePhotoUrl(venue.value?.photo, photoConfig.value))
+
+const venueDescription = computed(() => cleanDbString(venue.value?.description))
+
+const venueFeatureItems = computed(() => parseVenueFeatures(venue.value?.features))
 
 const breadcrumbItems = computed(() => {
   const v = venue.value

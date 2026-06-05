@@ -80,6 +80,16 @@ export function normalizeWebsiteHref(value: unknown): string | null {
   return null
 }
 
+/** Parse stored bullet features (newline-separated, optional • prefix) into list items. */
+export function parseVenueFeatures(value: unknown): string[] {
+  const s = cleanDbString(value)
+  if (!s) return []
+  return s
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[\s•\-*]+/, '').trim())
+    .filter(Boolean)
+}
+
 export function parseVenueCoord(value: unknown): number | null {
   const n = Number(value)
   return Number.isFinite(n) && n !== 0 ? n : null
