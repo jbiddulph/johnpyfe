@@ -1,5 +1,9 @@
 import { prisma } from '../../utils/prisma'
-import { buildCountyVenueFilter, findCountyBySlug, resolveTown } from '../../utils/place-hub'
+import {
+  buildCountyVenueWhereWithLive,
+  findCountyBySlug,
+  resolveTown,
+} from '../../utils/place-hub'
 
 const eventInclude = {
   listing: true,
@@ -20,11 +24,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date()
-  const countyFilter = await buildCountyVenueFilter({ slug })
+  const venueWhere = await buildCountyVenueWhereWithLive({ slug, requireSlug: false })
 
   const townRows = await prisma.venue.groupBy({
     by: ['town'],
-    where: { is_live: '1', county: countyFilter },
+    where: venueWhere,
     _count: { _all: true },
     orderBy: { town: 'asc' },
   })
@@ -45,20 +49,13 @@ export default defineEventHandler(async (event) => {
   )
 
   const venueTotal = await prisma.venue.count({
-    where: {
-      is_live: '1',
-      county: countyFilter,
-      slug: { not: '' },
-    },
+    where: await buildCountyVenueWhereWithLive({ slug }),
   })
 
   const events = await prisma.event.findMany({
     where: {
       event_start: { gt: now },
-      listing: {
-        is_live: '1',
-        county: countyFilter,
-      },
+      listing: await buildCountyVenueWhereWithLive({ slug, requireSlug: false }),
     },
     include: eventInclude,
     orderBy: { event_start: 'asc' },

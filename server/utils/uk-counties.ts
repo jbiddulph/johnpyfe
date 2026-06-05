@@ -170,3 +170,13 @@ export function canonicalCountySlug(value: unknown): string | null {
   if (!key) return null
   return key.replace(/\s+/g, '-')
 }
+
+/** Resolve a county hub slug from the allowlist when the DB has no matching rows yet. */
+export function findCanonicalCountyBySlug(slug: string): string | null {
+  const normalised = slug.trim().toLowerCase()
+  if (!normalised) return null
+  for (const [key, canonical] of Object.entries(UK_COUNTY_CANONICAL)) {
+    if (key.replace(/\s+/g, '-') === normalised) return canonical
+  }
+  return null
+}

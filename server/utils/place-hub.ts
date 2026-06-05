@@ -5,6 +5,7 @@ import {
   canonicalCountySlug,
   canonicalUkCountyName,
   countyLookupKey,
+  findCanonicalCountyBySlug,
   isKnownUkCounty,
 } from './uk-counties'
 
@@ -78,7 +79,16 @@ export async function findCountyBySlug(slug: string): Promise<{
       (name) => canonicalCountySlug(name) === slug || slugifyPlace(name) === slug,
     )
 
-  if (!matches.length) return null
+  if (!matches.length) {
+    const canonical = findCanonicalCountyBySlug(slug)
+    if (!canonical) return null
+    return {
+      name: canonical,
+      displayName: formatPlaceName(canonical),
+      slug,
+      countyValues: [canonical],
+    }
+  }
 
   const canonical = canonicalUkCountyName(matches[0])!
   const countyValues = [...new Set(matches)]
@@ -91,11 +101,10 @@ export async function findCountyBySlug(slug: string): Promise<{
   }
 }
 
-/** Prisma filter matching every raw Venue.county value for a hub slug. */
-export async function buildCountyVenueFilter(options: {
+async function resolveCountyBySlugParam(options: {
   slug?: string
   county?: string
-}): Promise<Prisma.VenueWhereInput['county']> {
+}) {
   const slug =
     options.slug?.trim()
     || (options.county
@@ -111,12 +120,37 @@ export async function buildCountyVenueFilter(options: {
     throw createError({ statusCode: 404, statusMessage: 'County not found' })
   }
 
+  return county
+}
+
+/**
+ * Venue where-clause matching all DB spellings for a county.
+ * OR must be at the top level — Prisma rejects OR inside the county scalar filter.
+ */
+export async function buildCountyVenueWhere(options: {
+  slug?: string
+  county?: string
+}): Promise<Prisma.VenueWhereInput> {
+  const county = await resolveCountyBySlugParam(options)
   return {
     OR: county.countyValues.map((value) => ({
-      equals: value,
-      mode: 'insensitive' as const,
+      county: { equals: value, mode: 'insensitive' },
     })),
   }
+}
+
+/** Live venues in a county (for list/map/hub queries). */
+export async function buildCountyVenueWhereWithLive(options: {
+  slug?: string
+  county?: string
+  requireSlug?: boolean
+}): Promise<Prisma.VenueWhereInput> {
+  const countyPart = await buildCountyVenueWhere(options)
+  const parts: Prisma.VenueWhereInput[] = [{ is_live: '1' }, countyPart]
+  if (options.requireSlug !== false) {
+    parts.push({ slug: { not: '' } })
+  }
+  return { AND: parts }
 }
 
 /** Match a town slug via City table or venue town names. */

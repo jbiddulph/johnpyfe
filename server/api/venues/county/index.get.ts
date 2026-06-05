@@ -1,5 +1,5 @@
 import { prisma } from '../../../utils/prisma'
-import { buildCountyVenueFilter } from '../../../utils/place-hub'
+import { buildCountyVenueWhereWithLive } from '../../../utils/place-hub'
 import {
   paginatedVenueResponse,
   parseVenuePagination,
@@ -15,14 +15,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'slug or county query required' })
   }
 
-  const countyFilter = await buildCountyVenueFilter({ slug, county: countyName })
   const { skip, take } = parseVenuePagination(query)
-
-  const where = {
-    is_live: '1',
-    county: countyFilter,
-    slug: { not: '' },
-  }
+  const where = await buildCountyVenueWhereWithLive({ slug, county: countyName })
 
   const [items, total] = await Promise.all([
     prisma.venue.findMany({
