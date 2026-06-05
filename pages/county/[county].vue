@@ -19,7 +19,7 @@
       <TownVenueList
         :town-name="countyDisplayName"
         :heading="`All venues in ${countyDisplayName}`"
-        :county="resolvedCountyName"
+        :county-slug="countySlug"
         :initial-items="initialVenueItems"
         :initial-total="initialVenueTotal"
         :initial-total-pages="initialVenueTotalPages"
@@ -58,7 +58,7 @@ const { data: countyVenuesData } = await useAsyncData(
   `county-venues-${countySlug}`,
   () =>
     requestFetch(
-      `/api/venues/county?county=${encodeURIComponent(resolvedCountyName)}&skip=0&take=104`,
+      `/api/venues/county?slug=${encodeURIComponent(countySlug)}&skip=0&take=104`,
     ),
   { default: () => ({ items: [], total: 0, totalPages: 1 }) },
 )
@@ -67,7 +67,7 @@ const { data: mapVenuesData } = await useAsyncData(
   `county-map-venues-${countySlug}`,
   () =>
     requestFetch(
-      `/api/venues/county?county=${encodeURIComponent(resolvedCountyName)}&skip=0&take=500&all=1`,
+      `/api/venues/county?slug=${encodeURIComponent(countySlug)}&skip=0&take=500&all=1`,
     ),
   { default: () => ({ items: [] }) },
 )

@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from './prisma'
 import { cleanDbString, formatPlaceName, slugifyPlace } from '../../utils/format-venue'
 import {
@@ -73,7 +74,9 @@ export async function findCountyBySlug(slug: string): Promise<{
     .map((r) => cleanDbString(r.county))
     .filter((name): name is string => Boolean(name))
     .filter((name) => isKnownUkCounty(name))
-    .filter((name) => canonicalCountySlug(name) === slug)
+    .filter(
+      (name) => canonicalCountySlug(name) === slug || slugifyPlace(name) === slug,
+    )
 
   if (!matches.length) return null
 
@@ -85,6 +88,34 @@ export async function findCountyBySlug(slug: string): Promise<{
     displayName: formatPlaceName(canonical),
     slug: canonicalCountySlug(canonical) ?? slug,
     countyValues,
+  }
+}
+
+/** Prisma filter matching every raw Venue.county value for a hub slug. */
+export async function buildCountyVenueFilter(options: {
+  slug?: string
+  county?: string
+}): Promise<Prisma.VenueWhereInput['county']> {
+  const slug =
+    options.slug?.trim()
+    || (options.county
+      ? canonicalCountySlug(options.county) ?? slugifyPlace(options.county)
+      : '')
+
+  if (!slug) {
+    throw createError({ statusCode: 400, statusMessage: 'County slug or name required' })
+  }
+
+  const county = await findCountyBySlug(slug)
+  if (!county?.countyValues.length) {
+    throw createError({ statusCode: 404, statusMessage: 'County not found' })
+  }
+
+  return {
+    OR: county.countyValues.map((value) => ({
+      equals: value,
+      mode: 'insensitive' as const,
+    })),
   }
 }
 

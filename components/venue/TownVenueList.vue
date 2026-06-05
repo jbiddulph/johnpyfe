@@ -52,7 +52,9 @@ const props = defineProps<{
   townName: string
   heading?: string
   town?: string
+  /** @deprecated Prefer countySlug — matches all DB spellings for the county. */
   county?: string
+  countySlug?: string
   initialItems?: VenueItem[]
   initialTotal?: number
   initialTotalPages?: number
@@ -75,7 +77,7 @@ function applyInitialPage() {
 }
 
 async function fetchVenues() {
-  if (!props.town && !props.county) return
+  if (!props.town && !props.countySlug && !props.county) return
 
   loading.value = true
   try {
@@ -86,8 +88,12 @@ async function fetchVenues() {
     })
 
     let url: string
-    if (props.county) {
-      params.set('county', props.county)
+    if (props.countySlug || props.county) {
+      if (props.countySlug) {
+        params.set('slug', props.countySlug)
+      } else {
+        params.set('county', props.county!)
+      }
       url = `/api/venues/county?${params}`
     } else {
       params.set('town', props.town!)
@@ -149,7 +155,7 @@ watch(
 )
 
 watch(
-  () => [props.town, props.county],
+  () => [props.town, props.county, props.countySlug],
   () => {
     currentPage.value = 1
     if (props.initialItems?.length) {
@@ -162,7 +168,7 @@ watch(
 
 onMounted(() => {
   applyInitialPage()
-  if (!venues.value.length && (props.town || props.county)) {
+  if (!venues.value.length && (props.town || props.countySlug || props.county)) {
     fetchVenues()
   }
 })
