@@ -54,10 +54,12 @@ const mapEl = ref(null)
 let mapInstance = null
 let mapboxglModule = null
 const markerInstances = []
+const popupInstances = []
 
 function clearMarkers() {
   for (const m of markerInstances) m.remove()
   markerInstances.length = 0
+  popupInstances.length = 0
 }
 
 function createPinElement(variant) {
@@ -93,6 +95,25 @@ const directionsUrl = computed(() => {
   return `https://www.google.com/maps/search/?api=1&query=${lat.value},${lng.value}&query_place_id=${label}`
 })
 
+function createPopup(mapboxgl, html, offset) {
+  const popup = new mapboxgl.Popup({
+    offset,
+    className: 'venue-map-popup',
+    closeButton: true,
+  }).setHTML(html)
+
+  popup.on('open', () => {
+    for (const other of popupInstances) {
+      if (other !== popup && other.isOpen()) other.remove()
+    }
+    const el = popup.getElement()
+    if (el) el.style.zIndex = '1000'
+  })
+
+  popupInstances.push(popup)
+  return popup
+}
+
 function addMarkers(mapboxgl) {
   if (!mapInstance) return
   clearMarkers()
@@ -105,7 +126,7 @@ function addMarkers(mapboxgl) {
     const popupHtml = `<div class="venue-map-popup__inner"><strong>${escapeHtml(v.venuename)}</strong>${distance ? `<br><span class="venue-map-popup__muted">${escapeHtml(distance)} away</span>` : ''}<br><a href="${escapeHtml(href)}" class="venue-map-popup__link">View venue</a></div>`
     const marker = new mapboxgl.Marker({ element: createPinElement('nearby'), anchor: 'center' })
       .setLngLat([v.lng, v.lat])
-      .setPopup(new mapboxgl.Popup({ offset: 14, className: 'venue-map-popup' }).setHTML(popupHtml))
+      .setPopup(createPopup(mapboxgl, popupHtml, 14))
       .addTo(mapInstance)
     markerInstances.push(marker)
   }
@@ -116,7 +137,7 @@ function addMarkers(mapboxgl) {
   const mainPopupHtml = `<div class="venue-map-popup__inner"><strong>${escapeHtml(props.venue.venuename)}</strong>${addressLine ? `<br>${escapeHtml(addressLine)}` : ''}</div>`
   const mainMarker = new mapboxgl.Marker({ element: createPinElement('primary'), anchor: 'center' })
     .setLngLat([lng.value, lat.value])
-    .setPopup(new mapboxgl.Popup({ offset: 20, className: 'venue-map-popup' }).setHTML(mainPopupHtml))
+    .setPopup(createPopup(mapboxgl, mainPopupHtml, 20))
     .addTo(mapInstance)
   markerInstances.push(mainMarker)
 
@@ -235,7 +256,6 @@ watch(
   width: 32px;
   height: 32px;
   background-color: #ea580c;
-  z-index: 2;
 }
 
 .venue-map-pin--nearby {
@@ -244,12 +264,23 @@ watch(
   background-color: #fdba74;
   border-width: 1.5px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  z-index: 1;
 }
 </style>
 
-<!-- Mapbox popups are mounted on document.body; scoped styles do not reach them -->
+<!-- Mapbox popups are mounted inside the map container; scoped styles do not reach them -->
 <style>
+.venue-map__canvas .mapboxgl-marker {
+  z-index: 1;
+}
+
+.venue-map__canvas .mapboxgl-popup.venue-map-popup {
+  z-index: 1000 !important;
+}
+
+.venue-map-popup.mapboxgl-popup {
+  z-index: 1000 !important;
+}
+
 .venue-map-popup .mapboxgl-popup-content {
   color: #111827 !important;
   background-color: #ffffff !important;

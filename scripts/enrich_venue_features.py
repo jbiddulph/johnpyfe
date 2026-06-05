@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Batch-update public."Venue".features and description from Google Places (New) API.
+Batch-update public."Venue".features, description, and optionally photo from Google Places (New) API.
 
 Requires:
   pip install -r scripts/requirements-enrich.txt
@@ -10,7 +10,9 @@ Environment (.env in project root):
   GOOGLE_PLACES_API_KEY       — Places API (New) enabled in Google Cloud
 
 Each venue uses two API calls: Text Search (find place) then Place Details (amenities).
-Only blank `features` and/or `description` columns are written; existing values are kept.
+With --photos, adds one Place Photo media call; saves the Google CDN URL in Venue.photo
+(no Supabase upload). Displaying Place photos requires Google author attribution on site.
+Only blank `features`, `description`, and/or placeholder `photo` values are written.
 Amenity fields (dog friendly, outdoor seating, etc.) need Enterprise + Atmosphere SKU on your key.
 
 Examples:
@@ -20,6 +22,9 @@ Examples:
   # Update Brighton pubs (skip dry run)
   python scripts/enrich_venue_features.py --town Brighton --skip-dry-run
   python scripts/enrich_venue_features.py --town Brighton --apply   # same as --skip-dry-run / -y
+
+  # Features, description, and photo URL
+  python scripts/enrich_venue_features.py --town Brighton --photos -y --limit 300
 
   # All venues missing features (careful: ~51k rows = API cost + time)
   python scripts/enrich_venue_features.py -y --limit 100
@@ -48,34 +53,43 @@ load_dotenv(ROOT / ".env")
 PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 # Text Search only supports a subset of fields; amenity flags need Place Details.
 SEARCH_FIELD_MASK = "places.name,places.displayName,places.formattedAddress,places.types"
-DETAILS_FIELD_MASK = ",".join(
-    [
-        "displayName",
-        "formattedAddress",
-        "types",
-        "outdoorSeating",
-        "servesVegetarianFood",
-        "servesBeer",
-        "servesWine",
-        "servesBreakfast",
-        "servesLunch",
-        "servesDinner",
-        "servesBrunch",
-        "goodForWatchingSports",
-        "liveMusic",
-        "allowsDogs",
-        "accessibilityOptions",
-        "editorialSummary",
-        "reviewSummary",
-    ]
-)
+DETAILS_FIELDS = [
+    "displayName",
+    "formattedAddress",
+    "types",
+    "outdoorSeating",
+    "servesVegetarianFood",
+    "servesBeer",
+    "servesWine",
+    "servesBreakfast",
+    "servesLunch",
+    "servesDinner",
+    "servesBrunch",
+    "goodForWatchingSports",
+    "liveMusic",
+    "allowsDogs",
+    "accessibilityOptions",
+    "editorialSummary",
+    "reviewSummary",
+]
+DEFAULT_PHOTO_MARKERS = ("standing.jpg", "awaiting.jpg", "images/venues/awaiting")
 
 MAX_FEATURES_LEN = 5000
 MAX_DESCRIPTION_LEN = 5000
+MAX_PHOTO_URL_LEN = 2000
+
+
+def details_field_mask(include_photos: bool) -> str:
+    fields = list(DETAILS_FIELDS)
+    if include_photos:
+        fields.append("photos")
+    return ",".join(fields)
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Enrich Venue.features and description from Google Places")
+    p = argparse.ArgumentParser(
+        description="Enrich Venue features, description, and optionally photo from Google Places"
+    )
     p.add_argument("--town", help="Filter by town (case-insensitive), e.g. Brighton")
     p.add_argument("--county", help="Filter by county (case-insensitive)")
     p.add_argument("--id", type=int, help="Single venue id")
@@ -93,7 +107,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Preview only, no DB writes (default unless --apply / --skip-dry-run / -y)",
     )
-    p.add_argument("--include-filled", action="store_true", help="Re-process venues that already have features or description")
+    p.add_argument(
+        "--include-filled",
+        action="store_true",
+        help="Re-process venues that already have features, description, or a real photo",
+    )
+    p.add_argument(
+        "--photos",
+        action="store_true",
+        help="Fetch first Google Place photo URL and save to Venue.photo when missing/placeholder",
+    )
     p.add_argument("--delay", type=float, default=0.25, help="Seconds between API calls (default 0.25)")
     return p.parse_args()
 
@@ -252,7 +275,66 @@ def build_features(place: dict | None) -> str:
     return text
 
 
-def place_details(api_key: str, place_name: str) -> dict | None:
+def is_default_photo(value: object) -> bool:
+    s = clean(value)
+    if not s:
+        return True
+    lower = s.lower()
+    return any(marker in lower for marker in DEFAULT_PHOTO_MARKERS)
+
+
+def photo_needs_fill(value: object) -> bool:
+    return is_blank(value) or is_default_photo(value)
+
+
+def photo_attribution(place: dict | None) -> str | None:
+    if not place:
+        return None
+    photos = place.get("photos") or []
+    if not photos:
+        return None
+    attrs = photos[0].get("authorAttributions") or []
+    if not attrs:
+        return None
+    return clean(attrs[0].get("displayName"))
+
+
+def fetch_place_photo_url(api_key: str, place: dict | None) -> str | None:
+    """Resolve first Place photo to a Google CDN URL (no API key in the stored URL)."""
+    if not place:
+        return None
+    photos = place.get("photos") or []
+    if not photos:
+        return None
+    photo_name = photos[0].get("name")
+    if not photo_name:
+        return None
+
+    resp = requests.get(
+        f"https://places.googleapis.com/v1/{photo_name}/media",
+        headers={"X-Goog-Api-Key": api_key},
+        params={"maxHeightPx": 800, "maxWidthPx": 1200},
+        allow_redirects=False,
+        timeout=30,
+    )
+    if resp.status_code in (301, 302, 303, 307, 308):
+        url = clean(resp.headers.get("Location"))
+    elif resp.status_code == 200 and resp.headers.get("Content-Type", "").startswith("image/"):
+        # Unexpected direct bytes — cannot store a stable URL
+        return None
+    else:
+        raise RuntimeError(f"Place Photo {resp.status_code}: {resp.text[:200]}")
+
+    if not url or not url.startswith(("http://", "https://")):
+        return None
+    if "key=" in url.lower():
+        raise RuntimeError("Refusing to store photo URL containing API key")
+    if len(url) > MAX_PHOTO_URL_LEN:
+        url = url[:MAX_PHOTO_URL_LEN]
+    return url
+
+
+def place_details(api_key: str, place_name: str, *, include_photos: bool = False) -> dict | None:
     """GET places/{id} — field mask has no places. prefix."""
     if not place_name:
         return None
@@ -262,7 +344,7 @@ def place_details(api_key: str, place_name: str) -> dict | None:
         headers={
             "Content-Type": "application/json",
             "X-Goog-Api-Key": api_key,
-            "X-Goog-FieldMask": DETAILS_FIELD_MASK,
+            "X-Goog-FieldMask": details_field_mask(include_photos),
         },
         timeout=30,
     )
@@ -271,7 +353,7 @@ def place_details(api_key: str, place_name: str) -> dict | None:
     return resp.json()
 
 
-def search_place(api_key: str, query: str) -> dict | None:
+def search_place(api_key: str, query: str, *, include_photos: bool = False) -> dict | None:
     resp = requests.post(
         PLACES_SEARCH_URL,
         headers={
@@ -294,8 +376,22 @@ def search_place(api_key: str, query: str) -> dict | None:
     if not place_name:
         return hit
 
-    details = place_details(api_key, place_name)
+    details = place_details(api_key, place_name, include_photos=include_photos)
     return details or hit
+
+
+def missing_data_clause(args: argparse.Namespace) -> str:
+    parts = ["(features IS NULL OR features = '')", "(description IS NULL OR description = '')"]
+    if args.photos:
+        photo_checks = " OR ".join(
+            [
+                "photo IS NULL",
+                "photo = ''",
+                *[f"photo ILIKE '%{marker}%'" for marker in DEFAULT_PHOTO_MARKERS],
+            ]
+        )
+        parts.append(f"({photo_checks})")
+    return f"({' OR '.join(parts)})"
 
 
 def build_where(args: argparse.Namespace) -> tuple[list[str], list[object]]:
@@ -303,9 +399,7 @@ def build_where(args: argparse.Namespace) -> tuple[list[str], list[object]]:
     params: list[object] = []
 
     if not args.include_filled:
-        clauses.append(
-            "((features IS NULL OR features = '') OR (description IS NULL OR description = ''))"
-        )
+        clauses.append(missing_data_clause(args))
 
     if args.id:
         clauses.append("id = %s")
@@ -334,7 +428,7 @@ def fetch_venues(conn, args: argparse.Namespace) -> list[dict]:
     params.append(args.limit)
 
     sql = f"""
-        SELECT id, venuename, address, town, county, postcode, website, features, description
+        SELECT id, venuename, address, town, county, postcode, website, features, description, photo
         FROM "Venue"
         WHERE {" AND ".join(clauses)}
         ORDER BY id ASC
@@ -353,9 +447,14 @@ def is_blank(value: object) -> bool:
 
 
 def update_venue(
-    conn, venue: dict, features: str, description: str | None, apply: bool
+    conn,
+    venue: dict,
+    features: str,
+    description: str | None,
+    photo_url: str | None,
+    apply: bool,
 ) -> bool:
-    """Update only blank features/description columns. Returns True if a write occurred."""
+    """Update only blank features/description/photo columns. Returns True if a write would occur."""
     updates: list[str] = []
     params: list[object] = []
 
@@ -366,6 +465,10 @@ def update_venue(
     if is_blank(venue.get("description")) and description:
         updates.append("description = %s")
         params.append(description)
+
+    if photo_needs_fill(venue.get("photo")) and photo_url:
+        updates.append("photo = %s")
+        params.append(photo_url)
 
     if not updates:
         return False
@@ -408,8 +511,11 @@ def main() -> None:
             filters.append(f"id={args.id}")
         filter_label = f" ({', '.join(filters)})" if filters else ""
         print(f"{mode}{filter_label}")
+        need_label = "features, description"
+        if args.photos:
+            need_label += ", or photo"
         print(
-            f"  {total_matching} venue(s) still need features or description; "
+            f"  {total_matching} venue(s) still need {need_label}; "
             f"processing {len(venues)} this run (limit={args.limit})"
         )
         if total_matching > len(venues):
@@ -423,9 +529,11 @@ def main() -> None:
             label = f"#{venue['id']} {venue['venuename']} ({venue.get('town') or '?'})"
             query = build_search_query(venue)
             try:
-                place = search_place(api_key, query)
+                needs_photo = args.photos and photo_needs_fill(venue.get("photo"))
+                place = search_place(api_key, query, include_photos=needs_photo)
                 features = build_features(place)
                 description = build_description(place)
+                photo_url = fetch_place_photo_url(api_key, place) if needs_photo else None
                 matched = (place or {}).get("displayName", {}).get("text", "?")
                 print(f"\n[{i}/{len(venues)}] {label}")
                 print(f"  Query: {query}")
@@ -436,20 +544,34 @@ def main() -> None:
                     print(f"  Description: {preview}")
                 else:
                     print("  Description: (none)")
+                if args.photos:
+                    if not needs_photo:
+                        print("  Photo: (skipped — venue already has a photo)")
+                    elif photo_url:
+                        photo_preview = photo_url if len(photo_url) <= 100 else photo_url[:97] + "..."
+                        print(f"  Photo: {photo_preview}")
+                        author = photo_attribution(place)
+                        if author:
+                            print(f"  Photo credit: {author}")
+                    else:
+                        print("  Photo: (none from Google)")
 
                 will_update_features = is_blank(venue.get("features")) and bool(features)
                 will_update_description = is_blank(venue.get("description")) and bool(description)
-                if will_update_features or will_update_description:
+                will_update_photo = photo_needs_fill(venue.get("photo")) and bool(photo_url)
+                if will_update_features or will_update_description or will_update_photo:
                     cols = []
                     if will_update_features:
                         cols.append("features")
                     if will_update_description:
                         cols.append("description")
+                    if will_update_photo:
+                        cols.append("photo")
                     print(f"  Will update: {', '.join(cols)}")
                 else:
-                    print("  Will update: (nothing — both columns already filled)")
+                    print("  Will update: (nothing — all target columns already filled)")
 
-                saved = update_venue(conn, venue, features, description, args.apply)
+                saved = update_venue(conn, venue, features, description, photo_url, args.apply)
                 if args.apply:
                     if saved:
                         conn.commit()

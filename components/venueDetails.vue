@@ -76,6 +76,10 @@ function createMap() {
 </style>
 
 <style>
+.venue-map-popup.mapboxgl-popup {
+  z-index: 1000 !important;
+}
+
 .venue-map-popup .mapboxgl-popup-content {
   color: #111827 !important;
   background-color: #ffffff !important;
