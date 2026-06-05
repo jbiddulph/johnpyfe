@@ -5,7 +5,8 @@
  *
  * Usage:
  *   node scripts/generate-venue-features-sql.mjs --town Brighton --limit 10 > brighton-features.sql
- *   node scripts/generate-venue-features-sql.mjs --town Brighton --apply   # runs via Prisma (optional)
+ *   node scripts/generate-venue-features-sql.mjs --town Brighton --skip-dry-run
+ *   node scripts/generate-venue-features-sql.mjs --town Brighton --apply   # same as --skip-dry-run / -y
  *
  * Output is review-first SQL — always check before running on production.
  */
@@ -38,16 +39,27 @@ const DETAILS_FIELD_MASK = [
 
 function parseArgs(argv) {
   const args = { town: 'Brighton', limit: 20, out: null, dryRun: true }
+  let applyFlag = false
+  let dryRunFlag = false
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--town') args.town = argv[++i]
     else if (a === '--limit') args.limit = Number(argv[++i])
     else if (a === '--out') args.out = argv[++i]
-    else if (a === '--apply') args.dryRun = false
-    else if (a === '--help') {
-      console.log('Options: --town NAME --limit N --out file.sql [--apply]')
+    else if (a === '--apply' || a === '--skip-dry-run' || a === '-y') {
+      applyFlag = true
+      args.dryRun = false
+    } else if (a === '--dry-run') {
+      dryRunFlag = true
+      args.dryRun = true
+    } else if (a === '--help') {
+      console.log('Options: --town NAME --limit N --out file.sql [--skip-dry-run|--apply|-y] [--dry-run]')
       process.exit(0)
     }
+  }
+  if (applyFlag && dryRunFlag) {
+    console.error('Use either --dry-run or --apply/--skip-dry-run/-y, not both.')
+    process.exit(2)
   }
   return args
 }

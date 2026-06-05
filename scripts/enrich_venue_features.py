@@ -14,17 +14,18 @@ Only blank `features` and/or `description` columns are written; existing values 
 Amenity fields (dog friendly, outdoor seating, etc.) need Enterprise + Atmosphere SKU on your key.
 
 Examples:
-  # Preview Brighton pubs (no DB writes)
+  # Preview Brighton pubs (no DB writes — default)
   python scripts/enrich_venue_features.py --town Brighton --limit 10
 
-  # Update Brighton pubs
-  python scripts/enrich_venue_features.py --town Brighton --apply
+  # Update Brighton pubs (skip dry run)
+  python scripts/enrich_venue_features.py --town Brighton --skip-dry-run
+  python scripts/enrich_venue_features.py --town Brighton --apply   # same as --skip-dry-run / -y
 
   # All venues missing features (careful: ~51k rows = API cost + time)
-  python scripts/enrich_venue_features.py --apply --limit 100
+  python scripts/enrich_venue_features.py -y --limit 100
 
   # Single venue
-  python scripts/enrich_venue_features.py --id 22054 --apply
+  python scripts/enrich_venue_features.py --id 22054 -y
 """
 
 from __future__ import annotations
@@ -79,7 +80,19 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--county", help="Filter by county (case-insensitive)")
     p.add_argument("--id", type=int, help="Single venue id")
     p.add_argument("--limit", type=int, default=50, help="Max venues to process (default 50)")
-    p.add_argument("--apply", action="store_true", help="Write updates to the database")
+    p.add_argument(
+        "--apply",
+        "--skip-dry-run",
+        "-y",
+        action="store_true",
+        dest="apply",
+        help="Write updates to the database (skip dry run)",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview only, no DB writes (default unless --apply / --skip-dry-run / -y)",
+    )
     p.add_argument("--include-filled", action="store_true", help="Re-process venues that already have features or description")
     p.add_argument("--delay", type=float, default=0.25, help="Seconds between API calls (default 0.25)")
     return p.parse_args()
@@ -374,6 +387,9 @@ def update_venue(
 
 def main() -> None:
     args = parse_args()
+    if args.dry_run and args.apply:
+        print("Use either --dry-run or --apply/--skip-dry-run/-y, not both.", file=sys.stderr)
+        sys.exit(2)
     api_key = google_api_key()
     mode = "APPLY" if args.apply else "DRY RUN"
 
@@ -443,7 +459,7 @@ def main() -> None:
                         skipped += 1
                         print("  → skipped (no blank columns to fill)")
                 else:
-                    print("  → dry run (use --apply to save)")
+                    print("  → dry run (use --skip-dry-run, --apply, or -y to save)")
 
             except Exception as exc:
                 errors += 1
