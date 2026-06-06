@@ -95,3 +95,19 @@ model Stadium {
 
   @@map("stadiums")
 }
+
+model AnalyticsEvent {
+  id        Int      @id @default(autoincrement())
+  eventType String   @map("event_type")
+  pageType  String   @map("page_type")
+  path      String
+  entityId  Int?     @map("entity_id")
+  label     String?
+  referrer  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([eventType, createdAt])
+  @@index([pageType, entityId])
+  @@index([path])
+  @@map("analytics_events")
+}

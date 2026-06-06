@@ -5,12 +5,10 @@
   <div v-else>
     <div class="w-full">
       <img
-        v-if="venuePhotoUrl"
-        :src="venuePhotoUrl"
+        :src="venuePhotoSrc"
         :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
         class="w-full h-auto max-h-[480px] object-cover"
       />
-      <div v-else class="w-full h-48 bg-gray-300 dark:bg-gray-700" />
 
       <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div class="container mx-auto px-4 py-5">
@@ -26,6 +24,12 @@
 
     <div class="container mx-auto p-4 py-8">
       <Breadcrumbs :items="breadcrumbItems" />
+
+      <SocialShareButtons
+        class="mt-6"
+        :title="`${venue.venuename} — ${venueTownLabel || venue.town}`"
+        :url="`${siteUrl}${canonicalPath}`"
+      />
 
       <nav
         v-if="hasVenueEvents"
@@ -80,6 +84,12 @@
             <li v-for="(item, index) in venueFeatureItems" :key="index">{{ item }}</li>
           </ul>
         </section>
+
+        <VenueMap
+          v-if="venueHasMapCoords"
+          :venue="venue"
+          :nearby-venues="nearbyPubs"
+        />
 
         <section v-if="venueHasMapCoords" class="my-10">
           <h2 class="text-4xl font-bold mb-2">Other pubs close by</h2>
@@ -150,7 +160,7 @@ import {
   formatPlaceName,
   normalizeWebsiteHref,
   parseVenueFeatures,
-  resolveVenuePhotoUrl,
+  resolveVenueDisplayPhotoUrl,
   venueHasCoords,
 } from '@/utils/format-venue'
 
@@ -276,7 +286,7 @@ const photoConfig = computed(() => ({
   supabaseUrl: config.public.supabase?.url,
 }))
 
-const venuePhotoUrl = computed(() => resolveVenuePhotoUrl(venue.value?.photo, photoConfig.value))
+const venuePhotoSrc = computed(() => resolveVenueDisplayPhotoUrl(venue.value?.photo, photoConfig.value))
 
 const venueDescription = computed(() => cleanDbString(venue.value?.description))
 

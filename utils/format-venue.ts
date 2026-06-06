@@ -121,6 +121,9 @@ const DEFAULT_VENUE_PHOTO_MARKERS = [
   'images/venues/awaiting',
 ]
 
+/** Fallback hero/card image when a venue has no photo. */
+export const DEFAULT_VENUE_IMAGE = '/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg'
+
 /** True for missing photos and generic placeholder images (e.g. standing.jpg). */
 export function isDefaultVenuePhoto(photo: unknown): boolean {
   const p = cleanDbString(photo)
@@ -146,6 +149,11 @@ export function resolveVenuePhotoUrl(photo: unknown, config: VenuePhotoConfig = 
   if (folder) return `${folder}${p}`
   if (p.startsWith('/')) return p
   return null
+}
+
+/** Returns a display URL, falling back to the site default venue image. */
+export function resolveVenueDisplayPhotoUrl(photo: unknown, config: VenuePhotoConfig = {}): string {
+  return resolveVenuePhotoUrl(photo, config) ?? DEFAULT_VENUE_IMAGE
 }
 
 export function venueStaticMapUrl(

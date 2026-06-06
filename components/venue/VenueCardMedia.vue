@@ -1,27 +1,16 @@
 <template>
   <NuxtLink :to="venuePath(venue.id, venue.slug)" class="venue-card-media block bg-gray-100">
     <img
-      v-if="photoUrl"
       :src="photoUrl"
       :alt="`${venue.venuename} photo`"
       class="venue-card-media__img"
       loading="lazy"
     />
-    <img
-      v-else-if="staticMapUrl"
-      :src="staticMapUrl"
-      :alt="`Map location for ${venue.venuename}`"
-      class="venue-card-media__img"
-      loading="lazy"
-    />
-    <div v-else class="venue-card-media__placeholder text-sm text-gray-500">
-      No photo or map
-    </div>
   </NuxtLink>
 </template>
 
 <script setup lang="ts">
-import { resolveVenuePhotoUrl, venueStaticMapUrl } from '@/utils/format-venue'
+import { resolveVenueDisplayPhotoUrl } from '@/utils/format-venue'
 
 const props = defineProps({
   venue: {
@@ -31,19 +20,13 @@ const props = defineProps({
 })
 
 const config = useRuntimeConfig()
-const mapboxToken = useMapboxToken()
 
 const photoConfig = computed(() => ({
   venueImgFolder: config.public.venueImgFolder as string | undefined,
   supabaseUrl: config.public.supabase?.url as string | undefined,
 }))
 
-const photoUrl = computed(() => resolveVenuePhotoUrl(props.venue?.photo, photoConfig.value))
-
-const staticMapUrl = computed(() => {
-  if (photoUrl.value) return null
-  return venueStaticMapUrl(props.venue, mapboxToken.value, 640, 220)
-})
+const photoUrl = computed(() => resolveVenueDisplayPhotoUrl(props.venue?.photo, photoConfig.value))
 </script>
 
 <style scoped>

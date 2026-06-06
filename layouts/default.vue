@@ -1,10 +1,29 @@
 <template>
   <div>
+    <div
+      v-if="isAdmin"
+      class="bg-amber-50 border-b border-amber-200 text-sm dark:bg-amber-950 dark:border-amber-900"
+    >
+      <div class="max-w-screen-xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2">
+        <span class="font-medium text-amber-900 dark:text-amber-100">Admin</span>
+        <div class="flex flex-wrap gap-4">
+          <NuxtLink to="/admin/reports" class="font-semibold text-amber-700 hover:underline dark:text-amber-300">
+            Reports
+          </NuxtLink>
+          <NuxtLink to="/admin/dashboard" class="text-amber-700 hover:underline dark:text-amber-300">
+            Dashboard
+          </NuxtLink>
+          <NuxtLink to="/admin/past-events" class="text-amber-700 hover:underline dark:text-amber-300">
+            Past events
+          </NuxtLink>
+        </div>
+      </div>
+    </div>
     <nav class="bg-white border-gray-200 dark:bg-gray-900">
       <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 sticky">
         <NuxtLink to="/" class="h-12 flex items-center space-x-3 rtl:space-x-reverse">
             <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" />
-            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white" title="Pubs in the UK">UKPubs.co.uk</span>
+            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white" title="Pubs in the UK">UK Pubs</span>
         </NuxtLink>
         <button @click="toggleMenu" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="navbar-default" aria-expanded="false">
             <span class="sr-only">Open main menu</span>
@@ -38,6 +57,9 @@
               </li>
               <li>
                 <NuxtLink @click="toggleMenu" to="/counties" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Counties</NuxtLink>
+              </li>
+              <li v-if="isAdmin">
+                <NuxtLink @click="toggleMenu" to="/admin/reports" class="block py-2 px-3 text-amber-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-amber-800 md:p-0 dark:text-amber-400 md:dark:hover:text-amber-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Reports</NuxtLink>
               </li>
               <li v-if="isAdmin">
                 <NuxtLink @click="toggleMenu" to="/admin/past-events" class="block py-2 px-3 text-red-600 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-red-700 md:p-0 dark:text-red-400 md:dark:hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Past Events (Admin)</NuxtLink>
@@ -119,7 +141,7 @@
         </div>
       </div>
       <div class="bg-gray-900 text-white text-xs text-center py-4 px-4">
-        &copy; 2021 - 2025 <NuxtLink to="/" title="UK Pubs listing">UKPubs.co.uk</NuxtLink> - events listings for pubs and venues in the UK
+        &copy; {{ currentYear }} <NuxtLink to="/" title="UK Pubs listing">UK Pubs</NuxtLink> - events listings for pubs and venues in the UK
       </div>
     </footer>
   </div>
@@ -137,6 +159,7 @@ const { data: eventsTopTen } = await useAsyncData(
 
 const topVenues = computed(() => eventsTopTen.value?.limitedVenues ?? [])
 const topTowns = computed(() => eventsTopTen.value?.limitedTowns ?? [])
+const currentYear = new Date().getFullYear()
 
 useSeoMeta({
   title: 'Pubs and venues listings in the UK',

@@ -30,6 +30,33 @@ export default defineEventHandler(async (event) => {
   const where = buildVenueListWhere(query)
 
   try {
+    const hasListFilters = Boolean(
+      String(query.town || '').trim()
+      || String(query.county || '').trim()
+      || String(query.q || '').trim(),
+    )
+
+    if (!hasListFilters) {
+      const idRows = await prisma.$queryRaw<Array<{ id: number }>>`
+        SELECT id FROM "Venue"
+        ORDER BY RANDOM()
+        LIMIT ${take}
+        OFFSET ${skip}
+      `
+      const ids = idRows.map((row) => row.id)
+      const [items, total] = await prisma.$transaction([
+        ids.length
+          ? prisma.venue.findMany({ where: { id: { in: ids } } })
+          : Promise.resolve([]),
+        prisma.venue.count({ where }),
+      ])
+
+      const byId = new Map(items.map((item) => [item.id, item]))
+      const orderedItems = ids.map((id) => byId.get(id)).filter((item): item is NonNullable<typeof item> => item != null)
+
+      return paginatedVenueResponse(orderedItems, total, skip, take)
+    }
+
     const [items, total] = await prisma.$transaction([
       prisma.venue.findMany({
         where,
