@@ -29,7 +29,7 @@ export function canonicalSiteUrl(preferred?: string): string {
     return normalized
   }
 
-  if (import.meta.client && typeof window !== 'undefined') {
+  if (typeof window !== 'undefined') {
     const { protocol, hostname, host } = window.location
     if (hostname && !isLocalSiteUrl(hostname)) {
       return `${protocol}//${host}`.replace(/\/$/, '')
