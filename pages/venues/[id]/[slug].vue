@@ -2,100 +2,167 @@
   <div v-if="!venue" class="container mx-auto p-4 py-8 text-lg text-gray-600">
     Loading venue…
   </div>
-  <div v-else class="container mx-auto p-4">
-    <Breadcrumbs :items="breadcrumbItems" />
-    <h1 class="text-4xl font-bold my-4">
-      {{ venue.venuename }}
-      <span v-if="venueTownLabel" class="text-2xl font-normal text-gray-600 dark:text-gray-400">
-        — {{ venueTownLabel }}<template v-if="venueCountyLabel">, {{ venueCountyLabel }}</template>
-      </span>
-    </h1>
-    <div class="flex flex-col md:flex-row gap-6">
-      <div class="w-full md:w-1/2">
-        <img
-          v-if="venuePhotoUrl"
-          :src="venuePhotoUrl"
-          :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
-          class="w-full h-auto max-h-[420px] object-cover rounded-md"
-        />
-        <venue-map
-          v-else-if="venueHasMapCoords"
-          :venue="venue"
-          :nearby-venues="nearbyPubs"
-          compact
-          :show-directions="false"
-        />
-      </div>
-      <div class="md:w-1/2 venue-desc">
-        <h2 class="text-3xl">Address</h2>
-        <p class="text-2xl">{{ venueAddressLine || '—' }}</p>
-        <p v-if="venuePhone" class="text-xl mt-3">
-          <a :href="`tel:${venuePhone.replace(/\s/g, '')}`" class="text-amber-600 hover:underline">{{ venuePhone }}</a>
-        </p>
-        <p v-if="venueWebsiteHref" class="text-xl mt-2">
-          <a :href="venueWebsiteHref" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline break-all">
-            {{ venueWebsiteLabel }}
-          </a>
-        </p>
-        <h2 class="text-3xl mt-4">City / Region</h2>
-        <p class="text-2xl">
-          {{ venueTownLabel || '—' }} / {{ venueRegion }}<template v-if="venuePostcode"> / {{ venuePostcode }}</template>
-        </p>
+  <div v-else>
+    <div class="w-full">
+      <img
+        v-if="venuePhotoUrl"
+        :src="venuePhotoUrl"
+        :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
+        class="w-full h-auto max-h-[480px] object-cover"
+      />
+      <venue-map
+        v-else-if="venueHasMapCoords"
+        :venue="venue"
+        :nearby-venues="nearbyPubs"
+        compact
+        :show-directions="false"
+        class="w-full"
+      />
+      <div v-else class="w-full h-48 bg-gray-300 dark:bg-gray-700" />
+
+      <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <div class="container mx-auto px-4 py-5">
+          <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+            {{ venue.venuename }}
+            <span v-if="venueTownLabel" class="block md:inline text-xl md:text-2xl font-normal text-gray-600 dark:text-gray-400 md:ml-2">
+              — {{ venueTownLabel }}<template v-if="venueCountyLabel">, {{ venueCountyLabel }}</template>
+            </span>
+          </h1>
+        </div>
       </div>
     </div>
 
-    <section v-if="venueDescription" class="my-8">
-      <h2 class="text-3xl font-bold">About</h2>
-      <p class="text-xl text-gray-700 dark:text-gray-300 mt-3 leading-relaxed">{{ venueDescription }}</p>
-    </section>
+    <div class="container mx-auto p-4 py-8">
+      <Breadcrumbs :items="breadcrumbItems" />
 
-    <section v-if="venueFeatureItems.length" class="my-8">
-      <h2 class="text-3xl font-bold">Features</h2>
-      <ul class="list-disc list-inside text-xl mt-3 space-y-2 text-gray-700 dark:text-gray-300">
-        <li v-for="(item, index) in venueFeatureItems" :key="index">{{ item }}</li>
-      </ul>
-    </section>
+      <nav
+        v-if="hasVenueEvents"
+        class="flex border-b border-gray-200 dark:border-gray-700 mt-6 mb-8"
+        aria-label="Venue sections"
+      >
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          type="button"
+          class="px-6 py-3 text-lg font-semibold border-b-2 -mb-px transition-colors"
+          :class="
+            activeTab === tab.id
+              ? 'border-primary-700 text-primary-700 dark:border-primary-400 dark:text-primary-400'
+              : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+          "
+          :aria-selected="activeTab === tab.id"
+          role="tab"
+          @click="activeTab = tab.id"
+        >
+          {{ tab.label }}
+          <span v-if="tab.count != null" class="ml-1 text-sm font-normal opacity-80">({{ tab.count }})</span>
+        </button>
+      </nav>
 
-    <venue-map
-      v-if="venuePhotoUrl && venueHasMapCoords"
-      :venue="venue"
-      :nearby-venues="nearbyPubs"
-    />
+      <div v-show="!hasVenueEvents || activeTab === 'venue'" role="tabpanel" aria-label="Venue details">
+        <div class="flex flex-col md:flex-row gap-6">
+          <div class="md:w-1/2 venue-desc">
+            <h2 class="text-3xl font-bold">Address</h2>
+            <p class="text-2xl">{{ venueAddressLine || '—' }}</p>
+            <p v-if="venuePhone" class="text-xl mt-3">
+              <a :href="`tel:${venuePhone.replace(/\s/g, '')}`" class="text-amber-600 hover:underline">{{ venuePhone }}</a>
+            </p>
+            <p v-if="venueWebsiteHref" class="text-xl mt-2">
+              <a :href="venueWebsiteHref" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline break-all">
+                {{ venueWebsiteLabel }}
+              </a>
+            </p>
+            <h2 class="text-3xl mt-6 font-bold">City / Region</h2>
+            <p class="text-2xl">
+              {{ venueTownLabel || '—' }} / {{ venueRegion }}<template v-if="venuePostcode"> / {{ venuePostcode }}</template>
+            </p>
+          </div>
+          <div v-if="venuePhotoUrl && venueHasMapCoords" class="w-full md:w-1/2">
+            <venue-map :venue="venue" :nearby-venues="nearbyPubs" compact :show-directions="false" />
+          </div>
+        </div>
 
-    <section v-if="venueHasMapCoords" class="my-10">
-      <h2 class="text-4xl font-bold mb-2">Other pubs close by</h2>
-      <p class="text-lg text-gray-600 dark:text-gray-400 mb-6">
-        Venues within {{ nearbyRadiusMiles }} mile{{ nearbyRadiusMiles === 1 ? '' : 's' }} of this pub.
-      </p>
-      <p v-if="nearbyPending" class="text-lg text-gray-600">Loading nearby venues…</p>
-      <p v-else-if="!nearbyPubs.length" class="text-lg text-gray-600">
-        No other venues found within {{ nearbyRadiusMiles }} mile{{ nearbyRadiusMiles === 1 ? '' : 's' }}.
-      </p>
-      <ul v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <li v-for="near in nearbyPubs" :key="near.id">
-          <VenueHubCard :venue="near">
-            <template #footer>
-              <p class="text-sm text-gray-600 dark:text-gray-400 text-center">
-                {{ formatDistanceMiles(near.distanceMiles) }} away
-              </p>
-            </template>
-          </VenueHubCard>
-        </li>
-      </ul>
-    </section>
+        <section v-if="venueDescription" class="my-8">
+          <h2 class="text-3xl font-bold">About</h2>
+          <p class="text-xl text-gray-700 dark:text-gray-300 mt-3 leading-relaxed">{{ venueDescription }}</p>
+        </section>
 
-    <h2 class="text-4xl font-bold my-8">Events</h2>
-    <ul v-if="venueEvents.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-      <li v-for="(event, index) in venueEvents" :key="event.id">
-        <event-listing :event="event" :index="index" />
-      </li>
-    </ul>
-    <p v-else class="text-lg text-gray-600">No upcoming events at this venue.</p>
+        <section v-if="venueFeatureItems.length" class="my-8">
+          <h2 class="text-3xl font-bold">Features</h2>
+          <ul class="list-disc list-inside text-xl mt-3 space-y-2 text-gray-700 dark:text-gray-300">
+            <li v-for="(item, index) in venueFeatureItems" :key="index">{{ item }}</li>
+          </ul>
+        </section>
+
+        <venue-map
+          v-if="venuePhotoUrl && venueHasMapCoords"
+          :venue="venue"
+          :nearby-venues="nearbyPubs"
+          class="mt-8"
+        />
+
+        <section v-if="venueHasMapCoords" class="my-10">
+          <h2 class="text-4xl font-bold mb-2">Other pubs close by</h2>
+          <p class="text-lg text-gray-600 dark:text-gray-400 mb-6">
+            Venues within {{ nearbyRadiusMiles }} mile{{ nearbyRadiusMiles === 1 ? '' : 's' }} of this pub.
+          </p>
+          <p v-if="nearbyPending" class="text-lg text-gray-600">Loading nearby venues…</p>
+          <p v-else-if="!nearbyPubs.length" class="text-lg text-gray-600">
+            No other venues found within {{ nearbyRadiusMiles }} mile{{ nearbyRadiusMiles === 1 ? '' : 's' }}.
+          </p>
+          <template v-else>
+            <TransitionGroup
+              tag="ul"
+              name="nearby-reveal"
+              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            >
+              <li
+                v-for="(near, index) in visibleNearbyPubs"
+                :key="near.id"
+                :style="nearbyItemStyle(index)"
+              >
+                <VenueHubCard :venue="near">
+                  <template #footer>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 text-center">
+                      {{ formatDistanceMiles(near.distanceMiles) }} away
+                    </p>
+                  </template>
+                </VenueHubCard>
+              </li>
+            </TransitionGroup>
+            <p v-if="hiddenNearbyCount > 0 && !showAllNearby" class="mt-6 text-center">
+              <button
+                type="button"
+                class="text-lg font-semibold text-amber-600 hover:text-amber-700 hover:underline dark:text-amber-500"
+                @click="showAllNearby = true"
+              >
+                Show more within a mile
+              </button>
+            </p>
+          </template>
+        </section>
+
+        <section v-if="!hasVenueEvents" class="my-10">
+          <h2 class="text-3xl font-bold mb-4">Events</h2>
+          <p class="text-lg text-gray-600">No upcoming events at this venue.</p>
+        </section>
+      </div>
+
+      <div v-show="hasVenueEvents && activeTab === 'events'" role="tabpanel" aria-label="Venue events">
+        <h2 class="text-3xl font-bold mb-6">Events at {{ venue.venuename }}</h2>
+        <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <li v-for="(event, index) in venueEvents" :key="event.id">
+            <event-listing :event="event" :index="index" />
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { useEventStore } from '@/store/event.js'
+import { buildVenueBreadcrumbItems } from '@/composables/useVenueBreadcrumbs'
 import {
   cleanDbString,
   formatDistanceMiles,
@@ -107,6 +174,8 @@ import {
   venueHasCoords,
 } from '@/utils/format-venue'
 
+const NEARBY_INITIAL = 9
+
 const route = useRoute()
 const config = useRuntimeConfig()
 const eventStore = useEventStore()
@@ -114,6 +183,9 @@ const requestFetch = useRequestFetch()
 
 const venueId = getRouteParam(route.params.id)
 const slugFromRoute = getRouteParam(route.params.slug)
+
+const activeTab = ref('venue')
+const showAllNearby = ref(false)
 
 const { data: venue, error: venueError } = await useAsyncData(
   `venue-${venueId}`,
@@ -166,8 +238,28 @@ const { data: nearbyData, pending: nearbyPending } = await useAsyncData(
 )
 
 const venueEvents = computed(() => events.value ?? [])
+const hasVenueEvents = computed(() => venueEvents.value.length > 0)
 const nearbyPubs = computed(() => nearbyData.value?.items ?? [])
 const nearbyRadiusMiles = computed(() => nearbyData.value?.radiusMiles ?? 1)
+
+const visibleNearbyPubs = computed(() => {
+  if (showAllNearby.value) return nearbyPubs.value
+  return nearbyPubs.value.slice(0, NEARBY_INITIAL)
+})
+
+const hiddenNearbyCount = computed(() =>
+  Math.max(0, nearbyPubs.value.length - NEARBY_INITIAL),
+)
+
+const tabs = computed(() => [
+  { id: 'venue', label: 'Venue' },
+  { id: 'events', label: 'Events', count: venueEvents.value.length || null },
+])
+
+function nearbyItemStyle(index) {
+  if (!showAllNearby.value || index < NEARBY_INITIAL) return undefined
+  return { transitionDelay: `${(index - NEARBY_INITIAL) * 60}ms` }
+}
 
 const venueTownLabel = computed(() => formatPlaceName(venue.value?.town))
 const venueCountyLabel = computed(() => formatPlaceName(venue.value?.county))
@@ -208,26 +300,13 @@ const venueDescription = computed(() => cleanDbString(venue.value?.description))
 
 const venueFeatureItems = computed(() => parseVenueFeatures(venue.value?.features))
 
-const breadcrumbItems = computed(() => {
-  const v = venue.value
-  if (!v) return []
-  const items = [{ label: 'Home', to: '/' }]
-  const cr = countyRef.value
-  if (cr?.href) {
-    items.push({ label: 'Counties', to: '/counties' })
-    items.push({ label: cr.name || venueCountyLabel.value, to: cr.href })
-  } else if (cleanDbString(v.county)) {
-    items.push({ label: venueCountyLabel.value })
-  }
-  const tr = townRef.value
-  if (tr?.href) {
-    items.push({ label: tr.name || venueTownLabel.value, to: tr.href })
-  } else if (cleanDbString(v.town)) {
-    items.push({ label: venueTownLabel.value })
-  }
-  items.push({ label: v.venuename })
-  return items
-})
+const breadcrumbItems = computed(() =>
+  buildVenueBreadcrumbItems({
+    venue: venue.value,
+    townRef: townRef.value,
+    countyRef: countyRef.value,
+  }),
+)
 
 const v = venue.value
 const canonicalPath = venuePath(v.id, v.slug)
@@ -258,5 +337,16 @@ onMounted(async () => {
 <style scoped>
 .venue-desc p {
   font-weight: 100;
+}
+
+.nearby-reveal-enter-active {
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.nearby-reveal-enter-from {
+  opacity: 0;
+  transform: translateY(16px);
 }
 </style>
