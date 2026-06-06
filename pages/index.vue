@@ -38,7 +38,6 @@
         title="Top 20 seaside towns for pubs"
         description="Coastal towns ranked by pub listings — matched by town name and venue locations near the coast."
         :items="stats.topSeasideTowns"
-        photo-cards
       />
 
       <section id="premier-league-pubs" class="mb-12">

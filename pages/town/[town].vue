@@ -1,41 +1,12 @@
 <template>
   <div>
-    <CountyHeroHeader
-      v-if="townData?.imageUrl"
-      :title="townName"
-      :image-url="townData.imageUrl"
-      :image-attribution="townData.imageAttribution"
-    />
-    <div v-else-if="!headerImageMissing" class="relative">
-      <img
-        :src="headerImageSrc"
-        :alt="`Events in ${townName}`"
-        :title="townName"
-        class="w-full h-auto object-cover min-h-[200px] max-h-[280px]"
-        @error="headerImageMissing = true"
-      />
-      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <h1 class="text-6xl md:text-8xl font-light text-white drop-shadow-md px-4 text-center">
-          {{ townName }}
-        </h1>
-      </div>
-    </div>
-    <div class="relative">
-      <PlaceHeaderMap :place-name="townName" :venues="mapVenues" />
-      <div
-        v-if="headerImageMissing"
-        class="absolute inset-0 flex items-center justify-center pointer-events-none"
-      >
-        <h1 class="text-6xl md:text-8xl font-light text-white drop-shadow-md px-4 text-center">
-          {{ townName }}
-        </h1>
-      </div>
-    </div>
+    <PlaceHeaderMap :place-name="townName" :venues="mapVenues" />
     <div class="container mx-auto p-4 my-8">
       <Breadcrumbs :items="breadcrumbItems" />
+      <h1 class="text-4xl font-bold mt-6 mb-2">{{ townName }}</h1>
 
       <nav
-        class="flex border-b border-gray-200 dark:border-gray-700 mt-8 mb-8"
+        class="flex border-b border-gray-200 dark:border-gray-700 mb-8"
         aria-label="Town sections"
       >
         <button
@@ -108,8 +79,6 @@ import { sortEventsByStartAsc } from '@/utils/sort-events'
 const route = useRoute()
 const requestFetch = useRequestFetch()
 const townSlug = String(route.params.town)
-const headerImageMissing = ref(false)
-const headerImageSrc = computed(() => `/assets/images/headers/${townSlug}.jpg`)
 
 const { data: townData, error } = await useAsyncData(`town-${townSlug}`, () =>
   requestFetch(`/api/towns/${townSlug}`),
