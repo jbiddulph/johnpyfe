@@ -95,13 +95,13 @@
             <i><NuxtLink to="/" title="UK Pubs">ukpubs.co.uk</NuxtLink></i> is an events listings website for pubs and venues  around the UK
           </p>
           <p>More events at the following venues</p>
-          <div v-if="eventsFetched" class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+          <div v-if="topVenues.length || topTowns.length" class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
             <!-- Venue Section -->
             <div class="border-b-2 sm:border-b-0">
               <h3 class="text-2xl mb-4">Top 10 venues with events</h3>
               <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4 sm:mb-0">
-                <li v-for="event in reversedVenues" :key="event.venueId">
-                  <NuxtLink :to="`/venues/${event.venueId}/${event.slug}`" :title="`${event.venueName} in ${event.town}`">{{ event.venueName }} ({{ event.count }})</NuxtLink>
+                <li v-for="venue in topVenues" :key="venue.venueId">
+                  <NuxtLink :to="venue.href" :title="`${venue.venueName} in ${venue.town}`">{{ venue.venueName }} ({{ venue.count }})</NuxtLink>
                 </li>
               </ul>
             </div>
@@ -110,8 +110,8 @@
             <div class="border-b-2 sm:border-b-0">
               <h3 class="text-2xl mb-4">Top 10 towns with events</h3>
               <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4 sm:mb-0">
-                <li v-for="town in townsWithSlug" :key="town.town">
-                  <NuxtLink :to="`/town/${town.townslug}`" :title="`Events in ${town.town}`">{{ town.town }} ({{ town.eventCount }})</NuxtLink>
+                <li v-for="town in topTowns" :key="town.slug">
+                  <NuxtLink :to="town.href" :title="`Events in ${town.town}`">{{ town.town }} ({{ town.eventCount }})</NuxtLink>
                 </li>
               </ul>
             </div>
@@ -127,8 +127,16 @@
 
 <script lang="ts" setup>
 import { useAuthStore } from "~/store/auth.js";
-import { useEventStore } from '~/store/event.js';
 const siteUrl = siteBaseUrl()
+const requestFetch = useRequestFetch()
+
+const { data: eventsTopTen } = await useAsyncData(
+  'events-top-ten',
+  () => requestFetch('/api/events/top-ten'),
+)
+
+const topVenues = computed(() => eventsTopTen.value?.limitedVenues ?? [])
+const topTowns = computed(() => eventsTopTen.value?.limitedTowns ?? [])
 
 useSeoMeta({
   title: 'Pubs and venues listings in the UK',
@@ -148,49 +156,26 @@ useHead({
   ],
   link: [{ rel: 'canonical', href: siteUrl }],
 })
-const eventStore = useEventStore();
 const authStore = useAuthStore();
 const config = useRuntimeConfig();
 const { user, isAdmin, isLoggedIn, initializeAuth } = useAuth();
 const loggedIn = ref(false);
-
-// Initialize global authentication state
-onMounted(async () => {
-  await initializeAuth();
-  loggedIn.value = isLoggedIn.value;
-});
-
-// Watch for login state changes
-watch(isLoggedIn, (newValue) => {
-  loggedIn.value = newValue;
-});
 const showMenu = ref(false);
-const eventsFetched = ref(false);
 
-// isAdmin is now provided by the useAuth composable
-const reversedVenues = computed(() => [...eventStore.venues].reverse());
-const townsWithSlug = computed(() => {
-  return eventStore.towns.map(town => {
-    const townslug = town.town.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and');
-    return { ...town, townslug };
-  }).reverse();
-});
 const checkUserAuthentication = async () => {
   if (localStorage.getItem("userToken")) {
-    // If user token exists, fetch user details
     await authStore.fetchUser();
   }
 }
 
 onMounted(async () => {
-  console.log('onMounted called');
-  checkUserAuthentication(); // Check user authentication on page load
-  if (eventStore.events.length === 0 && !eventsFetched.value) {
-    console.log('Fetching events');
-    eventsFetched.value = true; // Set the flag to true to prevent recursive updates
-    await eventStore.fetchAllEventsTopten();
-    console.log('Events fetched');
-  }
+  await initializeAuth();
+  loggedIn.value = isLoggedIn.value;
+  checkUserAuthentication();
+});
+
+watch(isLoggedIn, (newValue) => {
+  loggedIn.value = newValue;
 });
 
 const logout = async () => {

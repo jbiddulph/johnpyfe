@@ -4,6 +4,7 @@ import {
   findCountyBySlug,
   resolveTown,
 } from '../../utils/place-hub'
+import { isPlausibleTownName } from '../../../utils/format-venue'
 
 const eventInclude = {
   listing: true,
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
   const towns = await Promise.all(
     townRows
       .filter((row) => Boolean(row.town?.trim()) && row.town.toUpperCase() !== 'NULL')
+      .filter((row) => isPlausibleTownName(row.town))
       .map(async (row) => {
         const resolved = await resolveTown(row.town)
         return {
@@ -58,7 +60,7 @@ export default defineEventHandler(async (event) => {
       listing: await buildCountyVenueWhereWithLive({ slug, requireSlug: false }),
     },
     include: eventInclude,
-    orderBy: { event_start: 'asc' },
+    orderBy: [{ event_start: 'asc' }, { id: 'asc' }],
     take: 100,
   })
 

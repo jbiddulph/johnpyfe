@@ -36,6 +36,8 @@
 </template>
 
 <script setup>
+import { sortEventsByStartAsc } from '@/utils/sort-events'
+
 const route = useRoute()
 const requestFetch = useRequestFetch()
 const countySlug = String(route.params.county)
@@ -51,7 +53,7 @@ if (error.value || !countyData.value) {
 const resolvedCountyName = countyData.value.countyName ?? ''
 const countyDisplayName = computed(() => countyData.value?.displayName ?? countySlug)
 const countyTowns = computed(() => countyData.value?.towns ?? [])
-const countyEvents = computed(() => countyData.value?.events ?? [])
+const countyEvents = computed(() => sortEventsByStartAsc(countyData.value?.events ?? []))
 const canonicalPath = countyPath(countySlug)
 
 const { data: countyVenuesData } = await useAsyncData(

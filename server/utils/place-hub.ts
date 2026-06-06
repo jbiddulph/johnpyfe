@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from './prisma'
-import { cleanDbString, formatPlaceName, slugifyPlace } from '../../utils/format-venue'
+import { cleanDbString, formatPlaceName, isPlausibleTownName, slugifyPlace } from '../../utils/format-venue'
 import {
   canonicalCountySlug,
   canonicalUkCountyName,
@@ -18,7 +18,7 @@ export type ResolvedPlace = {
 
 export async function resolveTown(townName: string): Promise<ResolvedPlace | null> {
   const name = cleanDbString(townName)
-  if (!name) return null
+  if (!name || !isPlausibleTownName(name)) return null
 
   const city = await prisma.city.findFirst({
     where: { name: { equals: name, mode: 'insensitive' } },
@@ -181,6 +181,7 @@ export async function findTownBySlug(slug: string): Promise<{
   const matches = towns
     .map((r) => cleanDbString(r.town))
     .filter((name): name is string => Boolean(name))
+    .filter((name) => isPlausibleTownName(name))
     .filter((name) => slugifyPlace(name) === slug)
 
   if (!matches.length) return null
@@ -242,7 +243,7 @@ export async function listTownSlugs(): Promise<Array<{ slug: string; name: strin
 
   for (const row of venueTowns) {
     const name = cleanDbString(row.town)
-    if (!name) continue
+    if (!name || !isPlausibleTownName(name)) continue
     const slug = slugifyPlace(name)
     if (!slug || bySlug.has(slug)) continue
     bySlug.set(slug, name)

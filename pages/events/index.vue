@@ -7,14 +7,16 @@
     <div class="pb-12">
       <!-- Pagination controls -->
       <div class="flex justify-center mb-4 mt-2">
-        <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
-        <UButton label="Previous" @click="prevPage(eventStore.currentPage.value - 1)" />
+        <UButton label="Previous" :disabled="eventStore.currentPage <= 1" @click="prevPage" />
         <UButton :label="String(eventStore.currentPage)" class="mx-4" variant="soft" />
-        <UButton label="Next" @click="nextPage(eventStore.currentPage + 1)" />
-        <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
+        <UButton
+          label="Next"
+          :disabled="eventStore.currentPage >= eventStore.totalPages"
+          @click="nextPage"
+        />
       </div>
       <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <li v-for="(event, index) in eventStore.events" :key="index">
+          <li v-for="(event, index) in eventStore.events" :key="event.id">
             <!-- Admin controls -->
             <div class="flex justify-center mb-2">
               <div v-if="user && isAdmin">
@@ -105,16 +107,14 @@ const imageUrl = (photoUrl: string) => {
   return photoUrl.replace('/media/', '');
 };
 const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    eventStore.fetchAllEvents();
+  if (eventStore.currentPage > 1) {
+    eventStore.fetchAllEvents(eventStore.currentPage - 1)
   }
 }
 const nextPage = () => {
-  // if (currentPage.value * itemsPerPage.value < totalItems.value) {
-    currentPage.value++;
-    eventStore.fetchAllEvents();
-  // }
+  if (eventStore.currentPage < eventStore.totalPages) {
+    eventStore.fetchAllEvents(eventStore.currentPage + 1)
+  }
 }
 
 const openDetailsModal = (event: { id: number }) => {

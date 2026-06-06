@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
         events: {
           where: { event_start: { gt: now } },
           include: eventInclude,
-          orderBy: { event_start: 'asc' },
+          orderBy: [{ event_start: 'asc' }, { id: 'asc' }],
           take: 100,
         },
       },
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
         },
       },
       include: eventInclude,
-      orderBy: { event_start: 'asc' },
+      orderBy: [{ event_start: 'asc' }, { id: 'asc' }],
       take: 100,
     })
   }

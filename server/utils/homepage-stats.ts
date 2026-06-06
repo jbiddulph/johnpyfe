@@ -15,6 +15,7 @@ import {
 } from './uk-counties'
 import { nearestSeasideByCoords, normalizeTownKey, seasideTownByName } from './seaside-towns'
 import { countVenuesNearPoint, NEARBY_VENUE_RADIUS_MILES } from './venue-nearby'
+import { getEventsTopTen } from './events-top-ten'
 
 export type RankedPlaceRow = {
   slug: string
@@ -206,18 +207,42 @@ export async function getPremierLeagueStadiumPubs(prisma: PrismaClient): Promise
   return rows.filter((r): r is StadiumPubRow => r != null).sort((a, b) => b.pubCount - a.pubCount)
 }
 
+export type RankedEventPlaceRow = RankedPlaceRow & {
+  meta?: string
+}
+
 export async function getHomepageStats(prisma: PrismaClient) {
-  const [topTowns, topCounties, topSeasideTowns, stadiumPubs] = await Promise.all([
+  const [topTowns, topCounties, topSeasideTowns, stadiumPubs, eventsTopTen] = await Promise.all([
     getTopTowns(prisma, 10),
     getTopCounties(prisma, 10),
     getTopSeasideTowns(prisma, 20),
     getPremierLeagueStadiumPubs(prisma),
+    getEventsTopTen(prisma, 10),
   ])
+
+  const topVenuesWithEvents: RankedEventPlaceRow[] = eventsTopTen.limitedVenues.map((venue) => ({
+    slug: venue.slug,
+    name: venue.venueName,
+    displayName: venue.venueName,
+    meta: venue.town,
+    venueCount: venue.count,
+    href: venue.href,
+  }))
+
+  const topTownsWithEvents: RankedPlaceRow[] = eventsTopTen.limitedTowns.map((town) => ({
+    slug: town.slug,
+    name: town.town,
+    displayName: town.town,
+    venueCount: town.eventCount,
+    href: town.href,
+  }))
 
   return {
     topTowns,
     topCounties,
     topSeasideTowns,
+    topVenuesWithEvents,
+    topTownsWithEvents,
     stadiumPubs,
     stadiumRadiusMiles: NEARBY_VENUE_RADIUS_MILES,
   }

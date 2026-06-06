@@ -32,6 +32,21 @@
         />
       </div>
 
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
+        <HomeRankedList
+          title="Top 10 venues with events"
+          description="Venues with the most upcoming gigs, live music, comedy and other listings."
+          :items="stats.topVenuesWithEvents"
+          :count-label="{ singular: 'event', plural: 'events' }"
+        />
+        <HomeRankedList
+          title="Top 10 towns with events"
+          description="Towns ranked by the number of upcoming events at local pubs and venues."
+          :items="stats.topTownsWithEvents"
+          :count-label="{ singular: 'event', plural: 'events' }"
+        />
+      </div>
+
       <HomeRankedList
         class="mb-12"
         title="Top 20 seaside towns for pubs"

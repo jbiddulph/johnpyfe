@@ -97,6 +97,8 @@ import { useEventStore } from '@/store/event.js'
 
 const VENUE_PAGE_SIZE = 104
 
+import { sortEventsByStartAsc } from '@/utils/sort-events'
+
 const route = useRoute()
 const requestFetch = useRequestFetch()
 const townSlug = String(route.params.town)
@@ -113,7 +115,7 @@ if (error.value || !townData.value) {
 
 const resolvedTownName = townData.value.townName ?? townData.value.cityName
 const townName = computed(() => townData.value?.cityName ?? String(townSlug))
-const townEvents = computed(() => townData.value?.events ?? [])
+const townEvents = computed(() => sortEventsByStartAsc(townData.value?.events ?? []))
 const countyHub = computed(() => townData.value?.county ?? null)
 const canonicalPath = townPath(townSlug)
 

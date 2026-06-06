@@ -8,6 +8,7 @@ Requires:
 Environment (.env):
   DIRECT_URL or DATABASE_URL
   ENRICH_EVENTS_USER_ID       — optional; defaults to ADMIN_EMAIL or 'venue-import'
+  ENRICH_EVENTS_TOWN          — optional default for --town (e.g. Brighton)
 
 Skiddle (town-wide UK events — default source):
   SKIDDLE_API_KEY             — https://www.skiddle.com/api/join.php
@@ -23,6 +24,8 @@ events you (or your org) publish on Eventbrite.
 
 Examples:
   python scripts/enrich_venue_events.py --town Brighton --limit 50
+  python scripts/enrich_venue_events.py --source skiddle --limit 300 -y   # if ENRICH_EVENTS_TOWN=Brighton in .env
+  python scripts/enrich_venue_events.py --source skiddle --all-towns --limit 50 -y
   python scripts/enrich_venue_events.py --source eventbrite --list-orgs
   python scripts/enrich_venue_events.py --source eventbrite --town Brighton --limit 100 -y
   python scripts/enrich_venue_events.py --source skiddle --town Brighton --limit 200 -y
@@ -112,7 +115,12 @@ def parse_args() -> argparse.Namespace:
         "--organization-id",
         help="Eventbrite organization id (default: all orgs on your account)",
     )
-    p.add_argument("--town", help="Match events to live venues in this town (case-insensitive)")
+    p.add_argument("--town", help="Match events to live venues in this town (default: ENRICH_EVENTS_TOWN from .env)")
+    p.add_argument(
+        "--all-towns",
+        action="store_true",
+        help="Run for each UK City row that has live venues (--limit applies per city)",
+    )
     p.add_argument("--county", help="Optional county filter for venues")
     p.add_argument("--id", type=int, help="Only match events to this venue id")
     p.add_argument(
@@ -200,6 +208,138 @@ def import_user_id() -> str:
     )
 
 
+def default_town() -> str | None:
+    value = os.getenv("ENRICH_EVENTS_TOWN") or os.getenv("ENRICH_TOWN")
+    if value and value.strip():
+        return value.strip()
+    return None
+
+
+def resolve_town_arg(args: argparse.Namespace) -> str | None:
+    if args.town and str(args.town).strip():
+        return str(args.town).strip()
+    return default_town()
+
+
+def is_plausible_town_name(name: object) -> bool:
+    s = str(name or "").strip()
+    if not s or s.upper() == "NULL":
+        return False
+    if s[0].isdigit():
+        return False
+    if len(s) > 40:
+        return False
+    if "," in s or "." in s:
+        return False
+    lower = s.lower()
+    if re.search(
+        r"\b(street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|way|place|pl|hill|terrace|crescent|close)\b",
+        lower,
+    ):
+        return False
+    words = s.split()
+    if not words or len(words) > 4:
+        return False
+    return True
+
+
+def slugify_place(value: object) -> str:
+    s = str(value or "").strip().lower()
+    if not s:
+        return ""
+    s = s.replace("&", "and")
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    return s.strip("-")
+
+
+def venue_town_matches_city(venue_town: str, city_name: str, city_slug: str) -> bool:
+    town = str(venue_town or "").strip()
+    if not is_plausible_town_name(town):
+        return False
+
+    town_lower = town.lower()
+    city_lower = city_name.lower()
+    if town_lower == city_lower:
+        return True
+
+    town_slug = slugify_place(town)
+    city_slug = slugify_place(city_slug) or slugify_place(city_name)
+    if town_slug and city_slug and town_slug == city_slug:
+        return True
+    if town_slug and city_slug and (
+        city_slug.startswith(f"{town_slug}-") or city_slug.startswith(f"{town_slug}and")
+    ):
+        return True
+
+    city_parts = re.split(r"\s*(?:&|and)\s*", city_lower, flags=re.I)
+    city_parts = [part.strip() for part in city_parts if part.strip()]
+    if any(part == town_lower for part in city_parts):
+        return True
+    if city_parts and city_parts[0] == town_lower:
+        return True
+    return False
+
+
+def list_venue_town_counts(conn, county: str | None = None) -> list[tuple[str, int]]:
+    clauses = [
+        "is_live = '1'",
+        "slug <> ''",
+        "town IS NOT NULL",
+        "TRIM(town) <> ''",
+        "UPPER(TRIM(town)) <> 'NULL'",
+    ]
+    params: list[object] = []
+    if county:
+        clauses.append("county ILIKE %s")
+        params.append(county)
+
+    sql = f"""
+        SELECT town, COUNT(*) AS venue_count
+        FROM "Venue"
+        WHERE {" AND ".join(clauses)}
+        GROUP BY town
+    """
+    with conn.cursor() as cur:
+        cur.execute(sql, params)
+        rows = [
+            (str(row[0]).strip(), int(row[1]))
+            for row in cur.fetchall()
+            if row and row[0] and is_plausible_town_name(row[0])
+        ]
+    return rows
+
+
+def list_uk_cities_with_venues(conn, county: str | None = None) -> list[dict]:
+    """UK City rows that have at least one live venue with coordinates."""
+    venue_towns = list_venue_town_counts(conn, county)
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute('SELECT id, name, slug FROM "City" ORDER BY name ASC')
+        cities = list(cur.fetchall())
+
+    results: list[dict] = []
+    for city in cities:
+        matches = [
+            (town, count)
+            for town, count in venue_towns
+            if venue_town_matches_city(town, city["name"], city["slug"])
+        ]
+        if not matches:
+            continue
+
+        primary_town = max(matches, key=lambda item: item[1])[0]
+        venue_count = sum(count for _, count in matches)
+        results.append(
+            {
+                "city_id": int(city["id"]),
+                "city_name": str(city["name"]),
+                "city_slug": str(city["slug"]),
+                "venue_town": primary_town,
+                "venue_count": venue_count,
+            }
+        )
+    return results
+
+
 def parse_coord(value: object) -> float | None:
     if value is None:
         return None
@@ -246,14 +386,18 @@ def town_centroid(venues: list[dict]) -> tuple[float, float] | None:
     return lat, lng
 
 
-def fetch_venues(conn, args: argparse.Namespace) -> list[dict]:
+def fetch_venues(conn, args: argparse.Namespace, *, town_names: list[str] | None = None) -> list[dict]:
     clauses = ["is_live = '1'"]
     params: list[object] = []
 
     if args.id:
         clauses.append("id = %s")
         params.append(args.id)
-    if args.town:
+    elif town_names:
+        placeholders = " OR ".join(["town ILIKE %s"] * len(town_names))
+        clauses.append(f"({placeholders})")
+        params.extend(town_names)
+    elif args.town:
         clauses.append("town ILIKE %s")
         params.append(args.town)
     if args.county:
@@ -271,6 +415,23 @@ def fetch_venues(conn, args: argparse.Namespace) -> list[dict]:
         rows = list(cur.fetchall())
 
     return [r for r in rows if parse_coord(r.get("latitude")) is not None]
+
+
+def fetch_venues_for_city(
+    conn,
+    args: argparse.Namespace,
+    *,
+    city_name: str,
+    city_slug: str,
+) -> list[dict]:
+    town_names = [
+        town
+        for town, _ in list_venue_town_counts(conn, args.county)
+        if venue_town_matches_city(town, city_name, city_slug)
+    ]
+    if not town_names:
+        return []
+    return fetch_venues(conn, args, town_names=town_names)
 
 
 def resolve_city_id(conn, town: str | None) -> int | None:
@@ -753,6 +914,134 @@ def insert_event(
     return True
 
 
+def run_import(
+    conn,
+    args: argparse.Namespace,
+    *,
+    city_id: int | None = None,
+    city_name: str | None = None,
+    city_slug: str | None = None,
+) -> None:
+    user_id = import_user_id()
+    mode = "APPLY" if args.apply else "DRY RUN"
+
+    if city_id and city_name and city_slug:
+        venues = fetch_venues_for_city(conn, args, city_name=city_name, city_slug=city_slug)
+        town_label = city_name
+        resolved_city_id = city_id
+    else:
+        venues = fetch_venues(conn, args)
+        town_label = args.town or venues[0].get("town") if venues else args.town
+        resolved_city_id = resolve_city_id(conn, town_label)
+
+    if not venues:
+        print("No live venues with coordinates found for that filter.", file=sys.stderr)
+        return
+
+    if resolved_city_id is None:
+        print(
+            f"No matching row in City for town={town_label!r}. "
+            "Add the town to the City table first.",
+            file=sys.stderr,
+        )
+        return
+
+    city_id = resolved_city_id
+
+    if args.source == "skiddle":
+        api_key = skiddle_api_key()
+        centroid = town_centroid(venues)
+        if not centroid:
+            print("Could not compute town centroid.", file=sys.stderr)
+            return
+        lat, lng = centroid
+        print(f"{mode} | town={town_label!r} | source=skiddle | venues={len(venues)} | search @ {lat:.4f},{lng:.4f}")
+        candidates = fetch_skiddle_events(
+            api_key,
+            lat,
+            lng,
+            args.radius,
+            max_events=max(args.limit * 5, 100),
+            delay=args.delay,
+        )
+    else:
+        token = eventbrite_token()
+        if args.organization_id:
+            org_ids = [str(args.organization_id)]
+        elif os.getenv("EVENTBRITE_ORGANIZATION_ID"):
+            org_ids = [os.getenv("EVENTBRITE_ORGANIZATION_ID", "")]
+        else:
+            org_ids = [str(o.get("id")) for o in list_eventbrite_orgs(token) if o.get("id")]
+        if not org_ids:
+            print("No Eventbrite organization id found. Run --list-orgs or set EVENTBRITE_ORGANIZATION_ID.", file=sys.stderr)
+            return
+        print(f"{mode} | town={town_label!r} | source=eventbrite | venues={len(venues)} | orgs={', '.join(org_ids)}")
+        candidates = fetch_eventbrite_imports(token, org_ids, args.delay)
+
+    print(f"  cityId={city_id} user_id={user_id!r} max_new_events={args.limit}")
+    print(f"  {len(candidates)} upcoming event(s) to evaluate")
+
+    imported = 0
+    skipped = 0
+    unmatched = 0
+    errors = 0
+    now = datetime.now(timezone.utc)
+
+    for event in candidates:
+        if imported >= args.limit:
+            break
+        if event.start < now:
+            skipped += 1
+            continue
+
+        venue = match_imported_to_venue(event, venues, args.venue_radius)
+        if not venue:
+            unmatched += 1
+            continue
+
+        listing_id = int(venue["id"])
+        if event_exists(conn, listing_id, event.title, event.start):
+            skipped += 1
+            continue
+
+        print(f"\n+ {event.title}")
+        print(f"  When: {event.start.isoformat()} | Venue: {venue['venuename']} (id {listing_id})")
+        print(f"  {event.source} venue: {event.venue_name or '?'} | Category id: {event.category_id}")
+
+        try:
+            if insert_event(
+                conn,
+                title=event.title,
+                description=event.description,
+                cost=event.cost,
+                start=event.start,
+                photo=event.photo,
+                website=event.website,
+                user_id=user_id,
+                listing_id=listing_id,
+                city_id=city_id,
+                category_id=event.category_id,
+                apply=args.apply,
+            ):
+                if args.apply:
+                    conn.commit()
+                    imported += 1
+                    print("  → saved")
+                else:
+                    imported += 1
+                    print("  → dry run (use -y to save)")
+        except Exception as exc:
+            errors += 1
+            conn.rollback()
+            print(f"  ERR: {exc}", file=sys.stderr)
+
+    print(
+        f"\nDone ({town_label}). new={imported}, skipped={skipped}, unmatched={unmatched}, errors={errors}"
+    )
+    if not args.apply and imported:
+        print("Re-run with -y to write events to the database.")
+
+
 def main() -> None:
     args = parse_args()
     if args.dry_run and args.apply:
@@ -771,124 +1060,47 @@ def main() -> None:
         print("\nUse: --source eventbrite --organization-id ID --town Brighton -y")
         return
 
-    if not args.town and not args.id:
-        print("Provide --town Brighton (or --id VENUE_ID).", file=sys.stderr)
+    if args.all_towns and args.id:
+        print("Use either --all-towns or --id, not both.", file=sys.stderr)
         sys.exit(2)
-
-    user_id = import_user_id()
-    mode = "APPLY" if args.apply else "DRY RUN"
 
     conn = psycopg2.connect(db_url())
     conn.autocommit = False
 
     try:
-        venues = fetch_venues(conn, args)
-        if not venues:
-            print("No live venues with coordinates found for that filter.", file=sys.stderr)
-            sys.exit(1)
-
-        city_id = resolve_city_id(conn, args.town or venues[0].get("town"))
-        if city_id is None:
+        if args.all_towns:
+            uk_cities = list_uk_cities_with_venues(conn, args.county)
+            if not uk_cities:
+                print("No UK City rows with live venues found.", file=sys.stderr)
+                sys.exit(1)
             print(
-                f"No matching row in City for town={args.town!r}. "
-                "Add the town to the City table first.",
-                file=sys.stderr,
+                f"Processing {len(uk_cities)} UK cit{'y' if len(uk_cities) == 1 else 'ies'}. "
+                f"Limit {args.limit} new events per city.\n"
             )
-            sys.exit(1)
-
-        if args.source == "skiddle":
-            api_key = skiddle_api_key()
-            centroid = town_centroid(venues)
-            if not centroid:
-                print("Could not compute town centroid.", file=sys.stderr)
-                sys.exit(1)
-            lat, lng = centroid
-            print(f"{mode} | source=skiddle | venues={len(venues)} | search @ {lat:.4f},{lng:.4f}")
-            candidates = fetch_skiddle_events(
-                api_key,
-                lat,
-                lng,
-                args.radius,
-                max_events=max(args.limit * 5, 100),
-                delay=args.delay,
-            )
-        else:
-            token = eventbrite_token()
-            if args.organization_id:
-                org_ids = [str(args.organization_id)]
-            elif os.getenv("EVENTBRITE_ORGANIZATION_ID"):
-                org_ids = [os.getenv("EVENTBRITE_ORGANIZATION_ID", "")]
-            else:
-                org_ids = [str(o.get("id")) for o in list_eventbrite_orgs(token) if o.get("id")]
-            if not org_ids:
-                print("No Eventbrite organization id found. Run --list-orgs or set EVENTBRITE_ORGANIZATION_ID.", file=sys.stderr)
-                sys.exit(1)
-            print(f"{mode} | source=eventbrite | venues={len(venues)} | orgs={', '.join(org_ids)}")
-            candidates = fetch_eventbrite_imports(token, org_ids, args.delay)
-
-        print(f"  cityId={city_id} user_id={user_id!r} max_new_events={args.limit}")
-        print(f"  {len(candidates)} upcoming event(s) to evaluate")
-
-        imported = 0
-        skipped = 0
-        unmatched = 0
-        errors = 0
-        now = datetime.now(timezone.utc)
-
-        for event in candidates:
-            if imported >= args.limit:
-                break
-            if event.start < now:
-                skipped += 1
-                continue
-
-            venue = match_imported_to_venue(event, venues, args.venue_radius)
-            if not venue:
-                unmatched += 1
-                continue
-
-            listing_id = int(venue["id"])
-            if event_exists(conn, listing_id, event.title, event.start):
-                skipped += 1
-                continue
-
-            print(f"\n+ {event.title}")
-            print(f"  When: {event.start.isoformat()} | Venue: {venue['venuename']} (id {listing_id})")
-            print(f"  {event.source} venue: {event.venue_name or '?'} | Category id: {event.category_id}")
-
-            try:
-                if insert_event(
+            for city in uk_cities:
+                print(
+                    f"\n{'=' * 60}\nCity: {city['city_name']} "
+                    f"({city['venue_count']} venues)\n{'=' * 60}"
+                )
+                run_import(
                     conn,
-                    title=event.title,
-                    description=event.description,
-                    cost=event.cost,
-                    start=event.start,
-                    photo=event.photo,
-                    website=event.website,
-                    user_id=user_id,
-                    listing_id=listing_id,
-                    city_id=city_id,
-                    category_id=event.category_id,
-                    apply=args.apply,
-                ):
-                    if args.apply:
-                        conn.commit()
-                        imported += 1
-                        print("  → saved")
-                    else:
-                        imported += 1
-                        print("  → dry run (use -y to save)")
-            except Exception as exc:
-                errors += 1
-                conn.rollback()
-                print(f"  ERR: {exc}", file=sys.stderr)
+                    args,
+                    city_id=city["city_id"],
+                    city_name=city["city_name"],
+                    city_slug=city["city_slug"],
+                )
+            return
 
-        print(
-            f"\nDone. new={imported}, skipped={skipped}, unmatched={unmatched}, errors={errors}"
-        )
-        if not args.apply and imported:
-            print("Re-run with -y to write events to the database.")
+        if not args.id:
+            args.town = resolve_town_arg(args)
+            if not args.town:
+                print(
+                    "Provide --town Brighton, set ENRICH_EVENTS_TOWN in .env, or use --all-towns.",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
 
+        run_import(conn, args)
     finally:
         conn.close()
 

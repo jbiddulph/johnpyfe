@@ -38,11 +38,11 @@ export function formatPhone(value: unknown): string | null {
   return cleanDbString(value)
 }
 
-/** Reject address-like junk stored in the town column. */
+/** Reject address-like junk stored in the town column. Town names must not start with a digit. */
 export function isPlausibleTownName(value: unknown): boolean {
   const s = cleanDbString(value)
   if (!s) return false
-  if (/\d/.test(s)) return false
+  if (/^\d/.test(s)) return false
   if (s.length > 40) return false
   if (/[,.]/.test(s)) return false
   const lower = s.toLowerCase()

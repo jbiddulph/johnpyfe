@@ -10,14 +10,6 @@
         :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
         class="w-full h-auto max-h-[480px] object-cover"
       />
-      <venue-map
-        v-else-if="venueHasMapCoords"
-        :venue="venue"
-        :nearby-venues="nearbyPubs"
-        compact
-        :show-directions="false"
-        class="w-full"
-      />
       <div v-else class="w-full h-48 bg-gray-300 dark:bg-gray-700" />
 
       <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
@@ -60,8 +52,7 @@
       </nav>
 
       <div v-show="!hasVenueEvents || activeTab === 'venue'" role="tabpanel" aria-label="Venue details">
-        <div class="flex flex-col md:flex-row gap-6">
-          <div class="md:w-1/2 venue-desc">
+        <div class="venue-desc max-w-3xl">
             <h2 class="text-3xl font-bold">Address</h2>
             <p class="text-2xl">{{ venueAddressLine || '—' }}</p>
             <p v-if="venuePhone" class="text-xl mt-3">
@@ -76,10 +67,6 @@
             <p class="text-2xl">
               {{ venueTownLabel || '—' }} / {{ venueRegion }}<template v-if="venuePostcode"> / {{ venuePostcode }}</template>
             </p>
-          </div>
-          <div v-if="venuePhotoUrl && venueHasMapCoords" class="w-full md:w-1/2">
-            <venue-map :venue="venue" :nearby-venues="nearbyPubs" compact :show-directions="false" />
-          </div>
         </div>
 
         <section v-if="venueDescription" class="my-8">
@@ -93,13 +80,6 @@
             <li v-for="(item, index) in venueFeatureItems" :key="index">{{ item }}</li>
           </ul>
         </section>
-
-        <venue-map
-          v-if="venuePhotoUrl && venueHasMapCoords"
-          :venue="venue"
-          :nearby-venues="nearbyPubs"
-          class="mt-8"
-        />
 
         <section v-if="venueHasMapCoords" class="my-10">
           <h2 class="text-4xl font-bold mb-2">Other pubs close by</h2>
@@ -174,6 +154,8 @@ import {
   venueHasCoords,
 } from '@/utils/format-venue'
 
+import { sortEventsByStartAsc } from '@/utils/sort-events'
+
 const NEARBY_INITIAL = 9
 
 const route = useRoute()
@@ -237,7 +219,7 @@ const { data: nearbyData, pending: nearbyPending } = await useAsyncData(
   { default: () => ({ items: [], radiusMiles: 1 }) },
 )
 
-const venueEvents = computed(() => events.value ?? [])
+const venueEvents = computed(() => sortEventsByStartAsc(events.value ?? []))
 const hasVenueEvents = computed(() => venueEvents.value.length > 0)
 const nearbyPubs = computed(() => nearbyData.value?.items ?? [])
 const nearbyRadiusMiles = computed(() => nearbyData.value?.radiusMiles ?? 1)

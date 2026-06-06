@@ -13,7 +13,7 @@
             </span>
           </span>
           <span class="hub-card__meta shrink-0 text-right">
-            {{ item.venueCount }} {{ item.venueCount === 1 ? 'pub' : 'pubs' }}
+            {{ item.venueCount }} {{ item.venueCount === 1 ? props.countLabel.singular : props.countLabel.plural }}
           </span>
         </NuxtLink>
       </li>
@@ -31,11 +31,17 @@ export type HomeRankedItem = {
   slug?: string
 }
 
-defineProps<{
-  title: string
-  description?: string
-  items: HomeRankedItem[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    title: string
+    description?: string
+    items: HomeRankedItem[]
+    countLabel?: { singular: string; plural: string }
+  }>(),
+  {
+    countLabel: () => ({ singular: 'pub', plural: 'pubs' }),
+  },
+)
 
 function itemKey(item: HomeRankedItem, index: number) {
   return item.slug || item.href || `${item.displayName}-${index}`
