@@ -36,9 +36,12 @@
 </template>
 
 <script setup lang="ts">
+import { resolveShareUrl } from '@/utils/site-url'
+
 const props = defineProps<{
   title: string
   url?: string
+  path?: string
 }>()
 
 const route = useRoute()
@@ -47,21 +50,24 @@ const copied = ref(false)
 const { trackShare } = useAnalytics()
 
 const sharePath = computed(() => {
+  const rawPath = props.path || route.path
   if (props.url) {
     try {
-      return new URL(props.url).pathname
+      return new URL(resolveShareUrl(props.url, siteBaseUrl())).pathname
     } catch {
-      return route.path
+      return rawPath
     }
   }
-  return route.path
+  return rawPath
 })
 
 function recordShare(platform: string) {
   trackShare(platform, sharePath.value)
 }
 
-const shareUrl = computed(() => props.url || `${siteBaseUrl()}${route.path}`)
+const shareUrl = computed(() =>
+  resolveShareUrl(props.url || props.path || route.path, siteBaseUrl()),
+)
 const encodedUrl = computed(() => encodeURIComponent(shareUrl.value))
 const encodedTitle = computed(() => encodeURIComponent(props.title))
 

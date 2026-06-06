@@ -28,7 +28,7 @@
       <SocialShareButtons
         class="mt-6"
         :title="`${venue.venuename} — ${venueTownLabel || venue.town}`"
-        :url="`${siteUrl}${canonicalPath}`"
+        :path="canonicalPath"
       />
 
       <nav

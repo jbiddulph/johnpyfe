@@ -1,4 +1,5 @@
 import { cleanDbString, formatPhone, isValidWebsite } from '../utils/format-venue'
+import { canonicalSiteUrl } from '../utils/site-url'
 
 type SiteSeoOptions = {
   title: string
@@ -11,7 +12,7 @@ type SiteSeoOptions = {
 
 export function siteBaseUrl() {
   const config = useRuntimeConfig()
-  return String(config.public.appURL || 'https://ukpubs.co.uk').replace(/\/$/, '')
+  return canonicalSiteUrl(String(config.public.appURL || ''))
 }
 
 export function venuePath(id: number | string, slug: string) {

@@ -35,7 +35,7 @@
       <SocialShareButtons
         class="mt-6"
         :title="event.event_title"
-        :url="`${siteBaseUrl()}${canonicalPath}`"
+        :path="canonicalPath"
       />
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
