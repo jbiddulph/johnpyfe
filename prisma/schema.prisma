@@ -120,3 +120,21 @@ model CountyImage {
 
   @@map("county_images")
 }
+
+model StadiumImage {
+  slug        String   @id
+  photoUrl    String   @map("photo_url")
+  attribution String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("stadium_images")
+}
+
+model TownImage {
+  slug        String   @id
+  photoUrl    String   @map("photo_url")
+  attribution String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("town_images")
+}

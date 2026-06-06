@@ -16,6 +16,14 @@ import {
 import { nearestSeasideByCoords, normalizeTownKey, seasideTownByName } from './seaside-towns'
 import { countVenuesNearPoint, NEARBY_VENUE_RADIUS_MILES } from './venue-nearby'
 import { getEventsTopTen } from './events-top-ten'
+import { getCountyImageMap, normalizeCountyImageSlug } from './county-images'
+import { getStadiumImageMap, normalizeStadiumImageSlug } from './stadium-images'
+import { getTownImageMap, normalizeTownImageSlug } from './town-images'
+
+export type HubImageFields = {
+  imageUrl?: string | null
+  imageAttribution?: string | null
+}
 
 export type RankedPlaceRow = {
   slug: string
@@ -23,7 +31,7 @@ export type RankedPlaceRow = {
   displayName: string
   venueCount: number
   href: string
-}
+} & HubImageFields
 
 function venueGroupCount(row: { _count: { _all?: number } }): number {
   return Number(row._count?._all ?? 0)
@@ -36,7 +44,7 @@ export type StadiumPubRow = {
   stadiumName: string
   pubCount: number
   href: string
-}
+} & HubImageFields
 
 export async function getTopTowns(prisma: PrismaClient, limit = 10): Promise<RankedPlaceRow[]> {
   const rows = await prisma.venue.groupBy({
@@ -223,6 +231,42 @@ export async function getHomepageStats(prisma: PrismaClient) {
     }),
   ])
 
+  const [countyImages, townImages, stadiumImages] = await Promise.all([
+    getCountyImageMap(prisma, topCounties.map((row) => normalizeCountyImageSlug(row.slug))),
+    getTownImageMap(prisma, topSeasideTowns.map((row) => normalizeTownImageSlug(row.slug))),
+    getStadiumImageMap(prisma, stadiumPubs.map((row) => normalizeStadiumImageSlug(row.slug))),
+  ])
+
+  const countiesWithImages = topCounties.map((row) => {
+    const key = normalizeCountyImageSlug(row.slug)
+    const image = countyImages.get(key)
+    return {
+      ...row,
+      imageUrl: image?.photoUrl ?? null,
+      imageAttribution: image?.attribution ?? null,
+    }
+  })
+
+  const seasideWithImages = topSeasideTowns.map((row) => {
+    const key = normalizeTownImageSlug(row.slug)
+    const image = townImages.get(key)
+    return {
+      ...row,
+      imageUrl: image?.photoUrl ?? null,
+      imageAttribution: image?.attribution ?? null,
+    }
+  })
+
+  const stadiumsWithImages = stadiumPubs.map((row) => {
+    const key = normalizeStadiumImageSlug(row.slug)
+    const image = stadiumImages.get(key)
+    return {
+      ...row,
+      imageUrl: image?.photoUrl ?? null,
+      imageAttribution: image?.attribution ?? null,
+    }
+  })
+
   const topVenuesWithEvents: RankedEventPlaceRow[] = eventsTopTen.limitedVenues.map((venue) => ({
     slug: venue.slug,
     name: venue.venueName,
@@ -242,11 +286,11 @@ export async function getHomepageStats(prisma: PrismaClient) {
 
   return {
     topTowns,
-    topCounties,
-    topSeasideTowns,
+    topCounties: countiesWithImages,
+    topSeasideTowns: seasideWithImages,
     topVenuesWithEvents,
     topTownsWithEvents,
-    stadiumPubs,
+    stadiumPubs: stadiumsWithImages,
     stadiumRadiusMiles: NEARBY_VENUE_RADIUS_MILES,
   }
 }

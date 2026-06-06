@@ -4,6 +4,7 @@ import {
   getDominantCountyForTown,
   resolveCounty,
 } from '../../utils/place-hub'
+import { getTownImageForSlug } from '../../utils/town-images'
 
 const eventInclude = {
   listing: true,
@@ -59,11 +60,15 @@ export default defineEventHandler(async (event) => {
     ? await resolveCounty(countyRow.name)
     : null
 
+  const image = await getTownImageForSlug(prisma, town.slug)
+
   return {
     slug: town.slug,
     cityName: town.displayName,
     townName: town.name,
     source: town.source,
+    imageUrl: image?.photoUrl ?? null,
+    imageAttribution: image?.attribution ?? null,
     county: county
       ? {
           name: countyRow!.name,

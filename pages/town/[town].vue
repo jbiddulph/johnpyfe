@@ -1,6 +1,12 @@
 <template>
   <div>
-    <div v-if="!headerImageMissing" class="relative">
+    <CountyHeroHeader
+      v-if="townData?.imageUrl"
+      :title="townName"
+      :image-url="townData.imageUrl"
+      :image-attribution="townData.imageAttribution"
+    />
+    <div v-else-if="!headerImageMissing" class="relative">
       <img
         :src="headerImageSrc"
         :alt="`Events in ${townName}`"

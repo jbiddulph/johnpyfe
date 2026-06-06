@@ -29,6 +29,7 @@
           title="Top 10 counties with the most pubs"
           description="Counties ranked by venue listings across England, Scotland, and Wales."
           :items="stats.topCounties"
+          photo-cards
         />
       </div>
 
@@ -37,6 +38,7 @@
         title="Top 20 seaside towns for pubs"
         description="Coastal towns ranked by pub listings — matched by town name and venue locations near the coast."
         :items="stats.topSeasideTowns"
+        photo-cards
       />
 
       <section id="premier-league-pubs" class="mb-12">
@@ -44,6 +46,7 @@
           title="Pubs within 1 mile of every Premier League stadium"
           :description="`Live venue listings within ${stats.stadiumRadiusMiles} mile of each stadium (straight-line distance).`"
           :items="stadiumListItems"
+          photo-cards
         />
       </section>
 
@@ -80,6 +83,8 @@ const stadiumListItems = computed(() =>
     venueCount: s.pubCount,
     href: s.href,
     slug: s.slug,
+    imageUrl: s.imageUrl,
+    imageAttribution: s.imageAttribution,
   })),
 )
 

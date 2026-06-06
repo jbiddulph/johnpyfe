@@ -1,13 +1,16 @@
 <template>
-  <div class="container mx-auto p-4 my-8">
-    <Breadcrumbs :items="breadcrumbItems" />
-    <div v-if="!stadiumData" class="text-lg text-gray-600">Loading…</div>
-    <template v-else>
-      <h1 class="text-4xl font-bold mb-2">Pubs near {{ stadiumData.club }}</h1>
-      <p class="text-xl text-gray-600 dark:text-gray-400 mb-6">
-        {{ stadiumData.stadiumName }} — {{ stadiumData.pubCount }}
-        {{ stadiumData.pubCount === 1 ? 'pub' : 'pubs' }} within {{ stadiumData.radiusMiles }} mile{{ stadiumData.radiusMiles === 1 ? '' : 's' }}
-      </p>
+  <div>
+    <CountyHeroHeader
+      v-if="stadiumData"
+      :title="`Pubs near ${stadiumData.club}`"
+      :subtitle="`${stadiumData.stadiumName} — ${stadiumData.pubCount} ${stadiumData.pubCount === 1 ? 'pub' : 'pubs'} within ${stadiumData.radiusMiles} mile${stadiumData.radiusMiles === 1 ? '' : 's'}`"
+      :image-url="stadiumData.imageUrl"
+      :image-attribution="stadiumData.imageAttribution"
+    />
+    <div class="container mx-auto p-4 my-8">
+      <Breadcrumbs :items="breadcrumbItems" />
+      <div v-if="!stadiumData" class="text-lg text-gray-600">Loading…</div>
+      <template v-else>
       <venue-map
         v-if="stadiumHasCoords"
         :venue="stadiumAsVenue"
@@ -27,7 +30,8 @@
         </li>
       </ul>
       <p v-else class="text-lg text-gray-600 mt-6">No pubs found within {{ stadiumData.radiusMiles }} mile of this stadium.</p>
-    </template>
+      </template>
+    </div>
   </div>
 </template>
 

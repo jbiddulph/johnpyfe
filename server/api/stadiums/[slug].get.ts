@@ -5,6 +5,7 @@ import {
   findVenuesNearPoint,
   NEARBY_VENUE_RADIUS_MILES,
 } from '../../utils/venue-nearby'
+import { getStadiumImageForSlug } from '../../utils/stadium-images'
 
 export default defineEventHandler(async (event) => {
   const slug = String(event.context.params?.slug || '').trim()
@@ -27,9 +28,10 @@ export default defineEventHandler(async (event) => {
 
   setResponseHeader(event, 'Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800')
 
-  const [pubCount, venues] = await Promise.all([
+  const [pubCount, venues, image] = await Promise.all([
     countVenuesNearPoint(prisma, lat, lon, NEARBY_VENUE_RADIUS_MILES),
     findVenuesNearPoint(prisma, lat, lon, NEARBY_VENUE_RADIUS_MILES, 60),
+    getStadiumImageForSlug(prisma, slug),
   ])
 
   return {
@@ -42,5 +44,7 @@ export default defineEventHandler(async (event) => {
     radiusMiles: NEARBY_VENUE_RADIUS_MILES,
     pubCount,
     venues,
+    imageUrl: image?.photoUrl ?? null,
+    imageAttribution: image?.attribution ?? null,
   }
 })

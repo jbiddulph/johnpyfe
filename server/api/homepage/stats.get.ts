@@ -5,7 +5,7 @@ let cached: Awaited<ReturnType<typeof getHomepageStats>> | null = null
 let cacheExpiresAt = 0
 const CACHE_MS = 60 * 60 * 1000
 /** Bump when homepage aggregation logic changes (invalidates in-memory cache). */
-const CACHE_VERSION = 4
+const CACHE_VERSION = 5
 let cacheVersion = 0
 
 /** Aggregated homepage discovery lists (cached 1 hour). */
