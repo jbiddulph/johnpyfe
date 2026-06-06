@@ -13,14 +13,9 @@
       <UButton label="Next" :disabled="currentPage >= totalPages" @click="nextPage" />
     </div>
 
-    <ul v-if="paginatedCounties.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <ul v-if="paginatedCounties.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <li v-for="county in paginatedCounties" :key="county.slug">
-        <NuxtLink :to="county.href" class="hub-card">
-          <span class="hub-card__title">{{ county.displayName }}</span>
-          <span class="hub-card__meta">
-            {{ county.venueCount }} {{ county.venueCount === 1 ? 'venue' : 'venues' }}
-          </span>
-        </NuxtLink>
+        <CountyHubCard :county="county" />
       </li>
     </ul>
     <p v-else class="text-lg text-gray-600">No counties available yet.</p>

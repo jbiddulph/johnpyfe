@@ -111,3 +111,12 @@ model AnalyticsEvent {
   @@index([path])
   @@map("analytics_events")
 }
+
+model CountyImage {
+  slug        String   @id
+  photoUrl    String   @map("photo_url")
+  attribution String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("county_images")
+}

@@ -16,6 +16,7 @@ export default defineNuxtConfig({
     '~/assets/css/spinner.css',
   ],
   runtimeConfig: {
+    googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY || '',
     public: {
       baseURL: (process.env.BASE_URL || process.env.NUXT_PUBLIC_APP_URL || siteUrl).replace(/\/$/, ''),
       appURL: siteUrl,
