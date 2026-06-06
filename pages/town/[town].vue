@@ -28,7 +28,30 @@
     <div class="container mx-auto p-4 my-8">
       <Breadcrumbs :items="breadcrumbItems" />
 
-      <section class="my-10">
+      <nav
+        class="flex border-b border-gray-200 dark:border-gray-700 mt-8 mb-8"
+        aria-label="Town sections"
+      >
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          type="button"
+          class="px-6 py-3 text-lg font-semibold border-b-2 -mb-px transition-colors"
+          :class="
+            activeTab === tab.id
+              ? 'border-primary-700 text-primary-700 dark:border-primary-400 dark:text-primary-400'
+              : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+          "
+          :aria-selected="activeTab === tab.id"
+          role="tab"
+          @click="activeTab = tab.id"
+        >
+          {{ tab.label }}
+          <span v-if="tab.count != null" class="ml-1 text-sm font-normal opacity-80">({{ tab.count }})</span>
+        </button>
+      </nav>
+
+      <section v-show="activeTab === 'venues'" role="tabpanel" aria-label="Venues">
         <h2 class="text-3xl font-bold mb-4">Pubs and venues in {{ townName }}</h2>
         <p v-if="venueTotal > 0" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
           {{ venueTotal }} {{ venueTotal === 1 ? 'venue' : 'venues' }}
@@ -56,13 +79,15 @@
         </div>
       </section>
 
-      <h2 class="text-4xl font-bold my-8">Events in {{ townName }}</h2>
-      <ul v-if="townEvents.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <li v-for="(event, index) in townEvents" :key="event.id">
-          <event-listing :event="event" :index="index" />
-        </li>
-      </ul>
-      <p v-else class="text-lg text-gray-600">No upcoming events in this town.</p>
+      <section v-show="activeTab === 'events'" role="tabpanel" aria-label="Events">
+        <h2 class="text-3xl font-bold mb-4">Events in {{ townName }}</h2>
+        <ul v-if="townEvents.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <li v-for="(event, index) in townEvents" :key="event.id">
+            <event-listing :event="event" :index="index" />
+          </li>
+        </ul>
+        <p v-else class="text-lg text-gray-600">No upcoming events in this town.</p>
+      </section>
     </div>
   </div>
 </template>
@@ -116,6 +141,12 @@ const venueTotal = ref(townVenuesData.value?.total ?? 0)
 const venueTotalPages = ref(townVenuesData.value?.totalPages ?? 1)
 const venuesLoading = ref(false)
 const mapVenues = computed(() => mapVenuesData.value?.items ?? [])
+const activeTab = ref('venues')
+
+const tabs = computed(() => [
+  { id: 'venues', label: 'Venues', count: venueTotal.value || null },
+  { id: 'events', label: 'Events', count: townEvents.value.length || null },
+])
 
 const countyBreadcrumb = computed(() => {
   if (countyHub.value?.href) {

@@ -8,15 +8,15 @@
     </h1>
     <div class="flex flex-col md:flex-row">
       <img
-        :src="`${config.public.eventImgFolder}/${event.photo}`"
+        :src="eventPhotoSrc"
         :alt="event.event_title"
-        class="w-full md:w-1/2 h-auto object-cover"
+        class="w-full md:w-1/2 h-auto object-cover bg-gray-200"
       />
       <div class="md:ml-8">
         <p><strong>Description:</strong> {{ event?.description }}</p>
         <p><strong>Cost:</strong> {{ event?.cost }}</p>
-        <p><strong>Duration:</strong> {{ event?.duration }} minutes</p>
-        <p><strong>Start Time:</strong> {{ event?.event_start }}</p>
+        <p v-if="event?.duration"><strong>Duration:</strong> {{ event?.duration }} minutes</p>
+        <p><strong>Start:</strong> {{ startLabel }}</p>
         <p><strong>Category:</strong> {{ event?.category?.name }}</p>
         <p><strong>City:</strong> {{ event?.city?.name }}</p>
         <p>
@@ -38,6 +38,8 @@
 </template>
 
 <script setup>
+import { formatEventStart, resolveEventPhotoUrl } from '@/utils/format-event'
+
 const route = useRoute()
 const config = useRuntimeConfig()
 const eventId = route.params.id
@@ -49,6 +51,17 @@ const { data: event, error } = await useAsyncData(`event-${eventId}`, () =>
 if (error.value || !event.value) {
   throw createError({ statusCode: 404, statusMessage: 'Event not found' })
 }
+
+const eventPhotoSrc = computed(() =>
+  resolveEventPhotoUrl(event.value?.photo, {
+    eventImgFolder: config.public.eventImgFolder,
+  }),
+)
+const startLabel = computed(() => {
+  const formatted = formatEventStart(event.value?.event_start)
+  if (!formatted.label) return '—'
+  return formatted.time ? formatted.label : `${formatted.label} (all day)`
+})
 
 const canonicalPath = `/events/${event.value.id}`
 const venueName = event.value.listing?.venuename

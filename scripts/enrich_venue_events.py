@@ -343,11 +343,89 @@ def parse_datetime_text(text: str) -> datetime | None:
         return None
 
 
-def parse_skiddle_start(event: dict) -> datetime | None:
-    raw = event.get("startdate") or event.get("date")
-    if not raw:
+def parse_time_hm(text: object) -> tuple[int, int] | None:
+    if text in (None, ""):
         return None
-    return parse_datetime_text(str(raw))
+    raw = str(text).strip()
+    if ":" not in raw:
+        return None
+    try:
+        hour_str, minute_str = raw.split(":", 1)[:2]
+        hour = int(hour_str)
+        minute = int(minute_str[:2])
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            return hour, minute
+    except ValueError:
+        return None
+    return None
+
+
+def skiddle_event_date(event: dict) -> datetime | None:
+    """Calendar date for a Skiddle event (date component only)."""
+    for key in ("date", "startdate"):
+        raw = event.get(key)
+        if not raw:
+            continue
+        text = str(raw).strip()
+        try:
+            date_part = text.split("T")[0][:10]
+            return datetime.strptime(date_part, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return None
+
+
+def parse_skiddle_startdate_wallclock(text: str) -> datetime | None:
+    """
+    Parse Skiddle startdate without timezone conversion.
+
+    Skiddle labels times with +00:00 but the clock time is UK local (e.g. 19:00 doors = 19:00).
+    """
+    text = text.strip()
+    if "T" not in text:
+        return None
+    core = text.split("+")[0].split("Z")[0]
+    if "." in core:
+        core = core.split(".")[0]
+    try:
+        return datetime.strptime(core, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def parse_skiddle_start(event: dict) -> datetime | None:
+    """
+    Resolve event start from Skiddle search/detail payload.
+
+    1. startdate with a non-midnight time (wall clock)
+    2. openingtimes.doorsopen on the event date when startdate is midnight
+    3. startdate at midnight (e.g. genuine all-day / anytime tickets)
+    """
+    startdate = event.get("startdate")
+    if startdate:
+        dt = parse_skiddle_startdate_wallclock(str(startdate))
+        if dt and (dt.hour != 0 or dt.minute != 0):
+            return dt
+
+    event_date = skiddle_event_date(event)
+    if not event_date:
+        return None
+
+    opening = event.get("openingtimes") or {}
+    if isinstance(opening, dict):
+        for key in ("doorsopen", "doorsOpen"):
+            hm = parse_time_hm(opening.get(key))
+            if hm and (hm[0] != 0 or hm[1] != 0):
+                return event_date.replace(
+                    hour=hm[0], minute=hm[1], second=0, microsecond=0
+                )
+
+    if startdate:
+        dt = parse_skiddle_startdate_wallclock(str(startdate))
+        if dt:
+            return dt
+
+    return event_date
 
 
 def parse_eventbrite_start(event: dict) -> datetime | None:
@@ -390,10 +468,20 @@ def eventbrite_cost(event: dict) -> str:
 
 
 def skiddle_photo(event: dict) -> str:
-    for key in ("largeimageurl", "xlargeimageurl", "imageurl", "logo"):
+    # Prefer full-size JPEG URLs (search API thumbnails often omit extensions).
+    for key in (
+        "largeimageurl",
+        "xlargeimageurl",
+        "imageurl",
+        "xlargeimageurlWebP",
+        "logo",
+    ):
         val = event.get(key)
         if val and str(val).startswith(("http://", "https://")):
-            return str(val)[:500]
+            url = str(val)
+            if key == "imageurl" and url.endswith("_th.jpg"):
+                url = url.replace("_th.jpg", ".jpg")
+            return url[:500]
     return ""
 
 
@@ -527,6 +615,7 @@ def fetch_skiddle_events(
             "order": "date",
             "description": 1,
             "getdistance": 1,
+            "imagefilter": 1,
         }
         resp = requests.get(SKIDDLE_SEARCH_URL, params=params, timeout=45)
         if resp.status_code != 200:

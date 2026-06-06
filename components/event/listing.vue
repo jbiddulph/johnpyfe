@@ -9,33 +9,29 @@
       </div>
       <div>
         <div class="calendar flex items-center flex-col w-full h-auto relative">
-          <div class="bg-white rounded-lg absolute -top-2 right-4">
+          <div class="bg-white rounded-lg absolute -top-2 right-4 z-10">
             <div class="flex flex-col">
               <div class="flex flex-row justify-between bg-red-700 text-white rounded-t-lg px-2 text-sm">
-                <div class="month pr-2">{{ formatDate(event.event_start).month }}</div>
-                <div class="year">{{ formatDate(event.event_start).year }}</div>
+                <div class="month pr-2">{{ startParts.month }}</div>
+                <div class="year">{{ startParts.year }}</div>
               </div>
-              <div class="day text-3xl text-center text-black">{{ formatDate(event.event_start).day }}</div>
-              <div class="time text-center text-black"><small>at</small> {{ formatDate(event.event_start).time }}</div>
+              <div class="day text-3xl text-center text-black">{{ startParts.day }}</div>
+              <div v-if="startParts.time" class="time text-center text-black">
+                <small>at</small> {{ startParts.time }}
+              </div>
+              <div v-else class="time text-center text-black text-sm px-1 pb-1">All day</div>
             </div>
           </div>
-          <img 
-            class="w-full h-[250px] object-cover" 
-            :src="eventPhotoSrc" 
-            alt="Event image"
+          <img
+            class="w-full h-[250px] object-cover bg-gray-200"
+            :src="eventPhotoSrc"
+            :alt="event.event_title"
           />
-          <div class="w-full px-4 py-2 absolute center bottom-0 bg-black bg-opacity-70 text-white font-bold text-lg shadow-lg z-10" v-html="countdowns[index]"></div>
-          <!-- COPY Button -->
-          <div class="absolute top-2 right-2 z-20">
-            <UButton 
-              icon="i-heroicons-document-duplicate" 
-              size="sm" 
-              color="blue" 
-              variant="solid"
-              @click.stop="copyEvent"
-              title="Copy Event"
-            />
-          </div>
+          <div
+            v-if="countdownHtml"
+            class="w-full px-4 py-2 absolute center bottom-0 bg-black bg-opacity-70 text-white font-bold text-lg shadow-lg z-10"
+            v-html="countdownHtml"
+          />
         </div>
       </div>
     </div>
@@ -44,44 +40,60 @@
 </template>
 
 <script lang="ts" setup>
-import { useEventStore } from "@/store/event.js";
-const eventStore = useEventStore();
+import { useEventStore } from '@/store/event.js'
+import { formatEventStart, resolveEventPhotoUrl } from '@/utils/format-event'
+
+const eventStore = useEventStore()
+const config = useRuntimeConfig()
 const props = defineProps({
   event: Object,
-  formatDate: Function,
-  countdowns: Array,
-  index: Number
-});
-let countdownInterval: number | undefined = undefined;
-onMounted( async() => {
-  // await eventStore.fetchAllEvents();
-  try {
-    eventStore.fetchAllEvents();
-    if(props.venueId){
-      eventStore.events = await eventStore.fetchVenueEvents(props.venueId);
-    }
-    startCountdowns();
-  } catch (error) {
-    console.error("Error fetching events:", error);
-  }
-});
-function calculateCountdown(eventStartDate: string, durationMinutes: number) {
-  const now = new Date(); // Local time
-  const eventDate = new Date(eventStartDate); // Parse the event date
-  
-  // Ensure both dates are treated consistently in local timezone
-  const nowLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
-  const eventDateLocal = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), eventDate.getHours(), eventDate.getMinutes(), eventDate.getSeconds());
-  const eventEndDateLocal = new Date(eventDateLocal.getTime() + (durationMinutes || 0) * 60000); // Duration in milliseconds
+  index: Number,
+  venueId: Number,
+})
 
-  const timeDifference = eventDateLocal.getTime() - nowLocal.getTime(); // Difference in milliseconds
+const startParts = computed(() => formatEventStart(props.event?.event_start))
+const eventPhotoSrc = computed(() =>
+  resolveEventPhotoUrl(props.event?.photo, {
+    eventImgFolder: config.public.eventImgFolder,
+  }),
+)
+
+let countdownInterval: ReturnType<typeof setInterval> | undefined
+const countdownHtml = ref('')
+
+onMounted(async () => {
+  try {
+    if (props.venueId) {
+      eventStore.events = await eventStore.fetchVenueEvents(props.venueId)
+    }
+    startCountdown()
+  } catch (error) {
+    console.error('Error loading event countdown:', error)
+  }
+})
+
+function eventForCountdown() {
+  if (props.venueId && Array.isArray(eventStore.events) && eventStore.events.length) {
+    return props.event
+  }
+  return props.event
+}
+
+function calculateCountdown(eventStartDate: string, durationMinutes: number) {
+  const now = new Date()
+  const eventDate = new Date(eventStartDate)
+
+  const nowLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds())
+  const eventDateLocal = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), eventDate.getHours(), eventDate.getMinutes(), eventDate.getSeconds())
+  const eventEndDateLocal = new Date(eventDateLocal.getTime() + (durationMinutes || 0) * 60000)
+
+  const timeDifference = eventDateLocal.getTime() - nowLocal.getTime()
 
   if (timeDifference > 0) {
-    // Event hasn't started yet
-    const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
+    const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000)
 
     return `<div>
         <div class="flex flex-row justify-between" id="countdown">
@@ -90,110 +102,32 @@ function calculateCountdown(eventStartDate: string, durationMinutes: number) {
         <div class="flex flex-col items-center"><span class="big">${minutes}</span> <small>minute${minutes !== 1 ? 's' : ''}</small></div>
         <div class="flex flex-col items-center"><span class="big">${seconds}</span> <small>second${seconds !== 1 ? 's' : ''}</small></div>
         </div>
-      </div>`;
-  } else if (nowLocal.getTime() <= eventEndDateLocal.getTime()) {
-    // Event is currently happening
+      </div>`
+  }
+  if (nowLocal.getTime() <= eventEndDateLocal.getTime()) {
     return `
       <div class="flex items-center">
         <div class="pulsing-dot"></div>
         <span class="ml-2">Event is currently happening</span>
-      </div>`;
-  } else {
-    // Event has ended
-    return `<UBadge color="red" variant="solid">Event has ended</UBadge>`;
+      </div>`
   }
-}
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  const day = date.getUTCDate();
-  const month = date.toLocaleString('en-US', { month: 'long' });
-  const year = date.getUTCFullYear().toString().slice(-2); // Get last two digits of the year
-  const hours = date.getUTCHours().toString().padStart(2, '0');
-  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-
-  // Format the day with "st", "nd", "rd", or "th"
-  const daySuffix = (day) => {
-    if (day > 3 && day < 21) return 'th'; // 11th, 12th, 13th
-    switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
-  };
-
-  return {
-    day: `${day}${daySuffix(day)}`,
-    month,
-    year,
-    time: `${hours}:${minutes}`,
-  };
+  return `<UBadge color="red" variant="solid">Event has ended</UBadge>`
 }
 
-const copyEvent = async () => {
-  try {
-    const config = useRuntimeConfig();
-    const { user, initializeAuth } = useAuth();
-    
-    // Initialize auth to get user
-    await initializeAuth();
-    
-    if (!user.value?.id) {
-      console.error('User not authenticated');
-      return;
-    }
+function startCountdown() {
+  const event = eventForCountdown()
+  if (!event?.event_start) return
 
-    // Create a copy of the event with [COPY] prefix
-    const eventCopy = {
-      ...props.event,
-      event_title: `[COPY] ${props.event.event_title}`,
-      id: undefined, // Remove ID so it creates a new record
-      user_id: user.value.id,
-      created_at: new Date().toISOString(),
-    };
-
-    // Send to API to create the copy
-    const response = await $fetch(`${config.public.baseURL}/api/events/add`, {
-      method: 'POST',
-      body: eventCopy
-    });
-
-    if (response) {
-      // Refresh events list
-      await eventStore.fetchAllEvents();
-      console.log('Event copied successfully');
-    }
-  } catch (error) {
-    console.error('Error copying event:', error);
+  const tick = () => {
+    countdownHtml.value = calculateCountdown(event.event_start, event.duration)
   }
-};
-function eventsForCountdown() {
-  if (props.venueId && Array.isArray(eventStore.events)) {
-    return eventStore.events;
-  }
-  if (props.event) {
-    return [props.event];
-  }
-  return Array.isArray(eventStore.events) ? eventStore.events : [];
+  tick()
+  countdownInterval = setInterval(tick, 1000)
 }
 
-function startCountdowns() {
-  const events = eventsForCountdown();
-  countdowns.value = events.map((event) =>
-    calculateCountdown(event.event_start, event.duration),
-  );
-
-  countdownInterval = setInterval(() => {
-    const currentEvents = eventsForCountdown();
-    countdowns.value = currentEvents.map((event) =>
-      calculateCountdown(event.event_start, event.duration),
-    );
-  }, 1000);
-}
-const countdowns = ref([]); 
 onBeforeUnmount(() => {
-  clearInterval(countdownInterval);
-});
+  if (countdownInterval) clearInterval(countdownInterval)
+})
 </script>
 
 <style>
