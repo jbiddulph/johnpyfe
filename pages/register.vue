@@ -24,7 +24,7 @@
 <script lang="ts" setup>
 useSiteSeo({
   title: 'Register',
-  description: 'Create a UK Pubs account with Google, Facebook, Apple or GitHub.',
+  description: 'Create a UK Pubs account with Google.',
   path: '/register',
 })
 </script>

@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
-import { cleanDbString } from '../../utils/format-venue'
+import { cleanDbString, cityHubSlug } from '../../utils/format-venue'
 
 export type TopVenueWithEvents = {
   venueId: number
@@ -89,11 +89,12 @@ export async function getEventsTopTen(
     .map((g) => {
       const city = cityById.get(g.cityId)
       if (!city?.slug) return null
+      const hubSlug = cityHubSlug(city.name, city.slug)
       return {
         town: city.name,
-        slug: city.slug,
+        slug: hubSlug,
         eventCount: g._count._all,
-        href: `/town/${city.slug}`,
+        href: `/town/${hubSlug}`,
       } satisfies TopTownWithEvents
     })
     .filter((row): row is TopTownWithEvents => row != null)

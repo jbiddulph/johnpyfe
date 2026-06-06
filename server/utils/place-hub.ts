@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from './prisma'
-import { cleanDbString, formatPlaceName, isPlausibleTownName, slugifyPlace } from '../../utils/format-venue'
+import { cleanDbString, formatPlaceName, isPlausibleTownName, slugifyPlace, cityHubSlug } from '../../utils/format-venue'
 import {
   canonicalCountySlug,
   canonicalUkCountyName,
@@ -16,6 +16,8 @@ export type ResolvedPlace = {
   href: string
 }
 
+export { cityHubSlug } from '../../utils/format-venue'
+
 export async function resolveTown(townName: string): Promise<ResolvedPlace | null> {
   const name = cleanDbString(townName)
   if (!name || !isPlausibleTownName(name)) return null
@@ -26,11 +28,12 @@ export async function resolveTown(townName: string): Promise<ResolvedPlace | nul
   })
 
   if (city) {
+    const slug = cityHubSlug(city.name, city.slug)
     return {
-      slug: city.slug,
+      slug,
       name: city.name,
       displayName: city.name,
-      href: `/town/${city.slug}`,
+      href: `/town/${slug}`,
     }
   }
 

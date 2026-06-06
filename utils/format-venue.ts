@@ -25,6 +25,17 @@ export function slugifyPlace(value: unknown): string {
     .replace(/^-+|-+$/g, '')
 }
 
+/** Map canonical City names to preferred town hub slugs (e.g. Brighton & Hove → brighton). */
+const CITY_HUB_SLUG_OVERRIDES: Record<string, string> = {
+  'brighton & hove': 'brighton',
+}
+
+export function cityHubSlug(cityName: string, citySlug?: string): string {
+  const override = CITY_HUB_SLUG_OVERRIDES[cityName.trim().toLowerCase()]
+  if (override) return override
+  return citySlug ?? slugifyPlace(cityName)
+}
+
 export function isValidPhone(value: unknown): boolean {
   const s = cleanDbString(value)
   if (!s) return false

@@ -5,7 +5,7 @@
       <div class="p-4">
         <h2 class="font-bold text-2xl">{{ event.event_title }}</h2>
         <h3>{{ event.category.name }} at <NuxtLink :to="venuePath(event.listing.id, event.listing.slug)">{{ event.listing.venuename }}</NuxtLink></h3>
-        <span><NuxtLink :to="`/town/${event.city.slug}`">{{ event.city.name }}</NuxtLink></span>
+        <span><NuxtLink :to="townHref">{{ event.city.name }}</NuxtLink></span>
       </div>
       <div>
         <div class="calendar flex items-center flex-col w-full h-auto relative">
@@ -42,6 +42,7 @@
 <script lang="ts" setup>
 import { useEventStore } from '@/store/event.js'
 import { formatEventStart, resolveEventPhotoUrl } from '@/utils/format-event'
+import { cityHubSlug } from '@/utils/format-venue'
 
 const eventStore = useEventStore()
 const config = useRuntimeConfig()
@@ -52,6 +53,11 @@ const props = defineProps({
 })
 
 const startParts = computed(() => formatEventStart(props.event?.event_start))
+const townHref = computed(() => {
+  const city = props.event?.city
+  if (!city?.name) return '/'
+  return `/town/${cityHubSlug(city.name, city.slug)}`
+})
 const eventPhotoSrc = computed(() =>
   resolveEventPhotoUrl(props.event?.photo, {
     eventImgFolder: config.public.eventImgFolder,

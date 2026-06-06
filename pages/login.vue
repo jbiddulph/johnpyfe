@@ -24,7 +24,7 @@
 <script lang="ts" setup>
 useSiteSeo({
   title: 'Login',
-  description: 'Sign in to UK Pubs with Google, Facebook, Apple or GitHub.',
+  description: 'Sign in to UK Pubs with Google.',
   path: '/login',
 })
 </script>
