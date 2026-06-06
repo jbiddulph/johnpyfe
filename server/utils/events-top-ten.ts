@@ -29,22 +29,25 @@ export async function getEventsTopTen(
 ): Promise<EventsTopTenStats> {
   const now = new Date()
 
-  const [venueGroups, townGroups] = await Promise.all([
+  const [venueGroupsRaw, townGroupsRaw] = await Promise.all([
     prisma.event.groupBy({
       by: ['listingId'],
       where: { event_start: { gt: now } },
       _count: { _all: true },
-      orderBy: { _count: { _all: 'desc' } },
-      take: limit,
     }),
     prisma.event.groupBy({
       by: ['cityId'],
       where: { event_start: { gt: now } },
       _count: { _all: true },
-      orderBy: { _count: { _all: 'desc' } },
-      take: limit,
     }),
   ])
+
+  const venueGroups = [...venueGroupsRaw]
+    .sort((a, b) => b._count._all - a._count._all)
+    .slice(0, limit)
+  const townGroups = [...townGroupsRaw]
+    .sort((a, b) => b._count._all - a._count._all)
+    .slice(0, limit)
 
   const venueIds = venueGroups.map((g) => g.listingId)
   const cityIds = townGroups.map((g) => g.cityId)

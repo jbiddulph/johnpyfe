@@ -32,6 +32,21 @@
         />
       </div>
 
+      <HomeRankedList
+        class="mb-12"
+        title="Top 20 seaside towns for pubs"
+        description="Coastal towns ranked by pub listings — matched by town name and venue locations near the coast."
+        :items="stats.topSeasideTowns"
+      />
+
+      <section id="premier-league-pubs" class="mb-12">
+        <HomeRankedList
+          title="Pubs within 1 mile of every Premier League stadium"
+          :description="`Live venue listings within ${stats.stadiumRadiusMiles} mile of each stadium (straight-line distance).`"
+          :items="stadiumListItems"
+        />
+      </section>
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
         <HomeRankedList
           title="Top 10 venues with events"
@@ -46,21 +61,6 @@
           :count-label="{ singular: 'event', plural: 'events' }"
         />
       </div>
-
-      <HomeRankedList
-        class="mb-12"
-        title="Top 20 seaside towns for pubs"
-        description="Coastal towns ranked by pub listings — matched by town name and venue locations near the coast."
-        :items="stats.topSeasideTowns"
-      />
-
-      <section id="premier-league-pubs" class="mb-8">
-        <HomeRankedList
-          title="Pubs within 1 mile of every Premier League stadium"
-          :description="`Live venue listings within ${stats.stadiumRadiusMiles} mile of each stadium (straight-line distance).`"
-          :items="stadiumListItems"
-        />
-      </section>
     </template>
   </div>
 </template>

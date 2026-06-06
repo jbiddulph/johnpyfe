@@ -217,7 +217,10 @@ export async function getHomepageStats(prisma: PrismaClient) {
     getTopCounties(prisma, 10),
     getTopSeasideTowns(prisma, 20),
     getPremierLeagueStadiumPubs(prisma),
-    getEventsTopTen(prisma, 10),
+    getEventsTopTen(prisma, 10).catch((error) => {
+      console.error('[homepage-stats] events top ten failed:', error)
+      return { limitedVenues: [], limitedTowns: [] }
+    }),
   ])
 
   const topVenuesWithEvents: RankedEventPlaceRow[] = eventsTopTen.limitedVenues.map((venue) => ({
