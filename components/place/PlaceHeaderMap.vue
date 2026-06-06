@@ -256,7 +256,7 @@ function ensureClusterLayers(map) {
         100,
         28,
       ],
-      'circle-opacity': 0.9,
+      'circle-opacity': 1,
       'circle-stroke-width': 2,
       'circle-stroke-color': '#ffffff',
     },
@@ -287,6 +287,7 @@ function ensureClusterLayers(map) {
       'circle-radius': 8,
       'circle-stroke-width': 2,
       'circle-stroke-color': '#ffffff',
+      'circle-opacity': 1,
     },
   })
 
@@ -356,11 +357,12 @@ function updateCountyHighlight() {
 
   mapInstance.getSource(HIGHLIGHT_SOURCE_ID)?.setData(buildVenueGeoJson(highlighted))
 
-  const dimmed = Boolean(slug)
-  const baseOpacity = dimmed ? 0.2 : 0.9
+  // Only dim the base layers when highlighted venues are shown on a separate layer.
+  const dimmed = Boolean(slug && highlighted.length > 0)
+  const baseOpacity = dimmed ? 0.35 : 1
   mapInstance.setPaintProperty(LAYER_CLUSTERS, 'circle-opacity', baseOpacity)
   mapInstance.setPaintProperty(LAYER_UNCLUSTERED, 'circle-opacity', baseOpacity)
-  mapInstance.setPaintProperty(LAYER_CLUSTER_COUNT, 'text-opacity', dimmed ? 0.25 : 1)
+  mapInstance.setPaintProperty(LAYER_CLUSTER_COUNT, 'text-opacity', dimmed ? 0.5 : 1)
 
   mapInstance.setLayoutProperty(
     LAYER_HIGHLIGHT,

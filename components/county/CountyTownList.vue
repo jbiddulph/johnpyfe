@@ -6,7 +6,6 @@
       <PlaceHeaderMap
         :place-name="countyName"
         :venues="mapVenues"
-        :highlight-county-slug="countySlug"
       />
     </div>
 
