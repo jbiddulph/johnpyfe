@@ -380,18 +380,17 @@ def search_place(api_key: str, query: str, *, include_photos: bool = False) -> d
     return details or hit
 
 
-def missing_data_clause(args: argparse.Namespace) -> str:
+def build_missing_data_filter(args: argparse.Namespace) -> tuple[str, list[object]]:
+    """Venues needing enrichment. Photo ILIKE patterns use params — not '%…%' literals (%s breaks psycopg2)."""
     parts = ["(features IS NULL OR features = '')", "(description IS NULL OR description = '')"]
+    params: list[object] = []
     if args.photos:
-        photo_checks = " OR ".join(
-            [
-                "photo IS NULL",
-                "photo = ''",
-                *[f"photo ILIKE '%{marker}%'" for marker in DEFAULT_PHOTO_MARKERS],
-            ]
-        )
-        parts.append(f"({photo_checks})")
-    return f"({' OR '.join(parts)})"
+        photo_parts = ["photo IS NULL", "photo = ''"]
+        for marker in DEFAULT_PHOTO_MARKERS:
+            photo_parts.append("photo ILIKE %s")
+            params.append(f"%{marker}%")
+        parts.append(f"({' OR '.join(photo_parts)})")
+    return f"({' OR '.join(parts)})", params
 
 
 def build_where(args: argparse.Namespace) -> tuple[list[str], list[object]]:
@@ -399,7 +398,9 @@ def build_where(args: argparse.Namespace) -> tuple[list[str], list[object]]:
     params: list[object] = []
 
     if not args.include_filled:
-        clauses.append(missing_data_clause(args))
+        clause, missing_params = build_missing_data_filter(args)
+        clauses.append(clause)
+        params.extend(missing_params)
 
     if args.id:
         clauses.append("id = %s")

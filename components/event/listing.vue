@@ -21,7 +21,7 @@
           </div>
           <img 
             class="w-full h-[250px] object-cover" 
-            :src="`${useRuntimeConfig().public.eventImgFolder}${event.photo}`" 
+            :src="eventPhotoSrc" 
             alt="Event image"
           />
           <div class="w-full px-4 py-2 absolute center bottom-0 bg-black bg-opacity-70 text-white font-bold text-lg shadow-lg z-10" v-html="countdowns[index]"></div>
@@ -167,18 +167,27 @@ const copyEvent = async () => {
     console.error('Error copying event:', error);
   }
 };
-function startCountdowns() {
-  if (Array.isArray(eventStore.events)) {
-    countdowns.value = eventStore.events.map(event => calculateCountdown(event.event_start, event.duration));
-  } else {
-    console.error("Events is not an array:", eventStore.events);
-    countdowns.value = [];
+function eventsForCountdown() {
+  if (props.venueId && Array.isArray(eventStore.events)) {
+    return eventStore.events;
   }
+  if (props.event) {
+    return [props.event];
+  }
+  return Array.isArray(eventStore.events) ? eventStore.events : [];
+}
+
+function startCountdowns() {
+  const events = eventsForCountdown();
+  countdowns.value = events.map((event) =>
+    calculateCountdown(event.event_start, event.duration),
+  );
 
   countdownInterval = setInterval(() => {
-    if (Array.isArray(eventStore.events)) {
-      countdowns.value = eventStore.events.map(event => calculateCountdown(event.event_start, event.duration));
-    }
+    const currentEvents = eventsForCountdown();
+    countdowns.value = currentEvents.map((event) =>
+      calculateCountdown(event.event_start, event.duration),
+    );
   }, 1000);
 }
 const countdowns = ref([]); 

@@ -68,6 +68,8 @@
 </template>
 
 <script setup>
+import { useEventStore } from '@/store/event.js'
+
 const VENUE_PAGE_SIZE = 104
 
 const route = useRoute()
