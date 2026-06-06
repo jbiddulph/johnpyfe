@@ -1,6 +1,15 @@
 <template>
   <section class="my-10">
     <h2 class="text-3xl font-bold mb-4">Towns in {{ countyName }}</h2>
+
+    <div v-if="mapVenues?.length" class="mb-8">
+      <PlaceHeaderMap
+        :place-name="countyName"
+        :venues="mapVenues"
+        :highlight-county-slug="countySlug"
+      />
+    </div>
+
     <p v-if="totalCount > 0" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
       {{ totalCount }} {{ totalCount === 1 ? 'town' : 'towns' }}
       <span v-if="totalPages > 1"> — page {{ currentPage }} of {{ totalPages }}</span>
@@ -39,6 +48,8 @@ const TOWN_PAGE_SIZE = 104
 
 const props = defineProps<{
   countyName: string
+  countySlug?: string
+  mapVenues?: Array<Record<string, unknown>>
   towns: Array<{
     slug: string
     displayName: string

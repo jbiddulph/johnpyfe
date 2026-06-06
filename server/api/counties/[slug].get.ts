@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma'
+import { getCountyImageForSlug } from '../../utils/county-images'
 import {
   buildCountyVenueWhereWithLive,
   findCountyBySlug,
@@ -64,10 +65,14 @@ export default defineEventHandler(async (event) => {
     take: 100,
   })
 
+  const countyImage = await getCountyImageForSlug(prisma, county.slug)
+
   return {
     slug: county.slug,
     countyName: county.name,
     displayName: county.displayName,
+    imageUrl: countyImage?.photoUrl ?? null,
+    imageAttribution: countyImage?.attribution ?? null,
     towns: towns.filter((t) => t.href),
     venueTotal,
     events,

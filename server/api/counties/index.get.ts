@@ -21,5 +21,8 @@ export default defineEventHandler(async (event) => {
     config.googlePlacesApiKey || undefined,
   )
 
-  return enriched
+  return enriched.map((county) => ({
+    ...county,
+    href: `/county/${county.slug}`,
+  }))
 })
