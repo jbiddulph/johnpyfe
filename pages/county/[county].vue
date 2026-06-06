@@ -8,6 +8,11 @@
     />
     <div class="container mx-auto p-4 my-8">
       <Breadcrumbs :items="breadcrumbItems" />
+      <SocialShareButtons
+        class="mt-6"
+        :title="`Pubs & events in ${countyDisplayName}`"
+        :path="canonicalPath"
+      />
       <CountyTownList
         :county-name="countyDisplayName"
         :county-slug="countySlug"

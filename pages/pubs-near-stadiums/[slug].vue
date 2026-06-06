@@ -9,6 +9,12 @@
     />
     <div class="container mx-auto p-4 my-8">
       <Breadcrumbs :items="breadcrumbItems" />
+      <SocialShareButtons
+        v-if="stadiumData"
+        class="mt-6"
+        :title="shareTitle"
+        :path="canonicalPath"
+      />
       <div v-if="!stadiumData" class="text-lg text-gray-600">Loading…</div>
       <template v-else>
       <venue-map
@@ -73,9 +79,14 @@ const breadcrumbItems = computed(() => [
   { label: stadiumData.value?.club ?? '' },
 ])
 
+const canonicalPath = computed(() => `/pubs-near-stadiums/${slug}`)
+const shareTitle = computed(
+  () => `Pubs near ${stadiumData.value?.club} — ${stadiumData.value?.stadiumName}`,
+)
+
 useSiteSeo({
   title: `Pubs near ${stadiumData.value.club} — ${stadiumData.value.stadiumName}`,
   description: `Find pubs and venues within ${stadiumData.value.radiusMiles} mile of ${stadiumData.value.stadiumName}, home of ${stadiumData.value.club}.`,
-  path: `/pubs-near-stadiums/${slug}`,
+  path: canonicalPath.value,
 })
 </script>

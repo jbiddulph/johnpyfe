@@ -5,6 +5,12 @@
       <Breadcrumbs :items="breadcrumbItems" />
       <h1 class="text-4xl font-bold mt-6 mb-2">{{ townName }}</h1>
 
+      <SocialShareButtons
+        class="mt-4 mb-6"
+        :title="`Pubs & events in ${townName}`"
+        :path="canonicalPath"
+      />
+
       <nav
         class="flex border-b border-gray-200 dark:border-gray-700 mb-8"
         aria-label="Town sections"
