@@ -157,6 +157,7 @@ import { useVenueStore } from "@/store/venue.js";
 import { useAuthStore } from "@/store/auth.js";
 
 const requestFetch = useRequestFetch();
+const route = useRoute();
 const venueStore = useVenueStore();
 const authStore = useAuthStore();
 const { $supabase } = useNuxtApp();
@@ -184,6 +185,11 @@ const PAGE_SIZE = 104; // Define the page size constant
 const selectedFile = ref<File | null>(null);
 const searchQuery = ref('');
 const activeSearch = ref('');
+const initialQuery = String(route.query.q || '').trim();
+if (initialQuery) {
+  searchQuery.value = initialQuery;
+  activeSearch.value = initialQuery;
+}
 const selectedTown = ref('');
 const selectedCounty = ref('');
 const towns = ref<Array<{ label: string; value: string }>>([]);
@@ -204,7 +210,7 @@ function applyVenuesPage(data: VenuesPage) {
 }
 
 const { data: initialVenues, error: initialVenuesError } = await useAsyncData(
-  'venues-list-page-1',
+  () => `venues-list-${activeSearch.value}-${selectedTown.value}-${selectedCounty.value}-1`,
   () => requestFetch<VenuesPage>(buildVenuesUrl(1)),
 );
 
@@ -219,11 +225,11 @@ function buildVenuesUrl(page = currentPage.value) {
   return `/api/venues?${params}`;
 }
 
-const showSearchGo = computed(() => searchQuery.value.trim().length > 4);
+const showSearchGo = computed(() => searchQuery.value.trim().length >= 2);
 
 function runSearch() {
   const q = searchQuery.value.trim();
-  if (q.length <= 4) return;
+  if (q.length < 2) return;
   activeSearch.value = q;
   currentPage.value = 1;
   fetchAllVenues();

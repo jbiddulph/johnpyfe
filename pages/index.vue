@@ -1,20 +1,8 @@
 <template>
-  <div class="header-img w-full overflow-hidden bg-gray-200">
-    <img
-      src="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg"
-      alt="Pub interior"
-      width="1920"
-      height="480"
-      fetchpriority="high"
-      loading="eager"
-      decoding="async"
-      class="w-full h-auto max-h-[480px] object-cover"
-    />
-  </div>
+  <HomeHeroSearch />
 
   <div class="container mx-auto px-4 py-10">
     <section class="mb-12 text-center max-w-3xl mx-auto">
-      <h1 class="text-4xl md:text-5xl font-bold mb-4">Pubs and venues across the UK</h1>
       <p class="text-xl text-gray-600 dark:text-gray-400">
         Discover events, browse by town or county, and find pubs near you — including coastal towns and Premier League grounds.
       </p>

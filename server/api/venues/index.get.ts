@@ -18,7 +18,11 @@ function buildVenueListWhere(query: Record<string, unknown>): Prisma.VenueWhereI
     where.county = { equals: county, mode: 'insensitive' }
   }
   if (q.length > 0) {
-    where.venuename = { contains: q, mode: 'insensitive' }
+    where.OR = [
+      { venuename: { contains: q, mode: 'insensitive' } },
+      { town: { contains: q, mode: 'insensitive' } },
+      { county: { contains: q, mode: 'insensitive' } },
+    ]
   }
 
   return where
