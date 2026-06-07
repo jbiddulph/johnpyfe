@@ -1,6 +1,16 @@
 <template>
-  <div class="header-img">
-    <img src="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg" alt="Pub interior" />
+  <div class="header-img aspect-[21/9] max-h-[480px] w-full overflow-hidden bg-gray-200">
+    <NuxtImg
+      src="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg"
+      alt="Pub interior"
+      width="1920"
+      height="480"
+      sizes="100vw"
+      fetchpriority="high"
+      loading="eager"
+      preset="header"
+      class="h-full w-full object-cover"
+    />
   </div>
 
   <div class="container mx-auto px-4 py-10">

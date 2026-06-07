@@ -400,6 +400,8 @@ function updateVenueClusters() {
 async function initMap() {
   if (!mapboxToken.value || !mapEl.value) return
 
+  await loadMapboxStyles()
+
   const mapboxgl = (await import('mapbox-gl')).default
   mapboxgl.accessToken = mapboxToken.value
   mapboxglModule = mapboxgl
@@ -437,7 +439,18 @@ async function initMap() {
 
 onMounted(async () => {
   await nextTick()
-  await initMap()
+  scheduleMapInit()
+})
+
+function scheduleMapInit() {
+  if (!mapEl.value) return
+  whenVisible(mapEl.value, () => {
+    initMap()
+  })
+}
+
+watch(mapEl, (el) => {
+  if (el) scheduleMapInit()
 })
 
 watch(

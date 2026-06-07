@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="listingEl">
     <NuxtLink :to="`/events/${event.id}`" class="block">
     <div class="w-full items-center bg-white dark:bg-gray-900 rounded-md">
       <div class="p-4">
@@ -66,13 +66,17 @@ const eventPhotoSrc = computed(() =>
 
 let countdownInterval: ReturnType<typeof setInterval> | undefined
 const countdownHtml = ref('')
+const listingEl = ref<HTMLElement | null>(null)
 
 onMounted(async () => {
   try {
     if (props.venueId) {
       eventStore.events = await eventStore.fetchVenueEvents(props.venueId)
     }
-    startCountdown()
+    await nextTick()
+    whenVisible(listingEl.value, () => {
+      startCountdown()
+    })
   } catch (error) {
     console.error('Error loading event countdown:', error)
   }

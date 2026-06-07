@@ -163,6 +163,8 @@ function escapeHtml(text) {
 async function initMapbox() {
   if (!hasMapboxToken.value || !hasCoords.value || !mapEl.value) return
 
+  await loadMapboxStyles()
+
   if (!mapboxglModule) {
     mapboxglModule = (await import('mapbox-gl')).default
     mapboxglModule.accessToken = mapboxToken.value
@@ -200,7 +202,18 @@ async function refreshMarkers() {
 
 onMounted(async () => {
   await nextTick()
-  await initMapbox()
+  scheduleMapInit()
+})
+
+function scheduleMapInit() {
+  if (!mapEl.value) return
+  whenVisible(mapEl.value, () => {
+    initMapbox()
+  })
+}
+
+watch(mapEl, (el) => {
+  if (el) scheduleMapInit()
 })
 
 onBeforeUnmount(() => {

@@ -4,7 +4,10 @@
       :src="photoUrl"
       :alt="`${venue.venuename} photo`"
       class="venue-card-media__img"
+      width="400"
+      height="180"
       loading="lazy"
+      decoding="async"
     />
   </NuxtLink>
 </template>

@@ -4,11 +4,19 @@
   </div>
   <div v-else>
     <div class="w-full">
-      <img
-        :src="venuePhotoSrc"
-        :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
-        class="w-full h-auto max-h-[480px] object-cover"
-      />
+      <div class="aspect-[5/2] max-h-[480px] w-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+        <NuxtImg
+          :src="venuePhotoSrc"
+          :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
+          width="1200"
+          height="480"
+          sizes="100vw"
+          fetchpriority="high"
+          loading="eager"
+          preset="header"
+          class="h-full w-full object-cover"
+        />
+      </div>
 
       <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div class="container mx-auto px-4 py-5">

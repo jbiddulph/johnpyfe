@@ -117,7 +117,7 @@
             <i><NuxtLink to="/" title="UK Pubs">ukpubs.co.uk</NuxtLink></i> is an events listings website for pubs and venues  around the UK
           </p>
           <p>More events at the following venues</p>
-          <div v-if="topVenues.length || topTowns.length" class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+          <div v-if="topVenues.length || topTowns.length" class="footer-top-lists mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
             <!-- Venue Section -->
             <div class="border-b-2 sm:border-b-0">
               <h3 class="text-2xl mb-4">Top 10 venues with events</h3>
@@ -241,12 +241,12 @@ h1 {
   @apply text-primary-500 !important;
 }
 @media (min-width: 768px) {
-    :is(.dark .md\:dark\:text-white) {
-  }
-}
-@media (min-width: 768px) {
   :is(.dark .md\:dark\:text-white) {
     color: white !important;
   }
+}
+
+.footer-top-lists {
+  min-height: 12rem;
 }
 </style>

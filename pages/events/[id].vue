@@ -1,11 +1,19 @@
 <template>
   <div v-if="event">
     <div class="w-full">
-      <img
-        :src="eventPhotoSrc"
-        :alt="event.event_title"
-        class="w-full h-auto max-h-[480px] object-cover bg-gray-200 dark:bg-gray-700"
-      />
+      <div class="aspect-[5/2] max-h-[480px] w-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+        <NuxtImg
+          :src="eventPhotoSrc"
+          :alt="event.event_title"
+          width="1200"
+          height="480"
+          sizes="100vw"
+          fetchpriority="high"
+          loading="eager"
+          preset="header"
+          class="h-full w-full object-cover"
+        />
+      </div>
       <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div class="container mx-auto px-4 py-5">
           <p v-if="event.category?.name" class="text-sm font-medium uppercase tracking-wide text-amber-600 dark:text-amber-500 mb-1">

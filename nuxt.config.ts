@@ -11,7 +11,6 @@ export default defineNuxtConfig({
     defaultLocale: 'en-GB',
   },
   css: [
-    'mapbox-gl/dist/mapbox-gl.css',
     '~/assets/css/hub-cards.css',
     '~/assets/css/spinner.css',
   ],
@@ -35,7 +34,7 @@ export default defineNuxtConfig({
       }
     }
   },
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NODE_ENV === 'development' },
   
   // Performance optimizations
   experimental: {
@@ -51,6 +50,14 @@ export default defineNuxtConfig({
   // Optimize rendering
   ssr: true,
   routeRules: {
+    '/': { isr: 3600 },
+    '/town/**': { isr: 3600 },
+    '/county/**': { isr: 3600 },
+    '/counties': { isr: 3600 },
+    '/counties/**': { isr: 3600 },
+    '/venues/**': { isr: 1800 },
+    '/events/**': { isr: 900 },
+    '/pubs-near-stadiums/**': { isr: 3600 },
     '/admin/**': { robots: false },
     '/login': { robots: false },
     '/register': { robots: false },
@@ -87,7 +94,7 @@ export default defineNuxtConfig({
     "@nuxt/fonts",
     "@nuxtjs/robots",
     "@nuxtjs/sitemap",
-    // "@nuxt/image", // Temporarily disabled for testing
+    "@nuxt/image",
   ],
   // Image optimization
   image: {
@@ -134,7 +141,13 @@ export default defineNuxtConfig({
       }
     },
     // Allow external domains
-    domains: ['ukpubs.co.uk', 'localhost'],
+    domains: [
+      'ukpubs.co.uk',
+      'localhost',
+      '127.0.0.1',
+      'isprmebbahzjnrekkvxv.supabase.co',
+      'lh3.googleusercontent.com',
+    ],
     // Provider configuration
     providers: {
       // Default provider settings
@@ -150,14 +163,12 @@ export default defineNuxtConfig({
   fonts: {
     google: {
       families: {
-        Roboto: [300, 400, 500, 700], // Load only needed weights
-        'Open+Sans': [300, 400, 600, 700], // Load only needed weights
-        'Lato': [300, 400, 700], // Load only needed weights
+        Kanit: [100, 300, 400, 700],
       },
-      display: 'swap', // Improve font loading performance
-      download: true, // Download fonts for better performance
-      inject: true, // Automatically inject font styles
-    }
+      display: 'swap',
+      download: true,
+      inject: true,
+    },
   },
   robots: {
     groups: [
