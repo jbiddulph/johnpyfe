@@ -55,6 +55,7 @@ export default defineNuxtConfig({
     '/county/**': { isr: 3600 },
     '/counties': { isr: 3600 },
     '/counties/**': { isr: 3600 },
+    '/search': { isr: 900 },
     '/venues/**': { isr: 1800 },
     '/events/**': { isr: 900 },
     '/pubs-near-stadiums/**': { isr: 3600 },

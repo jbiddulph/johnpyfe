@@ -73,6 +73,12 @@ watch(
   { immediate: true },
 )
 
+onMounted(() => {
+  if (route.path === '/') {
+    resetQuery()
+  }
+})
+
 onActivated(() => {
   if (route.path === '/') {
     resetQuery()
@@ -82,7 +88,7 @@ onActivated(() => {
 function submitSearch() {
   const q = query.value.trim()
   if (q.length < 2) return
-  navigateTo({ path: '/venues', query: { q } })
+  navigateTo({ path: '/search', query: { q } })
 }
 </script>
 

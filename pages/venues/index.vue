@@ -158,6 +158,10 @@ import { useAuthStore } from "@/store/auth.js";
 
 const requestFetch = useRequestFetch();
 const route = useRoute();
+const legacySearchQuery = String(route.query.q || '').trim();
+if (legacySearchQuery.length >= 2) {
+  await navigateTo({ path: '/search', query: { q: legacySearchQuery } }, { replace: true });
+}
 const venueStore = useVenueStore();
 const authStore = useAuthStore();
 const { $supabase } = useNuxtApp();
@@ -185,11 +189,14 @@ const PAGE_SIZE = 104; // Define the page size constant
 const selectedFile = ref<File | null>(null);
 const searchQuery = ref('');
 const activeSearch = ref('');
-const initialQuery = String(route.query.q || '').trim();
-if (initialQuery) {
-  searchQuery.value = initialQuery;
-  activeSearch.value = initialQuery;
+
+function syncSearchFromRoute() {
+  const q = String(route.query.q || '').trim();
+  searchQuery.value = q;
+  activeSearch.value = q;
 }
+
+syncSearchFromRoute();
 const selectedTown = ref('');
 const selectedCounty = ref('');
 const towns = ref<Array<{ label: string; value: string }>>([]);
@@ -441,6 +448,15 @@ watch(isMapOpen, (newValue: any) => {
     editMode.value = false;
   }
 });
+
+watch(
+  () => route.query.q,
+  () => {
+    syncSearchFromRoute();
+    currentPage.value = 1;
+    fetchAllVenues();
+  },
+);
 
 onMounted(async () => {
   await initializeAuth();
