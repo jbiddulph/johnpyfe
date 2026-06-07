@@ -1,17 +1,16 @@
 <template>
   <div v-if="event">
     <div class="w-full">
-      <div class="aspect-[5/2] max-h-[480px] w-full overflow-hidden bg-gray-200 dark:bg-gray-700">
-        <NuxtImg
+      <div class="w-full max-h-[480px] overflow-hidden bg-gray-200 dark:bg-gray-700">
+        <img
           :src="eventPhotoSrc"
           :alt="event.event_title"
           width="1200"
           height="480"
-          sizes="100vw"
           fetchpriority="high"
           loading="eager"
-          preset="header"
-          class="h-full w-full object-cover"
+          decoding="async"
+          class="w-full h-auto max-h-[480px] object-cover"
         />
       </div>
       <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">

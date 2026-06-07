@@ -1,15 +1,14 @@
 <template>
-  <div class="header-img aspect-[21/9] max-h-[480px] w-full overflow-hidden bg-gray-200">
-    <NuxtImg
+  <div class="header-img w-full overflow-hidden bg-gray-200">
+    <img
       src="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg"
       alt="Pub interior"
       width="1920"
       height="480"
-      sizes="100vw"
       fetchpriority="high"
       loading="eager"
-      preset="header"
-      class="h-full w-full object-cover"
+      decoding="async"
+      class="w-full h-auto max-h-[480px] object-cover"
     />
   </div>
 
