@@ -148,16 +148,6 @@ export default defineNuxtConfig({
       'isprmebbahzjnrekkvxv.supabase.co',
       'lh3.googleusercontent.com',
     ],
-    // Provider configuration
-    providers: {
-      // Default provider settings
-      default: {
-        // Don't force format conversion for SVG
-        format: ['webp', 'avif', 'jpg', 'jpeg', 'png'],
-        // Preserve original format when possible
-        fallbackFormat: 'original'
-      }
-    }
   },
   
   fonts: {
