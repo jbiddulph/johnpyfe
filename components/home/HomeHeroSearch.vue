@@ -25,7 +25,7 @@
         aria-label="Search pubs and venues"
         @submit.prevent="submitSearch"
       >
-        <div class="flex items-stretch overflow-hidden rounded-full bg-white shadow-2xl ring-1 ring-black/5">
+        <div class="relative flex items-center rounded-full bg-white shadow-2xl ring-1 ring-black/5">
           <label for="home-hero-search-input" class="sr-only">Search pubs and venues</label>
           <input
             id="home-hero-search-input"
@@ -33,14 +33,15 @@
             type="search"
             autocomplete="off"
             placeholder="Search by pub or venue name, town, or county…"
-            class="min-w-0 flex-1 border-0 bg-transparent px-5 py-4 text-base text-gray-900 outline-none placeholder:text-gray-500 md:px-7 md:py-5 md:text-lg"
+            class="home-hero__input w-full rounded-full border-0 bg-transparent py-4 pl-5 pr-14 text-base text-gray-900 outline-none placeholder:text-gray-500 md:py-5 md:pl-7 md:pr-16 md:text-lg"
           />
           <button
             type="submit"
-            class="home-hero__submit shrink-0 bg-amber-600 px-6 text-sm font-semibold text-white transition hover:bg-amber-700 md:px-10 md:text-base"
+            class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-amber-600 text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
             :disabled="!canSearch"
+            aria-label="Search"
           >
-            Search
+            <UIcon name="i-heroicons-magnifying-glass-20-solid" class="h-5 w-5 md:h-6 md:w-6" />
           </button>
         </div>
       </form>
@@ -53,9 +54,30 @@
 </template>
 
 <script setup lang="ts">
+const route = useRoute()
 const query = ref('')
 
 const canSearch = computed(() => query.value.trim().length >= 2)
+
+function resetQuery() {
+  query.value = ''
+}
+
+watch(
+  () => route.path,
+  (path) => {
+    if (path === '/') {
+      resetQuery()
+    }
+  },
+  { immediate: true },
+)
+
+onActivated(() => {
+  if (route.path === '/') {
+    resetQuery()
+  }
+})
 
 function submitSearch() {
   const q = query.value.trim()
@@ -67,5 +89,10 @@ function submitSearch() {
 <style scoped>
 .home-hero__search input[type='search']::-webkit-search-cancel-button {
   -webkit-appearance: none;
+}
+
+.home-hero__input {
+  -webkit-appearance: none;
+  appearance: none;
 }
 </style>
