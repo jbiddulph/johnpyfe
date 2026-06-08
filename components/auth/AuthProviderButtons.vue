@@ -18,9 +18,6 @@
       </button>
     </div>
     <p v-if="errorMessage" class="text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
-    <p class="text-xs text-gray-500 dark:text-gray-400">
-      Additional providers must be enabled in your Supabase project under Authentication → Providers.
-    </p>
   </div>
 </template>
 
@@ -32,6 +29,7 @@ defineProps<{
   mode?: AuthMode
 }>()
 
+const route = useRoute()
 const { $supabase } = useNuxtApp()
 const loading = ref<OAuthProvider | null>(null)
 const errorMessage = ref('')
@@ -45,6 +43,14 @@ const providers = [
   },
 ]
 
+function redirectPath(): string {
+  const redirect = route.query.redirect
+  if (typeof redirect === 'string' && redirect.startsWith('/')) {
+    return `${window.location.origin}${redirect}`
+  }
+  return `${window.location.origin}/`
+}
+
 async function signInWith(provider: OAuthProvider) {
   if (!import.meta.client) return
   loading.value = provider
@@ -53,7 +59,7 @@ async function signInWith(provider: OAuthProvider) {
   const { error } = await $supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${window.location.origin}/`,
+      redirectTo: redirectPath(),
     },
   })
 

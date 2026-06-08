@@ -18,13 +18,14 @@
       </div>
 
       <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-        <div class="container mx-auto px-4 py-5">
+        <div class="container mx-auto px-4 py-5 space-y-4">
           <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
             {{ venue.venuename }}
             <span v-if="venueTownLabel" class="block md:inline text-xl md:text-2xl font-normal text-gray-600 dark:text-gray-400 md:ml-2">
               — {{ venueTownLabel }}<template v-if="venueCountyLabel">, {{ venueCountyLabel }}</template>
             </span>
           </h1>
+          <ClaimPubButton :venue-id="venue.id" />
         </div>
       </div>
     </div>
@@ -37,8 +38,6 @@
         :title="`${venue.venuename} — ${venueTownLabel || venue.town}`"
         :path="canonicalPath"
       />
-
-      <ClaimPubButton :venue-id="venue.id" class="mt-6" />
 
       <nav
         v-if="hasVenueEvents"

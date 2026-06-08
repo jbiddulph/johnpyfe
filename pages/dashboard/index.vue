@@ -32,7 +32,7 @@
       <section>
         <h2 class="text-2xl font-bold mb-4">Your claims</h2>
         <p v-if="!status.claims?.length" class="text-gray-600">
-          No claims yet. Open a pub page and click <strong>Claim this pub</strong>.
+          No claims yet. Open a venue page and click <strong>Claim this venue</strong>.
         </p>
         <ul v-else class="space-y-3 list-none p-0 m-0">
           <li
