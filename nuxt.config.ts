@@ -161,13 +161,23 @@ export default defineNuxtConfig({
   },
   
   fonts: {
+    defaults: {
+      weights: [100, 300, 400, 700],
+      styles: ['normal'],
+      subsets: ['latin'],
+    },
+    families: [
+      { name: 'Kanit', provider: 'google', global: true },
+    ],
     google: {
       families: {
         Kanit: [100, 300, 400, 700],
       },
       display: 'swap',
       download: true,
-      inject: true,
+    },
+    experimental: {
+      disableLocalFallbacks: true,
     },
   },
   robots: {

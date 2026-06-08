@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
   font-stretch: extra-condensed;
   font-weight: 100;
   color: rgba($color: #ddcf00, $alpha: 1.0);
-  font-family: 'Doto', sans-serif;
+  font-family: 'Kanit', sans-serif;
 }
 .calendar {
   font-family: 'Kanit', sans-serif;
