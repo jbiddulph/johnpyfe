@@ -39,13 +39,14 @@ export function getStripePriceId(planId: BillingPlanId): string {
   return priceId
 }
 
-/** Unix timestamp for billing on the 1st of the month (UTC midnight). */
+/** Unix timestamp for the next 1st of the month strictly in the future (UTC midnight). */
 export function nextBillingAnchorUnix(): number {
   const now = new Date()
-  if (now.getUTCDate() === 1) {
-    return Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1) / 1000)
+  let anchor = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0)
+  if (anchor <= now.getTime()) {
+    anchor = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0, 0)
   }
-  return Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1) / 1000)
+  return Math.floor(anchor / 1000)
 }
 
 export const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing'])

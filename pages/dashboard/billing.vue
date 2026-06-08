@@ -28,25 +28,42 @@
       <NuxtLink to="/login" class="text-amber-600 hover:underline">Sign in</NuxtLink> to manage billing.
     </p>
     <p v-else-if="loading" class="text-gray-600">Loading…</p>
-    <p v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</p>
 
-    <template v-else-if="status?.organisation">
+    <UAlert
+      v-if="errorMessage"
+      color="red"
+      variant="soft"
+      title="Something went wrong"
+      :description="errorMessage"
+      class="mb-6"
+    />
+
+    <UAlert
+      v-if="status && !status.hasOrganisation"
+      color="amber"
+      variant="soft"
+      title="Claim a venue when you are ready"
+      description="You can subscribe now. After payment, claim a venue from its page and we will verify ownership before editing goes live."
+      class="mb-6"
+    />
+
+    <template v-if="status && !loading && isLoggedIn">
       <section class="mb-8 rounded-lg border border-gray-200 p-5 dark:border-gray-700">
         <h2 class="text-xl font-bold mb-2">Current plan</h2>
         <p class="text-gray-700 dark:text-gray-300">
-          {{ status.organisation.planLabel || 'No active plan' }}
-          <span v-if="status.organisation.subscriptionStatus"> — {{ status.organisation.subscriptionStatus }}</span>
+          {{ status.organisation?.planLabel || 'No active plan' }}
+          <span v-if="status.organisation?.subscriptionStatus"> — {{ status.organisation.subscriptionStatus }}</span>
         </p>
-        <p v-if="status.organisation.currentPeriodEnd" class="text-sm text-gray-600 mt-1">
+        <p v-if="status.organisation?.currentPeriodEnd" class="text-sm text-gray-600 mt-1">
           Current period ends {{ formatDate(status.organisation.currentPeriodEnd) }}
         </p>
-        <p class="text-sm text-gray-600 mt-2">
+        <p v-if="status.organisation" class="text-sm text-gray-600 mt-2">
           Verified pubs: {{ status.organisation.verifiedClaimCount }}
           <span v-if="status.organisation.pubLimit"> / {{ status.organisation.pubLimit }}</span>
         </p>
         <div class="mt-4 flex flex-wrap gap-3">
           <UButton
-            v-if="status.organisation.hasProAccess"
+            v-if="status.organisation?.hasProAccess"
             label="Manage billing"
             variant="outline"
             :loading="portalLoading"
@@ -69,8 +86,8 @@
             <UButton
               class="mt-4"
               color="amber"
-              :label="status.organisation.plan === plan.id ? 'Current plan' : `Choose ${plan.label}`"
-              :disabled="status.organisation.plan === plan.id && status.organisation.hasProAccess"
+              :label="status.organisation?.plan === plan.id ? 'Current plan' : `Choose ${plan.label}`"
+              :disabled="status.organisation?.plan === plan.id && status.organisation?.hasProAccess"
               :loading="checkoutPlan === plan.id"
               @click="startCheckout(plan.id)"
             />
@@ -78,15 +95,11 @@
         </ul>
       </section>
     </template>
-
-    <p v-else-if="status && !status.hasOrganisation" class="text-gray-600">
-      Claim a pub first, then return here to subscribe.
-      <NuxtLink to="/dashboard" class="text-amber-600 hover:underline">Go to dashboard</NuxtLink>
-    </p>
   </div>
 </template>
 
 <script setup lang="ts">
+import { fetchErrorMessage } from '@/utils/fetch-error'
 const route = useRoute()
 const { isLoggedIn, initializeAuth } = useAuth()
 
@@ -128,8 +141,7 @@ async function loadStatus() {
   try {
     status.value = await useAuthFetch('/api/billing/status')
   } catch (error: unknown) {
-    const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
-    errorMessage.value = err?.data?.statusMessage || err?.statusMessage || 'Failed to load billing'
+    errorMessage.value = fetchErrorMessage(error, 'Failed to load billing')
   } finally {
     loading.value = false
   }
@@ -147,8 +159,7 @@ async function startCheckout(planId: string) {
       window.location.href = url
     }
   } catch (error: unknown) {
-    const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
-    errorMessage.value = err?.data?.statusMessage || err?.statusMessage || 'Checkout failed'
+    errorMessage.value = fetchErrorMessage(error, 'Checkout failed')
   } finally {
     checkoutPlan.value = ''
   }
@@ -161,8 +172,7 @@ async function openPortal() {
     const { url } = await useAuthFetch<{ url: string }>('/api/billing/portal', { method: 'POST' })
     if (url) window.location.href = url
   } catch (error: unknown) {
-    const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
-    errorMessage.value = err?.data?.statusMessage || err?.statusMessage || 'Could not open billing portal'
+    errorMessage.value = fetchErrorMessage(error, 'Could not open billing portal')
   } finally {
     portalLoading.value = false
   }
