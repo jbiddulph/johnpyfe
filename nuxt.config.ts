@@ -16,7 +16,14 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY || '',
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+    stripePriceSolo: process.env.STRIPE_PRICE_SOLO || '',
+    stripePriceGroup: process.env.STRIPE_PRICE_GROUP || '',
+    stripePriceRegional: process.env.STRIPE_PRICE_REGIONAL || '',
+    stripePriceEnterprise: process.env.STRIPE_PRICE_ENTERPRISE || '',
     public: {
+      stripePublishableKey: process.env.NUXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
       baseURL: (process.env.BASE_URL || process.env.NUXT_PUBLIC_APP_URL || siteUrl).replace(/\/$/, ''),
       appURL: siteUrl,
       apiURL: (process.env.NUXT_PUBLIC_API_URL || process.env.NUXT_PUBLIC_APP_URL || siteUrl).replace(/\/$/, ''),
@@ -56,6 +63,8 @@ export default defineNuxtConfig({
     '/counties': { isr: 3600 },
     '/counties/**': { isr: 3600 },
     '/search': { isr: 900 },
+    '/dashboard/**': { robots: false },
+    '/api/webhooks/**': { cors: false },
     '/venues/**': { isr: 1800 },
     '/events/**': { isr: 900 },
     '/pubs-near-stadiums/**': { isr: 3600 },

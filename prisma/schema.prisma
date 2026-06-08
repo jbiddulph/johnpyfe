@@ -40,6 +40,67 @@ model Venue {
   updated_at          String
   notes               Note[]
   events              Event[]
+  claim               VenueClaim?
+  profile             VenueProfile?
+}
+
+model Organisation {
+  id                   String   @id @default(uuid())
+  name                 String
+  stripeCustomerId     String?  @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?  @unique @map("stripe_subscription_id")
+  plan                 String   @default("none")
+  subscriptionStatus   String?  @map("subscription_status")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  members              OrganisationMember[]
+  claims               VenueClaim[]
+
+  @@map("organisations")
+}
+
+model OrganisationMember {
+  id             String       @id @default(uuid())
+  organisationId String       @map("organisation_id")
+  userId         String       @map("user_id")
+  role           String       @default("owner")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, userId])
+  @@index([userId])
+  @@map("organisation_members")
+}
+
+model VenueClaim {
+  id             String       @id @default(uuid())
+  venueId        Int          @unique @map("venue_id")
+  organisationId String       @map("organisation_id")
+  status         String       @default("pending")
+  requestedAt    DateTime     @default(now()) @map("requested_at")
+  verifiedAt     DateTime?    @map("verified_at")
+  verifiedBy     String?      @map("verified_by")
+  venue          Venue        @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([status])
+  @@map("venue_claims")
+}
+
+model VenueProfile {
+  venueId          Int     @id @map("venue_id")
+  logoUrl          String? @map("logo_url")
+  headerImageUrl   String? @map("header_image_url")
+  menuFoodUrl      String? @map("menu_food_url")
+  menuDrinksUrl    String? @map("menu_drinks_url")
+  socialLinks      Json?   @map("social_links")
+  customDescription String? @map("custom_description") @db.VarChar(5000)
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  venue            Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@map("venue_profiles")
 }
 
 model City {

@@ -38,6 +38,8 @@
         :path="canonicalPath"
       />
 
+      <ClaimPubButton :venue-id="venue.id" class="mt-6" />
+
       <nav
         v-if="hasVenueEvents"
         class="flex border-b border-gray-200 dark:border-gray-700 mt-6 mb-8"
@@ -83,6 +85,18 @@
         <section v-if="venueDescription" class="my-8">
           <h2 class="text-3xl font-bold">About</h2>
           <p class="text-xl text-gray-700 dark:text-gray-300 mt-3 leading-relaxed">{{ venueDescription }}</p>
+        </section>
+
+        <section v-if="ownerMenus.food || ownerMenus.drinks" class="my-8">
+          <h2 class="text-3xl font-bold">Menus</h2>
+          <ul class="mt-3 space-y-2 text-xl">
+            <li v-if="ownerMenus.food">
+              <a :href="ownerMenus.food" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline">Food menu</a>
+            </li>
+            <li v-if="ownerMenus.drinks">
+              <a :href="ownerMenus.drinks" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline">Drinks menu</a>
+            </li>
+          </ul>
         </section>
 
         <section v-if="venueFeatureItems.length" class="my-8">
@@ -236,6 +250,12 @@ const { data: nearbyData, pending: nearbyPending } = await useAsyncData(
   { default: () => ({ items: [], radiusMiles: 1 }) },
 )
 
+const { data: ownerBranding } = await useAsyncData(
+  `venue-owner-${venueId}`,
+  () => requestFetch(`/api/venues/${venueId}/owner-profile`),
+  { default: () => null },
+)
+
 const venueEvents = computed(() => sortEventsByStartAsc(events.value ?? []))
 const hasVenueEvents = computed(() => venueEvents.value.length > 0)
 const nearbyPubs = computed(() => nearbyData.value?.items ?? [])
@@ -293,9 +313,22 @@ const photoConfig = computed(() => ({
   supabaseUrl: config.public.supabase?.url,
 }))
 
-const venuePhotoSrc = computed(() => resolveVenueDisplayPhotoUrl(venue.value?.photo, photoConfig.value))
+const ownerProfile = computed(() => ownerBranding.value?.profile ?? null)
 
-const venueDescription = computed(() => cleanDbString(venue.value?.description))
+const venuePhotoSrc = computed(() => {
+  const customHeader = cleanDbString(ownerProfile.value?.headerImageUrl)
+  if (customHeader) return customHeader
+  return resolveVenueDisplayPhotoUrl(venue.value?.photo, photoConfig.value)
+})
+
+const venueDescription = computed(() =>
+  cleanDbString(ownerProfile.value?.customDescription) || cleanDbString(venue.value?.description),
+)
+
+const ownerMenus = computed(() => ({
+  food: cleanDbString(ownerProfile.value?.menuFoodUrl),
+  drinks: cleanDbString(ownerProfile.value?.menuDrinksUrl),
+}))
 
 const venueFeatureItems = computed(() => parseVenueFeatures(venue.value?.features))
 
