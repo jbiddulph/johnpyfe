@@ -1,4 +1,9 @@
-import { BILLING_PLANS, getBillingPlan } from '../../utils/billing-plans'
+import {
+  BILLING_PLANS,
+  getBillingPlan,
+  getStripeTestPaymentPriceId,
+  isStripeTestMode,
+} from '../../utils/billing-plans'
 import {
   canClaimMorePubs,
   countVerifiedClaims,
@@ -12,9 +17,14 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   const membership = await getMembershipForUser(user.id)
 
+  const stripeTestMode = isStripeTestMode()
+  const stripeTestPaymentConfigured = Boolean(getStripeTestPaymentPriceId())
+
   if (!membership) {
     return {
       hasOrganisation: false,
+      stripeTestMode,
+      stripeTestPaymentConfigured,
       plans: BILLING_PLANS.map(({ id, label, monthlyGbp, pubLimit }) => ({
         id,
         label,
@@ -31,6 +41,8 @@ export default defineEventHandler(async (event) => {
 
   return {
     hasOrganisation: true,
+    stripeTestMode,
+    stripeTestPaymentConfigured,
     organisation: {
       id: organisation.id,
       name: organisation.name,

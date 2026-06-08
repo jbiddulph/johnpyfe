@@ -26,12 +26,28 @@ export function getBillingPlan(planId: string): BillingPlan | null {
   return planById.get(planId as BillingPlanId) ?? null
 }
 
+export function isStripeTestMode(): boolean {
+  const config = useRuntimeConfig()
+  return String(config.stripeSecretKey || '').startsWith('sk_test_')
+}
+
+export function getStripeTestPaymentPriceId(): string {
+  const config = useRuntimeConfig()
+  return String(config.stripeTestPayment || '').trim()
+}
+
 export function getStripePriceId(planId: BillingPlanId): string {
   const config = useRuntimeConfig()
   const plan = getBillingPlan(planId)
   if (!plan) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid plan' })
   }
+
+  const testPriceId = getStripeTestPaymentPriceId()
+  if (isStripeTestMode() && testPriceId) {
+    return testPriceId
+  }
+
   const priceId = String(config[plan.priceEnvKey] || '').trim()
   if (!priceId) {
     throw createError({ statusCode: 503, statusMessage: `Stripe price not configured for ${planId}` })
@@ -57,6 +73,11 @@ export function isSubscriptionActive(status: string | null | undefined): boolean
 
 export function planIdFromStripePriceId(priceId: string): BillingPlanId | null {
   const config = useRuntimeConfig()
+  const testPriceId = getStripeTestPaymentPriceId()
+  if (testPriceId && priceId === testPriceId) {
+    return 'solo'
+  }
+
   const entries: Array<[BillingPlanId, string]> = [
     ['solo', config.stripePriceSolo],
     ['group', config.stripePriceGroup],

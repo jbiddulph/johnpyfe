@@ -16,6 +16,15 @@
     />
 
     <UAlert
+      v-if="status?.stripeTestMode && status?.stripeTestPaymentConfigured"
+      color="blue"
+      variant="soft"
+      title="Stripe test mode"
+      description="Checkout uses your £4.99 test price (STRIPE_TEST_PAYMENT) for every plan. Use card 4242 4242 4242 4242."
+      class="mb-6"
+    />
+
+    <UAlert
       v-if="route.query.checkout === 'canceled'"
       color="amber"
       variant="soft"
@@ -109,6 +118,8 @@ const checkoutPlan = ref('')
 const portalLoading = ref(false)
 const status = ref<{
   hasOrganisation: boolean
+  stripeTestMode?: boolean
+  stripeTestPaymentConfigured?: boolean
   organisation?: {
     plan: string
     planLabel: string | null

@@ -1,13 +1,15 @@
 import type Stripe from 'stripe'
 import { prisma } from './prisma'
-import { planIdFromStripePriceId } from './billing-plans'
+import { getBillingPlan, planIdFromStripePriceId, type BillingPlanId } from './billing-plans'
 
 export async function syncOrganisationFromSubscription(
   organisationId: string,
   subscription: Stripe.Subscription,
 ) {
   const priceId = subscription.items.data[0]?.price?.id
-  const plan = priceId ? planIdFromStripePriceId(priceId) : null
+  const planFromPrice = priceId ? planIdFromStripePriceId(priceId) : null
+  const metaPlan = String(subscription.metadata?.plan || '').trim() as BillingPlanId
+  const plan = planFromPrice || (getBillingPlan(metaPlan) ? metaPlan : null)
 
   await prisma.organisation.update({
     where: { id: organisationId },
