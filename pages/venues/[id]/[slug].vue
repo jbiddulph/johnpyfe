@@ -25,7 +25,7 @@
               — {{ venueTownLabel }}<template v-if="venueCountyLabel">, {{ venueCountyLabel }}</template>
             </span>
           </h1>
-          <ClaimPubButton :venue-id="venue.id" />
+          <VenueClaimPubButton :venue-id="Number(venue.id)" />
         </div>
       </div>
     </div>
