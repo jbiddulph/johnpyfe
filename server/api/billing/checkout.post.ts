@@ -6,6 +6,7 @@ import {
 } from '../../utils/billing-plans'
 import { getMembershipForUser } from '../../utils/organisation-access'
 import { requireAuth } from '../../utils/require-auth'
+import { billingSiteUrl } from '../../utils/billing-site-url'
 import { getStripe } from '../../utils/stripe'
 
 export default defineEventHandler(async (event) => {
@@ -22,11 +23,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Claim a pub before subscribing' })
   }
 
-  const config = useRuntimeConfig()
-  const siteUrl = String(config.public.appURL || config.public.baseURL || '').replace(/\/$/, '')
-  if (!siteUrl) {
-    throw createError({ statusCode: 503, statusMessage: 'Site URL is not configured' })
-  }
+  const siteUrl = billingSiteUrl(event)
 
   const stripe = getStripe()
   const organisation = membership.organisation

@@ -15,6 +15,15 @@
       class="mb-6"
     />
 
+    <UAlert
+      v-if="route.query.checkout === 'canceled'"
+      color="amber"
+      variant="soft"
+      title="Checkout canceled"
+      description="No payment was taken. You can choose a plan below when you are ready."
+      class="mb-6"
+    />
+
     <p v-if="!isLoggedIn" class="text-gray-600">
       <NuxtLink to="/login" class="text-amber-600 hover:underline">Sign in</NuxtLink> to manage billing.
     </p>

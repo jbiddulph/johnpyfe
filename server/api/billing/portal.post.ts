@@ -1,5 +1,6 @@
 import { getMembershipForUser } from '../../utils/organisation-access'
 import { requireAuth } from '../../utils/require-auth'
+import { billingSiteUrl } from '../../utils/billing-site-url'
 import { getStripe } from '../../utils/stripe'
 
 export default defineEventHandler(async (event) => {
@@ -9,8 +10,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'No Stripe customer found — subscribe first' })
   }
 
-  const config = useRuntimeConfig()
-  const siteUrl = String(config.public.appURL || config.public.baseURL || '').replace(/\/$/, '')
+  const siteUrl = billingSiteUrl(event)
   const stripe = getStripe()
 
   const portal = await stripe.billingPortal.sessions.create({
