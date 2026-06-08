@@ -10,6 +10,7 @@ import {
 } from '../../utils/organisation-access'
 import { requireAuth } from '../../utils/require-auth'
 import { billingSiteUrl } from '../../utils/billing-site-url'
+import { prisma } from '../../utils/prisma'
 import { getStripe } from '../../utils/stripe'
 
 export default defineEventHandler(async (event) => {
@@ -33,16 +34,28 @@ export default defineEventHandler(async (event) => {
 
   const siteUrl = billingSiteUrl(event)
   const stripe = getStripe()
-  const organisation = membership.organisation
+  let organisation = membership.organisation
   const priceId = getStripePriceId(planId)
+
+  if (!organisation.stripeCustomerId) {
+    const customer = await stripe.customers.create({
+      email: user.email ?? undefined,
+      name: organisation.name,
+      metadata: { organisationId: organisation.id, userId: user.id },
+    })
+    organisation = await prisma.organisation.update({
+      where: { id: organisation.id },
+      data: { stripeCustomerId: customer.id },
+    })
+  }
 
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      customer: organisation.stripeCustomerId ?? undefined,
+      customer: organisation.stripeCustomerId,
       client_reference_id: organisation.id,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${siteUrl}/dashboard/billing?checkout=success`,
+      success_url: `${siteUrl}/dashboard/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/dashboard/billing?checkout=canceled`,
       metadata: {
         organisationId: organisation.id,

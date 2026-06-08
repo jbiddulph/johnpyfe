@@ -1,5 +1,6 @@
 import type Stripe from 'stripe'
 import { prisma } from '../../utils/prisma'
+import { resolveOrganisationIdForSubscription } from '../../utils/sync-stripe-billing'
 import { clearOrganisationSubscription, syncOrganisationFromSubscription } from '../../utils/sync-stripe-subscription'
 import { getStripe } from '../../utils/stripe'
 
@@ -37,9 +38,13 @@ export default defineEventHandler(async (event) => {
       if (!organisationId) break
 
       if (session.customer) {
+        const customerId = String(session.customer)
         await prisma.organisation.update({
           where: { id: organisationId },
-          data: { stripeCustomerId: String(session.customer) },
+          data: { stripeCustomerId: customerId },
+        })
+        await stripe.customers.update(customerId, {
+          metadata: { organisationId },
         })
       }
 
@@ -52,7 +57,7 @@ export default defineEventHandler(async (event) => {
 
     case 'customer.subscription.updated': {
       const subscription = stripeEvent.data.object as Stripe.Subscription
-      const organisationId = subscription.metadata?.organisationId
+      const organisationId = await resolveOrganisationIdForSubscription(subscription)
       if (!organisationId) break
       await syncOrganisationFromSubscription(organisationId, subscription)
       break
@@ -60,7 +65,7 @@ export default defineEventHandler(async (event) => {
 
     case 'customer.subscription.deleted': {
       const subscription = stripeEvent.data.object as Stripe.Subscription
-      const organisationId = subscription.metadata?.organisationId
+      const organisationId = await resolveOrganisationIdForSubscription(subscription)
       if (!organisationId) break
       await clearOrganisationSubscription(organisationId)
       break
@@ -72,7 +77,7 @@ export default defineEventHandler(async (event) => {
       if (!subscriptionId) break
 
       const subscription = await stripe.subscriptions.retrieve(String(subscriptionId))
-      const organisationId = subscription.metadata?.organisationId
+      const organisationId = await resolveOrganisationIdForSubscription(subscription)
       if (!organisationId) break
 
       await prisma.organisation.update({

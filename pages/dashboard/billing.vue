@@ -11,7 +11,7 @@
       color="green"
       variant="soft"
       title="Payment received"
-      description="Your subscription will activate shortly once Stripe confirms payment."
+      :description="confirmingSession ? 'Activating your subscription…' : 'Your subscription is active. You can edit your verified venues from the dashboard.'"
       class="mb-6"
     />
 
@@ -78,6 +78,12 @@
             :loading="portalLoading"
             @click="openPortal"
           />
+          <UButton
+            label="Refresh subscription"
+            variant="soft"
+            :loading="syncing"
+            @click="syncSubscription"
+          />
         </div>
       </section>
 
@@ -116,6 +122,8 @@ const loading = ref(true)
 const errorMessage = ref('')
 const checkoutPlan = ref('')
 const portalLoading = ref(false)
+const syncing = ref(false)
+const confirmingSession = ref(false)
 const status = ref<{
   hasOrganisation: boolean
   stripeTestMode?: boolean
@@ -189,9 +197,49 @@ async function openPortal() {
   }
 }
 
+async function confirmCheckoutSession() {
+  const sessionId = String(route.query.session_id || '').trim()
+  if (!sessionId || route.query.checkout !== 'success') return
+
+  confirmingSession.value = true
+  errorMessage.value = ''
+  try {
+    await useAuthFetch('/api/billing/confirm-session', {
+      method: 'POST',
+      body: { sessionId },
+    })
+    await loadStatus()
+  } catch (error: unknown) {
+    errorMessage.value = fetchErrorMessage(error, 'Could not confirm checkout — try Refresh subscription')
+  } finally {
+    confirmingSession.value = false
+  }
+}
+
+async function syncSubscription() {
+  syncing.value = true
+  errorMessage.value = ''
+  try {
+    await useAuthFetch('/api/billing/sync', { method: 'POST' })
+    await loadStatus()
+  } catch (error: unknown) {
+    errorMessage.value = fetchErrorMessage(error, 'Could not refresh subscription')
+  } finally {
+    syncing.value = false
+  }
+}
+
 onMounted(async () => {
   await initializeAuth()
   await loadStatus()
+  await confirmCheckoutSession()
+  if (
+    route.query.checkout === 'success'
+    && status.value?.organisation
+    && !status.value.organisation.hasProAccess
+  ) {
+    await syncSubscription()
+  }
 })
 
 useSiteSeo({

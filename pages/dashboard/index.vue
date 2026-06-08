@@ -26,6 +26,13 @@
         </dl>
         <div class="flex flex-wrap gap-3">
           <UButton to="/dashboard/billing" color="amber" label="Billing & plans" />
+          <UButton
+            v-if="status.organisation && !status.organisation.hasProAccess"
+            label="Refresh subscription"
+            variant="soft"
+            :loading="syncing"
+            @click="syncSubscription"
+          />
         </div>
       </section>
 
@@ -66,11 +73,27 @@
 </template>
 
 <script setup lang="ts">
+import { fetchErrorMessage } from '@/utils/fetch-error'
+
 const { user, isLoggedIn, initializeAuth } = useAuth()
 
 const loading = ref(true)
+const syncing = ref(false)
 const errorMessage = ref('')
-const status = ref<Record<string, unknown> | null>(null)
+const status = ref<{
+  organisation?: {
+    hasProAccess: boolean
+    planLabel?: string | null
+    subscriptionStatus?: string | null
+    verifiedClaimCount: number
+    pubLimit: number
+  }
+  claims?: Array<{
+    id: string
+    status: string
+    venue: { id: number; venuename: string; slug: string; town: string }
+  }>
+} | null>(null)
 
 const breadcrumbItems = [
   { label: 'Home', to: '/' },
@@ -88,17 +111,35 @@ async function loadStatus() {
   try {
     status.value = await useAuthFetch('/api/billing/status')
   } catch (error: unknown) {
-    const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
-    errorMessage.value = err?.data?.statusMessage || err?.statusMessage || 'Failed to load dashboard'
+    errorMessage.value = fetchErrorMessage(error, 'Failed to load dashboard')
     status.value = null
   } finally {
     loading.value = false
   }
 }
 
+async function syncSubscription() {
+  syncing.value = true
+  errorMessage.value = ''
+  try {
+    await useAuthFetch('/api/billing/sync', { method: 'POST' })
+    await loadStatus()
+  } catch (error: unknown) {
+    errorMessage.value = fetchErrorMessage(error, 'Could not refresh subscription')
+  } finally {
+    syncing.value = false
+  }
+}
+
 onMounted(async () => {
   await initializeAuth()
   await loadStatus()
+  if (status.value?.organisation && !status.value.organisation.hasProAccess) {
+    const hasVerified = status.value.claims?.some((claim) => claim.status === 'verified')
+    if (hasVerified) {
+      await syncSubscription()
+    }
+  }
 })
 
 useSiteSeo({
