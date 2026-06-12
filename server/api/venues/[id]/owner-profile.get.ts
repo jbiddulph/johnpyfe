@@ -1,8 +1,10 @@
 import { prisma } from '../../../utils/prisma'
 import { isSubscriptionActive } from '../../../utils/billing-plans'
+import { sanitizeSocialLinks } from '../../../utils/venue-profile'
 
 /** Public owner branding shown on verified, subscribed pub pages. */
 export default defineEventHandler(async (event) => {
+  setResponseHeader(event, 'Cache-Control', 'private, no-cache')
   const id = Number.parseInt(String(event.context.params?.id ?? ''), 10)
   if (!Number.isFinite(id)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid venue id' })
@@ -31,7 +33,7 @@ export default defineEventHandler(async (event) => {
       headerImageUrl: profile.headerImageUrl,
       menuFoodUrl: profile.menuFoodUrl,
       menuDrinksUrl: profile.menuDrinksUrl,
-      socialLinks: profile.socialLinks,
+      socialLinks: sanitizeSocialLinks(profile.socialLinks as Record<string, string> | null),
       customDescription: profile.customDescription,
     },
   }

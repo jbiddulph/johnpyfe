@@ -2,6 +2,7 @@ import { resolveSiteUrl } from './utils/site-url'
 
 const mapboxToken = process.env.NUXT_PUBLIC_MAPBOX_TOKEN || ''
 const siteUrl = resolveSiteUrl()
+const googleAnalyticsId = (process.env.NUXT_PUBLIC_GA_ID || 'G-LHT3Z80MSB').trim()
 
 export default defineNuxtConfig({
   site: {
@@ -36,6 +37,7 @@ export default defineNuxtConfig({
       venueImgFolder: process.env.VENUE_IMG_FOLDER,
       admin: process.env.ADMIN_EMAIL,
       mapbox_token: mapboxToken,
+      googleAnalyticsId,
       supabase: {
         url: process.env.SUPABASE_URL,
         key: process.env.SUPABASE_KEY
@@ -81,6 +83,25 @@ export default defineNuxtConfig({
   },
   
   // Critical CSS inlining (commented out until critical.css file exists)
+  app: {
+    head: {
+      script: googleAnalyticsId
+        ? [
+            {
+              src: `https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`,
+              async: true,
+            },
+            {
+              type: 'text/javascript',
+              children: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${googleAnalyticsId}');`,
+            },
+          ]
+        : [],
+    },
+  },
   // app: {
   //   head: {
   //     link: [

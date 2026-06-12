@@ -19,12 +19,26 @@
 
       <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div class="container mx-auto px-4 py-5 space-y-4">
-          <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-            {{ venue.venuename }}
-            <span v-if="venueTownLabel" class="block md:inline text-xl md:text-2xl font-normal text-gray-600 dark:text-gray-400 md:ml-2">
-              — {{ venueTownLabel }}<template v-if="venueCountyLabel">, {{ venueCountyLabel }}</template>
-            </span>
-          </h1>
+          <div class="flex flex-wrap items-start gap-4">
+            <img
+              v-if="ownerLogoUrl"
+              :src="ownerLogoUrl"
+              :alt="`${venue.venuename} logo`"
+              width="80"
+              height="80"
+              loading="lazy"
+              decoding="async"
+              class="h-16 w-16 shrink-0 rounded-lg bg-white object-contain p-1 shadow-sm dark:bg-gray-800"
+            />
+            <div class="min-w-0 flex-1">
+              <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                {{ venue.venuename }}
+                <span v-if="venueTownLabel" class="block md:inline text-xl md:text-2xl font-normal text-gray-600 dark:text-gray-400 md:ml-2">
+                  — {{ venueTownLabel }}<template v-if="venueCountyLabel">, {{ venueCountyLabel }}</template>
+                </span>
+              </h1>
+            </div>
+          </div>
           <VenueClaimPubButton :venue-id="Number(venue.id)" />
         </div>
       </div>
@@ -84,6 +98,22 @@
         <section v-if="venueDescription" class="my-8">
           <h2 class="text-3xl font-bold">About</h2>
           <p class="text-xl text-gray-700 dark:text-gray-300 mt-3 leading-relaxed">{{ venueDescription }}</p>
+        </section>
+
+        <section v-if="ownerSocialItems.length" class="my-8">
+          <h2 class="text-3xl font-bold">Follow</h2>
+          <ul class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xl">
+            <li v-for="item in ownerSocialItems" :key="item.key">
+              <a
+                :href="item.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-amber-600 hover:underline"
+              >
+                {{ item.label }}
+              </a>
+            </li>
+          </ul>
         </section>
 
         <section v-if="ownerMenus.food || ownerMenus.drinks" class="my-8">
@@ -314,6 +344,26 @@ const photoConfig = computed(() => ({
 
 const ownerProfile = computed(() => ownerBranding.value?.profile ?? null)
 
+const ownerLogoUrl = computed(() => cleanDbString(ownerProfile.value?.logoUrl))
+
+const ownerSocialItems = computed(() => {
+  const links = ownerProfile.value?.socialLinks
+  if (!links || typeof links !== 'object') return []
+  const labels = {
+    facebook: 'Facebook',
+    instagram: 'Instagram',
+    twitter: 'X',
+    tiktok: 'TikTok',
+  }
+  return Object.entries(links)
+    .map(([key, url]) => ({
+      key,
+      label: labels[key] || key,
+      url: cleanDbString(url),
+    }))
+    .filter((item) => item.url)
+})
+
 const venuePhotoSrc = computed(() => {
   const customHeader = cleanDbString(ownerProfile.value?.headerImageUrl)
   if (customHeader) return customHeader
@@ -359,6 +409,12 @@ onMounted(async () => {
     } catch {
       /* 404 already handled on server */
     }
+  }
+
+  try {
+    ownerBranding.value = await $fetch(useApiUrl(`/api/venues/${venueId}/owner-profile`))
+  } catch {
+    ownerBranding.value = null
   }
 
   eventStore.events = venueEvents.value

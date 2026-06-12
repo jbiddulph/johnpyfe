@@ -2,6 +2,7 @@ import Joi from 'joi'
 import { requireVerifiedClaimAccess } from '../../../../utils/organisation-access'
 import { requireAuth } from '../../../../utils/require-auth'
 import { prisma } from '../../../../utils/prisma'
+import { sanitizeSocialLinks } from '../../../../utils/venue-profile'
 
 const schema = Joi.object({
   logoUrl: Joi.string().max(2000).allow('', null).optional(),
@@ -32,6 +33,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 412, statusMessage: error.message })
   }
 
+  const socialLinks = sanitizeSocialLinks(value.socialLinks)
+
   const profile = await prisma.venueProfile.upsert({
     where: { venueId },
     create: {
@@ -41,7 +44,7 @@ export default defineEventHandler(async (event) => {
       menuFoodUrl: value.menuFoodUrl || null,
       menuDrinksUrl: value.menuDrinksUrl || null,
       customDescription: value.customDescription || null,
-      socialLinks: value.socialLinks ?? null,
+      socialLinks,
     },
     update: {
       logoUrl: value.logoUrl || null,
@@ -49,7 +52,7 @@ export default defineEventHandler(async (event) => {
       menuFoodUrl: value.menuFoodUrl || null,
       menuDrinksUrl: value.menuDrinksUrl || null,
       customDescription: value.customDescription || null,
-      socialLinks: value.socialLinks ?? null,
+      socialLinks,
     },
   })
 
