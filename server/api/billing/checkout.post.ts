@@ -86,6 +86,13 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    if (/does not allow requests from your ip/i.test(stripeMessage)) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Stripe API key IP restriction blocked checkout. On Netlify use a standard secret key (sk_test_ or sk_live_) or a restricted key (rk_) without IP allowlisting — serverless functions use AWS IPs, not your browser IP.',
+      })
+    }
+
     throw createError({
       statusCode: 400,
       statusMessage: stripeMessage,
