@@ -17,7 +17,6 @@
       <VenueHeaderUpload
         v-model="form.headerImageUrls"
         :venue-id="venueId"
-        :preview-urls="headerPreviewUrls"
         @updated="saveProfile"
       />
       <label class="flex items-start gap-3 cursor-pointer">
@@ -98,7 +97,6 @@ const saving = ref(false)
 const errorMessage = ref('')
 const savedMessage = ref('')
 const venueSlug = ref('')
-const headerPreviewUrls = ref<string[]>([])
 const originalVenuePhotoUrl = ref('')
 
 const form = reactive({
@@ -139,7 +137,6 @@ async function loadProfile() {
     const profile = await useAuthFetch<{
       logoUrl: string | null
       headerImageUrls: string[]
-      headerImagePublicUrls: string[]
       showOriginalVenueImage: boolean
       menuFoodUrl: string | null
       menuDrinksUrl: string | null
@@ -149,7 +146,6 @@ async function loadProfile() {
 
     form.logoUrl = profile.logoUrl || ''
     form.headerImageUrls = profile.headerImageUrls || []
-    headerPreviewUrls.value = profile.headerImagePublicUrls || []
     form.showOriginalVenueImage = Boolean(profile.showOriginalVenueImage)
     form.menuFoodUrl = profile.menuFoodUrl || ''
     form.menuDrinksUrl = profile.menuDrinksUrl || ''
