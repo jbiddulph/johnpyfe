@@ -9,6 +9,11 @@ export const useAuth = () => {
   // Initialize authentication state (only once)
   const initializeAuth = async () => {
     if (isInitialized.value) return;
+
+    if (!$supabase?.auth) {
+      isInitialized.value = true;
+      return;
+    }
     
     console.log('Initializing global auth state...');
     

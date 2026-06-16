@@ -214,9 +214,11 @@ const logout = async () => {
   const { $supabase } = useNuxtApp();
   
   // logout from Supabase/Google 
-  const { error } = await $supabase.auth.signOut()
-  if (error){
-    console.log("Error: ", error)
+  if ($supabase?.auth) {
+    const { error } = await $supabase.auth.signOut()
+    if (error){
+      console.log("Error: ", error)
+    }
   }
   
   //logout JWT
