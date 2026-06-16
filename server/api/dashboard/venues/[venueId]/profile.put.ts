@@ -11,6 +11,7 @@ const schema = Joi.object({
   menuFoodUrl: Joi.string().max(2000).allow('', null).optional(),
   menuDrinksUrl: Joi.string().max(2000).allow('', null).optional(),
   customDescription: Joi.string().max(5000).allow('', null).optional(),
+  showOriginalVenueImage: Joi.boolean().optional(),
   socialLinks: Joi.object({
     facebook: Joi.string().max(2000).allow('', null).optional(),
     instagram: Joi.string().max(2000).allow('', null).optional(),
@@ -45,6 +46,7 @@ export default defineEventHandler(async (event) => {
       logoUrl: value.logoUrl || null,
       headerImageUrl,
       headerImageUrls,
+      showOriginalVenueImage: Boolean(value.showOriginalVenueImage),
       menuFoodUrl: value.menuFoodUrl || null,
       menuDrinksUrl: value.menuDrinksUrl || null,
       customDescription: value.customDescription || null,
@@ -54,6 +56,7 @@ export default defineEventHandler(async (event) => {
       logoUrl: value.logoUrl || null,
       headerImageUrl,
       headerImageUrls,
+      showOriginalVenueImage: Boolean(value.showOriginalVenueImage),
       menuFoodUrl: value.menuFoodUrl || null,
       menuDrinksUrl: value.menuDrinksUrl || null,
       customDescription: value.customDescription || null,

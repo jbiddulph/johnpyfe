@@ -10,9 +10,30 @@
     </p>
 
     <p v-else-if="loading" class="text-gray-600">Loading…</p>
-    <p v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</p>
 
-    <template v-else-if="status">
+    <template v-else>
+      <section
+        v-if="ownerEmail"
+        class="mb-8 rounded-lg border border-gray-200 p-5 dark:border-gray-700"
+      >
+        <h2 class="text-2xl font-bold mb-3">Account</h2>
+        <dl class="grid gap-2 text-sm sm:grid-cols-2">
+          <div>
+            <dt class="font-medium">Owner name</dt>
+            <dd>{{ ownerName || '—' }}</dd>
+          </div>
+          <div>
+            <dt class="font-medium">Email</dt>
+            <dd>
+              <a :href="`mailto:${ownerEmail}`" class="text-amber-600 hover:underline">{{ ownerEmail }}</a>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <p v-if="errorMessage" class="text-red-600 mb-6">{{ errorMessage }}</p>
+
+      <template v-if="status">
       <section class="mb-8 rounded-lg border border-gray-200 p-5 dark:border-gray-700">
         <h2 class="text-2xl font-bold mb-3">Subscription</h2>
         <p v-if="!status.organisation?.hasProAccess" class="text-gray-600 mb-4">
@@ -68,6 +89,7 @@
           </li>
         </ul>
       </section>
+      </template>
     </template>
   </div>
 </template>
@@ -99,6 +121,13 @@ const breadcrumbItems = [
   { label: 'Home', to: '/' },
   { label: 'Dashboard' },
 ]
+
+const ownerName = computed(() => {
+  const metadata = user.value?.user_metadata as { name?: string; full_name?: string } | undefined
+  return String(metadata?.name || metadata?.full_name || '').trim()
+})
+
+const ownerEmail = computed(() => String(user.value?.email || '').trim())
 
 async function loadStatus() {
   if (!isLoggedIn.value) {

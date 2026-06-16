@@ -212,6 +212,7 @@ import {
   normalizeWebsiteHref,
   parseVenueFeatures,
   resolveVenueDisplayPhotoUrl,
+  resolveVenuePhotoUrl,
   venueHasCoords,
 } from '@/utils/format-venue'
 
@@ -364,12 +365,26 @@ const ownerSocialItems = computed(() => {
 })
 
 const venueHeaderImages = computed(() => {
+  const images = []
   const urls = ownerProfile.value?.headerImageUrls
   if (Array.isArray(urls) && urls.length) {
-    return urls.map((url) => cleanDbString(url)).filter((url) => Boolean(url))
+    for (const url of urls) {
+      const cleaned = cleanDbString(url)
+      if (cleaned) images.push(cleaned)
+    }
+  } else {
+    const legacy = cleanDbString(ownerProfile.value?.headerImageUrl)
+    if (legacy) images.push(legacy)
   }
-  const legacy = cleanDbString(ownerProfile.value?.headerImageUrl)
-  return legacy ? [legacy] : []
+
+  if (ownerProfile.value?.showOriginalVenueImage) {
+    const original = resolveVenuePhotoUrl(venue.value?.photo, photoConfig.value)
+    if (original && !images.includes(original)) {
+      images.unshift(original)
+    }
+  }
+
+  return images
 })
 
 const venuePhotoSrc = computed(() => {

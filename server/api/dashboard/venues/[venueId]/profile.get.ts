@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
     menuDrinksUrl: null,
     socialLinks: null,
     customDescription: null,
+    showOriginalVenueImage: false,
   }
 
   if (!profile) return empty

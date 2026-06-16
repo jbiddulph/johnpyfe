@@ -94,6 +94,7 @@ model VenueProfile {
   logoUrl          String? @map("logo_url")
   headerImageUrl   String? @map("header_image_url")
   headerImageUrls  Json?   @map("header_image_urls")
+  showOriginalVenueImage Boolean @default(false) @map("show_original_venue_image")
   menuFoodUrl      String? @map("menu_food_url")
   menuDrinksUrl    String? @map("menu_drinks_url")
   socialLinks      Json?   @map("social_links")

@@ -36,6 +36,7 @@ export default defineEventHandler(async (event) => {
       logoUrl: profile.logoUrl,
       headerImageUrl: headerImageUrls[0] ?? profile.headerImageUrl,
       headerImageUrls,
+      showOriginalVenueImage: profile.showOriginalVenueImage,
       menuFoodUrl: profile.menuFoodUrl,
       menuDrinksUrl: profile.menuDrinksUrl,
       socialLinks: sanitizeSocialLinks(profile.socialLinks as Record<string, string> | null),

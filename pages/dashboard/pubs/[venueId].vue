@@ -20,6 +20,31 @@
         :preview-urls="headerPreviewUrls"
         @updated="saveProfile"
       />
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input
+          v-model="form.showOriginalVenueImage"
+          type="checkbox"
+          class="mt-1 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+        />
+        <span class="text-sm">
+          <span class="font-medium text-gray-900 dark:text-gray-100">Show original venue image</span>
+          <span class="block text-gray-600 dark:text-gray-400">
+            Include the pub’s existing listing photo in the header carousel on your public page.
+          </span>
+        </span>
+      </label>
+      <div
+        v-if="form.showOriginalVenueImage && originalVenuePhotoUrl"
+        class="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+      >
+        <p class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Original listing photo preview</p>
+        <img
+          :src="originalVenuePhotoUrl"
+          alt="Original venue listing photo"
+          class="aspect-[16/9] w-full max-w-md rounded object-cover"
+          loading="lazy"
+        />
+      </div>
       <div>
         <label class="block text-sm font-medium mb-1" for="menuFoodUrl">Food menu URL</label>
         <input id="menuFoodUrl" v-model="form.menuFoodUrl" type="url" class="input w-full" placeholder="https://…" />
@@ -62,6 +87,8 @@
 </template>
 
 <script setup lang="ts">
+import { resolveVenuePhotoUrl } from '@/utils/format-venue'
+
 const route = useRoute()
 const venueId = computed(() => Number.parseInt(String(route.params.venueId), 10))
 const { isLoggedIn, initializeAuth } = useAuth()
@@ -72,10 +99,12 @@ const errorMessage = ref('')
 const savedMessage = ref('')
 const venueSlug = ref('')
 const headerPreviewUrls = ref<string[]>([])
+const originalVenuePhotoUrl = ref('')
 
 const form = reactive({
   logoUrl: '',
   headerImageUrls: [] as string[],
+  showOriginalVenueImage: false,
   menuFoodUrl: '',
   menuDrinksUrl: '',
   customDescription: '',
@@ -111,6 +140,7 @@ async function loadProfile() {
       logoUrl: string | null
       headerImageUrls: string[]
       headerImagePublicUrls: string[]
+      showOriginalVenueImage: boolean
       menuFoodUrl: string | null
       menuDrinksUrl: string | null
       customDescription: string | null
@@ -120,6 +150,7 @@ async function loadProfile() {
     form.logoUrl = profile.logoUrl || ''
     form.headerImageUrls = profile.headerImageUrls || []
     headerPreviewUrls.value = profile.headerImagePublicUrls || []
+    form.showOriginalVenueImage = Boolean(profile.showOriginalVenueImage)
     form.menuFoodUrl = profile.menuFoodUrl || ''
     form.menuDrinksUrl = profile.menuDrinksUrl || ''
     form.customDescription = profile.customDescription || ''
@@ -128,6 +159,13 @@ async function loadProfile() {
     form.socialLinks.instagram = links.instagram || ''
     form.socialLinks.twitter = links.twitter || ''
     form.socialLinks.tiktok = links.tiktok || ''
+
+    const venue = await $fetch<{ photo?: string }>(useApiUrl(`/api/venues/${venueId.value}`))
+    const config = useRuntimeConfig()
+    originalVenuePhotoUrl.value = resolveVenuePhotoUrl(venue?.photo, {
+      venueImgFolder: config.public.venueImgFolder,
+      supabaseUrl: config.public.supabase?.url,
+    }) || ''
   } catch (error: unknown) {
     const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
     errorMessage.value = err?.data?.statusMessage || err?.statusMessage || 'Could not load profile'
@@ -146,6 +184,7 @@ async function saveProfile() {
       body: {
         logoUrl: form.logoUrl || null,
         headerImageUrls: form.headerImageUrls,
+        showOriginalVenueImage: form.showOriginalVenueImage,
         menuFoodUrl: form.menuFoodUrl || null,
         menuDrinksUrl: form.menuDrinksUrl || null,
         customDescription: form.customDescription || null,
