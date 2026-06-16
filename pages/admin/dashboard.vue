@@ -223,7 +223,7 @@ const { user, isAdmin, initializeAuth } = useAuth()
 onMounted(async () => {
   await initializeAuth()
   if (!isAdmin.value && user.value !== null) {
-    navigateTo('/events')
+    navigateTo('/')
   }
 })
 
@@ -535,7 +535,7 @@ onMounted(async () => {
 // Redirect if not admin
 watchEffect(() => {
   if (!isAdmin.value && user.value !== null) {
-    navigateTo('/events')
+    navigateTo('/')
   }
 })
 </script>

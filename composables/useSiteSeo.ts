@@ -1,4 +1,4 @@
-import { cleanDbString, formatPhone, isValidWebsite } from '../utils/format-venue'
+import { cleanDbString, isValidWebsite } from '../utils/format-venue'
 import { canonicalSiteUrl } from '../utils/site-url'
 
 type SiteSeoOptions = {
@@ -92,7 +92,6 @@ export function venueJsonLd(
     county?: string
     postcode?: string
     postalsearch?: string
-    telephone?: string
     website?: string
     latitude?: string
     longitude?: string
@@ -101,7 +100,6 @@ export function venueJsonLd(
 ) {
   const lat = venue.latitude ? Number.parseFloat(venue.latitude) : undefined
   const lng = venue.longitude ? Number.parseFloat(venue.longitude) : undefined
-  const phone = formatPhone(venue.telephone)
   const website = isValidWebsite(venue.website) ? cleanDbString(venue.website) : null
 
   return {
@@ -110,7 +108,6 @@ export function venueJsonLd(
     name: venue.venuename,
     url: canonical,
     ...(website ? { sameAs: website } : {}),
-    ...(phone ? { telephone: phone } : {}),
     address: {
       '@type': 'PostalAddress',
       streetAddress: cleanDbString(venue.address) ?? undefined,

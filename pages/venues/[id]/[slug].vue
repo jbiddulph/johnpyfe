@@ -81,9 +81,6 @@
         <div class="venue-desc max-w-3xl">
             <h2 class="text-3xl font-bold">Address</h2>
             <p class="text-2xl">{{ venueAddressLine || '—' }}</p>
-            <p v-if="venuePhone" class="text-xl mt-3">
-              <a :href="`tel:${venuePhone.replace(/\s/g, '')}`" class="text-amber-600 hover:underline">{{ venuePhone }}</a>
-            </p>
             <p v-if="venueWebsiteHref" class="text-xl mt-2">
               <a :href="venueWebsiteHref" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline break-all">
                 {{ venueWebsiteLabel }}
@@ -206,7 +203,6 @@ import { buildVenueBreadcrumbItems } from '@/composables/useVenueBreadcrumbs'
 import {
   cleanDbString,
   formatDistanceMiles,
-  formatPhone,
   formatPlaceName,
   normalizeWebsiteHref,
   parseVenueFeatures,
@@ -279,10 +275,10 @@ const { data: nearbyData, pending: nearbyPending } = await useAsyncData(
   { default: () => ({ items: [], radiusMiles: 1 }) },
 )
 
-const { data: ownerBranding } = await useAsyncData(
+const { data: ownerBranding, refresh: refreshOwnerBranding } = await useAsyncData(
   `venue-owner-${venueId}`,
   () => requestFetch(`/api/venues/${venueId}/owner-profile`),
-  { default: () => null },
+  { server: false, lazy: true, default: () => null },
 )
 
 const venueEvents = computed(() => sortEventsByStartAsc(events.value ?? []))
@@ -328,8 +324,6 @@ const venueRegion = computed(() => {
 })
 
 const venuePostcode = computed(() => cleanDbString(venue.value?.postcode) || cleanDbString(venue.value?.postalsearch) || '')
-
-const venuePhone = computed(() => formatPhone(venue.value?.telephone))
 
 const venueWebsiteHref = computed(() => normalizeWebsiteHref(venue.value?.website))
 
@@ -411,11 +405,7 @@ onMounted(async () => {
     }
   }
 
-  try {
-    ownerBranding.value = await $fetch(useApiUrl(`/api/venues/${venueId}/owner-profile`))
-  } catch {
-    ownerBranding.value = null
-  }
+  await refreshOwnerBranding()
 
   eventStore.events = venueEvents.value
 })

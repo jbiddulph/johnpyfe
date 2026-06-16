@@ -45,7 +45,16 @@
         <UButton type="submit" color="amber" label="Save profile" :loading="saving" />
         <UButton to="/dashboard" label="Back" variant="outline" />
       </div>
-      <p v-if="savedMessage" class="text-sm text-emerald-700">{{ savedMessage }}</p>
+      <p v-if="savedMessage" class="text-sm text-emerald-700">
+        {{ savedMessage }}
+        <NuxtLink
+          v-if="venueSlug"
+          :to="venuePath(venueId, venueSlug)"
+          class="ml-2 font-medium text-amber-700 hover:underline"
+        >
+          View your pub page
+        </NuxtLink>
+      </p>
     </form>
   </div>
 </template>
@@ -59,6 +68,7 @@ const loading = ref(true)
 const saving = ref(false)
 const errorMessage = ref('')
 const savedMessage = ref('')
+const venueSlug = ref('')
 
 const form = reactive({
   logoUrl: '',
@@ -88,6 +98,12 @@ async function loadProfile() {
   loading.value = true
   errorMessage.value = ''
   try {
+    const status = await useAuthFetch<{
+      claims?: Array<{ venueId: number; venue: { slug: string } }>
+    }>('/api/billing/status')
+    const claim = status.claims?.find((item) => item.venueId === venueId.value)
+    venueSlug.value = claim?.venue.slug || ''
+
     const profile = await useAuthFetch<{
       logoUrl: string | null
       headerImageUrl: string | null

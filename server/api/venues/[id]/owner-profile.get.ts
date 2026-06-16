@@ -4,7 +4,7 @@ import { sanitizeSocialLinks } from '../../../utils/venue-profile'
 
 /** Public owner branding shown on verified, subscribed pub pages. */
 export default defineEventHandler(async (event) => {
-  setResponseHeader(event, 'Cache-Control', 'private, no-cache')
+  setResponseHeader(event, 'Cache-Control', 'private, no-store, no-cache, must-revalidate')
   const id = Number.parseInt(String(event.context.params?.id ?? ''), 10)
   if (!Number.isFinite(id)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid venue id' })

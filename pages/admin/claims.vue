@@ -119,7 +119,7 @@ async function updateClaim(id: string, status: string) {
 
 watchEffect(() => {
   if (!isAdmin.value && user.value !== null) {
-    navigateTo('/events')
+    navigateTo('/')
   }
 })
 

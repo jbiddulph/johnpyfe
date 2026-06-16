@@ -165,7 +165,7 @@ onMounted(async () => {
 
 watchEffect(() => {
   if (!isAdmin.value && user.value !== null) {
-    navigateTo('/events')
+    navigateTo('/')
   }
 })
 

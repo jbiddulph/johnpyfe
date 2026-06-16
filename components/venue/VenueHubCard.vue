@@ -8,9 +8,6 @@
     <VenueCardMedia :venue="venue" />
     <div class="venue-hub-card__body p-4">
       <p v-if="addressLine" class="text-sm text-gray-700 dark:text-gray-300">{{ addressLine }}</p>
-      <p v-if="phone" class="text-sm mt-2">
-        <a :href="`tel:${phone.replace(/\s/g, '')}`" class="text-amber-600 hover:underline">{{ phone }}</a>
-      </p>
       <p v-if="websiteHref" class="text-sm mt-1">
         <a
           :href="websiteHref"
@@ -32,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { cleanDbString, formatPhone, normalizeWebsiteHref } from '@/utils/format-venue'
+import { cleanDbString, normalizeWebsiteHref } from '@/utils/format-venue'
 
 const props = defineProps({
   venue: {
@@ -44,8 +41,6 @@ const props = defineProps({
 const addressLine = computed(() =>
   [cleanDbString(props.venue.address), cleanDbString(props.venue.postcode)].filter(Boolean).join(', '),
 )
-
-const phone = computed(() => formatPhone(props.venue.telephone))
 
 const websiteHref = computed(() => normalizeWebsiteHref(props.venue.website))
 

@@ -69,6 +69,7 @@ export default defineNuxtConfig({
     '/dashboard/**': { robots: false },
     '/api/webhooks/**': { cors: false },
     '/venues/**': { isr: 1800 },
+    '/api/venues/*/owner-profile': { cache: false },
     '/events/**': { isr: 900 },
     '/pubs-near-stadiums/**': { isr: 3600 },
     '/admin/**': { robots: false },
