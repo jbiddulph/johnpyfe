@@ -160,12 +160,16 @@ async function loadProfile() {
     form.socialLinks.twitter = links.twitter || ''
     form.socialLinks.tiktok = links.tiktok || ''
 
-    const venue = await $fetch<{ photo?: string }>(useApiUrl(`/api/venues/${venueId.value}`))
-    const config = useRuntimeConfig()
-    originalVenuePhotoUrl.value = resolveVenuePhotoUrl(venue?.photo, {
-      venueImgFolder: config.public.venueImgFolder,
-      supabaseUrl: config.public.supabase?.url,
-    }) || ''
+    try {
+      const venue = await $fetch<{ photo?: string }>(`/api/venues/${venueId.value}`)
+      const config = useRuntimeConfig()
+      originalVenuePhotoUrl.value = resolveVenuePhotoUrl(venue?.photo, {
+        venueImgFolder: config.public.venueImgFolder,
+        supabaseUrl: config.public.supabase?.url,
+      }) || ''
+    } catch {
+      originalVenuePhotoUrl.value = ''
+    }
   } catch (error: unknown) {
     const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
     errorMessage.value = err?.data?.statusMessage || err?.statusMessage || 'Could not load profile'
