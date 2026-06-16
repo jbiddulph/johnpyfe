@@ -1,3 +1,4 @@
+import { deleteClaimAndRelatedRecords } from '../../../utils/claim-cleanup'
 import { prisma } from '../../../utils/prisma'
 import {
   canClaimMorePubs,
@@ -27,6 +28,10 @@ export default defineEventHandler(async (event) => {
 
   if (!claim) {
     throw createError({ statusCode: 404, statusMessage: 'Claim not found' })
+  }
+
+  if (status === 'revoked') {
+    return deleteClaimAndRelatedRecords(claimId)
   }
 
   if (status === 'verified') {

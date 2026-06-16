@@ -1,6 +1,7 @@
 import { requireVerifiedClaimAccess } from '../../../../utils/organisation-access'
 import { requireAuth } from '../../../../utils/require-auth'
 import { prisma } from '../../../../utils/prisma'
+import { mergeHeaderImageUrls, resolveVenueHeaderImageUrls } from '../../../../utils/venue-profile'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
@@ -11,14 +12,28 @@ export default defineEventHandler(async (event) => {
 
   await requireVerifiedClaimAccess(user.id, venueId)
 
+  const config = useRuntimeConfig()
+  const supabaseUrl = config.public.supabase?.url
   const profile = await prisma.venueProfile.findUnique({ where: { venueId } })
-  return profile ?? {
+  const empty = {
     venueId,
     logoUrl: null,
     headerImageUrl: null,
+    headerImageUrls: [] as string[],
+    headerImagePublicUrls: [] as string[],
     menuFoodUrl: null,
     menuDrinksUrl: null,
     socialLinks: null,
     customDescription: null,
+  }
+
+  if (!profile) return empty
+
+  const storedPaths = mergeHeaderImageUrls(profile)
+
+  return {
+    ...profile,
+    headerImageUrls: storedPaths,
+    headerImagePublicUrls: resolveVenueHeaderImageUrls(profile, supabaseUrl),
   }
 })

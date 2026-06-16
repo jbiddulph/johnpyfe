@@ -4,7 +4,12 @@
   </div>
   <div v-else>
     <div class="w-full">
-      <div class="w-full max-h-[480px] overflow-hidden bg-gray-200 dark:bg-gray-700">
+      <VenueHeaderCarousel
+        v-if="venueHeaderImages.length"
+        :images="venueHeaderImages"
+        :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
+      />
+      <div v-else class="w-full max-h-[480px] overflow-hidden bg-gray-200 dark:bg-gray-700">
         <img
           :src="venuePhotoSrc"
           :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
@@ -358,9 +363,16 @@ const ownerSocialItems = computed(() => {
     .filter((item) => item.url)
 })
 
+const venueHeaderImages = computed(() => {
+  const urls = ownerProfile.value?.headerImageUrls
+  if (Array.isArray(urls) && urls.length) {
+    return urls.map((url) => cleanDbString(url)).filter((url) => Boolean(url))
+  }
+  const legacy = cleanDbString(ownerProfile.value?.headerImageUrl)
+  return legacy ? [legacy] : []
+})
+
 const venuePhotoSrc = computed(() => {
-  const customHeader = cleanDbString(ownerProfile.value?.headerImageUrl)
-  if (customHeader) return customHeader
   return resolveVenueDisplayPhotoUrl(venue.value?.photo, photoConfig.value)
 })
 

@@ -14,10 +14,12 @@
         <label class="block text-sm font-medium mb-1" for="logoUrl">Logo URL</label>
         <input id="logoUrl" v-model="form.logoUrl" type="url" class="input w-full" placeholder="https://…" />
       </div>
-      <div>
-        <label class="block text-sm font-medium mb-1" for="headerImageUrl">Header image URL</label>
-        <input id="headerImageUrl" v-model="form.headerImageUrl" type="url" class="input w-full" placeholder="https://…" />
-      </div>
+      <VenueHeaderUpload
+        v-model="form.headerImageUrls"
+        :venue-id="venueId"
+        :preview-urls="headerPreviewUrls"
+        @updated="saveProfile"
+      />
       <div>
         <label class="block text-sm font-medium mb-1" for="menuFoodUrl">Food menu URL</label>
         <input id="menuFoodUrl" v-model="form.menuFoodUrl" type="url" class="input w-full" placeholder="https://…" />
@@ -69,10 +71,11 @@ const saving = ref(false)
 const errorMessage = ref('')
 const savedMessage = ref('')
 const venueSlug = ref('')
+const headerPreviewUrls = ref<string[]>([])
 
 const form = reactive({
   logoUrl: '',
-  headerImageUrl: '',
+  headerImageUrls: [] as string[],
   menuFoodUrl: '',
   menuDrinksUrl: '',
   customDescription: '',
@@ -106,7 +109,8 @@ async function loadProfile() {
 
     const profile = await useAuthFetch<{
       logoUrl: string | null
-      headerImageUrl: string | null
+      headerImageUrls: string[]
+      headerImagePublicUrls: string[]
       menuFoodUrl: string | null
       menuDrinksUrl: string | null
       customDescription: string | null
@@ -114,7 +118,8 @@ async function loadProfile() {
     }>(`/api/dashboard/venues/${venueId.value}/profile`)
 
     form.logoUrl = profile.logoUrl || ''
-    form.headerImageUrl = profile.headerImageUrl || ''
+    form.headerImageUrls = profile.headerImageUrls || []
+    headerPreviewUrls.value = profile.headerImagePublicUrls || []
     form.menuFoodUrl = profile.menuFoodUrl || ''
     form.menuDrinksUrl = profile.menuDrinksUrl || ''
     form.customDescription = profile.customDescription || ''
@@ -140,7 +145,7 @@ async function saveProfile() {
       method: 'PUT',
       body: {
         logoUrl: form.logoUrl || null,
-        headerImageUrl: form.headerImageUrl || null,
+        headerImageUrls: form.headerImageUrls,
         menuFoodUrl: form.menuFoodUrl || null,
         menuDrinksUrl: form.menuDrinksUrl || null,
         customDescription: form.customDescription || null,

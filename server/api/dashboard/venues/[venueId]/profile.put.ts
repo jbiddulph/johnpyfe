@@ -2,11 +2,12 @@ import Joi from 'joi'
 import { requireVerifiedClaimAccess } from '../../../../utils/organisation-access'
 import { requireAuth } from '../../../../utils/require-auth'
 import { prisma } from '../../../../utils/prisma'
-import { sanitizeSocialLinks } from '../../../../utils/venue-profile'
+import { sanitizeHeaderImageUrls, sanitizeSocialLinks } from '../../../../utils/venue-profile'
 
 const schema = Joi.object({
   logoUrl: Joi.string().max(2000).allow('', null).optional(),
   headerImageUrl: Joi.string().max(2000).allow('', null).optional(),
+  headerImageUrls: Joi.array().items(Joi.string().max(2000)).max(10).optional(),
   menuFoodUrl: Joi.string().max(2000).allow('', null).optional(),
   menuDrinksUrl: Joi.string().max(2000).allow('', null).optional(),
   customDescription: Joi.string().max(5000).allow('', null).optional(),
@@ -34,13 +35,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const socialLinks = sanitizeSocialLinks(value.socialLinks)
+  const headerImageUrls = sanitizeHeaderImageUrls(value.headerImageUrls)
+  const headerImageUrl = headerImageUrls?.[0] ?? (value.headerImageUrl || null)
 
   const profile = await prisma.venueProfile.upsert({
     where: { venueId },
     create: {
       venueId,
       logoUrl: value.logoUrl || null,
-      headerImageUrl: value.headerImageUrl || null,
+      headerImageUrl,
+      headerImageUrls,
       menuFoodUrl: value.menuFoodUrl || null,
       menuDrinksUrl: value.menuDrinksUrl || null,
       customDescription: value.customDescription || null,
@@ -48,7 +52,8 @@ export default defineEventHandler(async (event) => {
     },
     update: {
       logoUrl: value.logoUrl || null,
-      headerImageUrl: value.headerImageUrl || null,
+      headerImageUrl,
+      headerImageUrls,
       menuFoodUrl: value.menuFoodUrl || null,
       menuDrinksUrl: value.menuDrinksUrl || null,
       customDescription: value.customDescription || null,

@@ -1,5 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { isSubscriptionActive } from '../../../utils/billing-plans'
+import { mergeHeaderImageUrls } from '../../../utils/venue-profile'
 
 export default defineEventHandler(async (event) => {
   const id = Number.parseInt(String(event.context.params?.id ?? ''), 10)
@@ -36,7 +37,14 @@ export default defineEventHandler(async (event) => {
   return {
     claimed: true,
     verified,
-    hasProProfile: Boolean(profile && (profile.logoUrl || profile.headerImageUrl || profile.customDescription)),
+    hasProProfile: Boolean(
+      profile && (
+        profile.logoUrl
+        || profile.headerImageUrl
+        || mergeHeaderImageUrls(profile).length > 0
+        || profile.customDescription
+      ),
+    ),
     status: claim.status,
   }
 })

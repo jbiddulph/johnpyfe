@@ -93,6 +93,7 @@ model VenueProfile {
   venueId          Int     @id @map("venue_id")
   logoUrl          String? @map("logo_url")
   headerImageUrl   String? @map("header_image_url")
+  headerImageUrls  Json?   @map("header_image_urls")
   menuFoodUrl      String? @map("menu_food_url")
   menuDrinksUrl    String? @map("menu_drinks_url")
   socialLinks      Json?   @map("social_links")

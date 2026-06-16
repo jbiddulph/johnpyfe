@@ -1,6 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { isSubscriptionActive } from '../../../utils/billing-plans'
-import { sanitizeSocialLinks } from '../../../utils/venue-profile'
+import { mergeHeaderImageUrls, resolveVenueHeaderImageUrls, sanitizeSocialLinks } from '../../../utils/venue-profile'
 
 /** Public owner branding shown on verified, subscribed pub pages. */
 export default defineEventHandler(async (event) => {
@@ -26,11 +26,16 @@ export default defineEventHandler(async (event) => {
   const profile = await prisma.venueProfile.findUnique({ where: { venueId: id } })
   if (!profile) return { verified: true, profile: null }
 
+  const config = useRuntimeConfig()
+  const supabaseUrl = config.public.supabase?.url
+  const headerImageUrls = resolveVenueHeaderImageUrls(profile, supabaseUrl)
+
   return {
     verified: true,
     profile: {
       logoUrl: profile.logoUrl,
-      headerImageUrl: profile.headerImageUrl,
+      headerImageUrl: headerImageUrls[0] ?? profile.headerImageUrl,
+      headerImageUrls,
       menuFoodUrl: profile.menuFoodUrl,
       menuDrinksUrl: profile.menuDrinksUrl,
       socialLinks: sanitizeSocialLinks(profile.socialLinks as Record<string, string> | null),

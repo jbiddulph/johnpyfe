@@ -24,6 +24,7 @@ export default defineNuxtConfig({
     stripePriceRegional: process.env.STRIPE_PRICE_REGIONAL || '',
     stripePriceEnterprise: process.env.STRIPE_PRICE_ENTERPRISE || '',
     stripeTestPayment: process.env.STRIPE_TEST_PAYMENT || '',
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     public: {
       stripePublishableKey: process.env.NUXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
       baseURL: (process.env.BASE_URL || process.env.NUXT_PUBLIC_APP_URL || siteUrl).replace(/\/$/, ''),
