@@ -40,6 +40,11 @@
 
 <script setup>
 import { sortEventsByStartAsc } from '@/utils/sort-events'
+import {
+  countySeoDescription,
+  countySeoHeadline,
+  countySeoKeywords,
+} from '@/utils/site-seo-copy'
 
 const route = useRoute()
 const requestFetch = useRequestFetch()
@@ -91,10 +96,18 @@ const breadcrumbItems = computed(() => [
 ])
 
 const siteUrl = siteBaseUrl()
-useSiteSeo({
-  title: `Pubs & events in ${countyDisplayName.value}`,
-  description: `Find pubs, venues and upcoming events in ${countyDisplayName.value}. Browse by town and see what's on near you.`,
-  path: canonicalPath,
-  jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
+
+const seoTitle = computed(() => countySeoHeadline(countyDisplayName.value))
+const seoDescription = computed(() => countySeoDescription(countyDisplayName.value))
+const seoKeywords = computed(() => countySeoKeywords(countyDisplayName.value))
+
+watchEffect(() => {
+  useSiteSeo({
+    title: seoTitle.value,
+    description: seoDescription.value,
+    keywords: seoKeywords.value,
+    path: canonicalPath,
+    jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
+  })
 })
 </script>

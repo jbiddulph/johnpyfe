@@ -108,6 +108,12 @@
 </template>
 
 <script setup lang="ts">
+import {
+  searchSeoDescription,
+  searchSeoHeadline,
+  searchSeoKeywords,
+} from '@/utils/site-seo-copy'
+
 const route = useRoute()
 const router = useRouter()
 const requestFetch = useRequestFetch()
@@ -215,20 +221,17 @@ watch(
   { immediate: true, deep: true },
 )
 
-const seoTitle = computed(() =>
-  activeQuery.value.length >= 2
-    ? `Search results for “${activeQuery.value}”`
-    : 'Search pubs, towns and counties',
-)
+const seoTitle = computed(() => searchSeoHeadline(activeQuery.value))
+const seoDescription = computed(() => searchSeoDescription(activeQuery.value))
+const seoKeywords = computed(() => searchSeoKeywords(activeQuery.value))
 
-useSiteSeo({
-  title: seoTitle.value,
-  description: 'Search UK pubs and venues by name, town, or county.',
-  path: '/search',
-})
-
-watch(seoTitle, (title) => {
-  useSeoMeta({ title, ogTitle: title, twitterTitle: title })
+watchEffect(() => {
+  useSiteSeo({
+    title: seoTitle.value,
+    description: seoDescription.value,
+    keywords: seoKeywords.value,
+    path: '/search',
+  })
 })
 </script>
 

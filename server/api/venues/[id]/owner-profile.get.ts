@@ -41,6 +41,9 @@ export default defineEventHandler(async (event) => {
       menuDrinksUrl: profile.menuDrinksUrl,
       socialLinks: sanitizeSocialLinks(profile.socialLinks as Record<string, string> | null),
       customDescription: profile.customDescription,
+      pageTitle: profile.pageTitle,
+      seoKeywords: profile.seoKeywords,
+      metaDescription: profile.metaDescription,
     },
   }
 })

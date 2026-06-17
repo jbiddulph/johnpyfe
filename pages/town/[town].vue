@@ -81,6 +81,11 @@ import { useEventStore } from '@/store/event.js'
 const VENUE_PAGE_SIZE = 104
 
 import { sortEventsByStartAsc } from '@/utils/sort-events'
+import {
+  townSeoDescription,
+  townSeoHeadline,
+  townSeoKeywords,
+} from '@/utils/site-seo-copy'
 
 const route = useRoute()
 const requestFetch = useRequestFetch()
@@ -188,11 +193,25 @@ function nextVenuePage() {
 }
 
 const siteUrl = siteBaseUrl()
-useSiteSeo({
-  title: `Pubs & events in ${townName.value}`,
-  description: `Upcoming gigs, live music, comedy and pub events in ${townName.value}. Browse venues and what's on near you.`,
-  path: canonicalPath,
-  jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
+
+const seoTitle = computed(() =>
+  townSeoHeadline(townName.value, countyHub.value?.displayName),
+)
+const seoDescription = computed(() =>
+  townSeoDescription(townName.value, countyHub.value?.displayName),
+)
+const seoKeywords = computed(() =>
+  townSeoKeywords(townName.value, countyHub.value?.displayName),
+)
+
+watchEffect(() => {
+  useSiteSeo({
+    title: seoTitle.value,
+    description: seoDescription.value,
+    keywords: seoKeywords.value,
+    path: canonicalPath,
+    jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
+  })
 })
 
 onMounted(() => {

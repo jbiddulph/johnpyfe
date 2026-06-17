@@ -215,6 +215,11 @@ import {
   resolveVenuePhotoUrl,
   venueHasCoords,
 } from '@/utils/format-venue'
+import {
+  venueSeoDescription,
+  venueSeoHeadline,
+  venueSeoKeywords,
+} from '@/utils/site-seo-copy'
 
 import { sortEventsByStartAsc } from '@/utils/sort-events'
 
@@ -413,14 +418,44 @@ const breadcrumbItems = computed(() =>
 const v = venue.value
 const canonicalPath = venuePath(v.id, v.slug)
 const siteUrl = siteBaseUrl()
-useSiteSeo({
-  title: `${v.venuename} — pub & venue in ${venueTownLabel.value || v.town}, ${venueCountyLabel.value || v.county}`,
-  description: `Events, listings and details for ${v.venuename} in ${venueTownLabel.value || v.town}, ${venueCountyLabel.value || v.county}. Find gigs, quizzes and live entertainment near you.`,
-  path: canonicalPath,
-  jsonLd: [
-    venueJsonLd(v, `${siteUrl}${canonicalPath}`),
-    breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
-  ],
+
+const defaultSeoDescription = computed(() => {
+  const venueRecord = venue.value
+  if (!venueRecord) return ''
+  return venueSeoDescription(venueRecord.venuename, venueRecord.town, venueRecord.county)
+})
+const defaultSeoKeywords = computed(() => {
+  const venueRecord = venue.value
+  if (!venueRecord) return ''
+  return venueSeoKeywords(venueRecord.venuename, venueRecord.town, venueRecord.county)
+})
+
+const seoTitle = computed(() => {
+  const custom = cleanDbString(ownerProfile.value?.pageTitle)
+  if (custom) return custom
+  const venueRecord = venue.value
+  if (!venueRecord) return ''
+  return venueSeoHeadline(venueRecord.venuename, venueRecord.town)
+})
+const seoDescription = computed(
+  () => cleanDbString(ownerProfile.value?.metaDescription) || defaultSeoDescription.value,
+)
+const seoKeywords = computed(
+  () => cleanDbString(ownerProfile.value?.seoKeywords) || defaultSeoKeywords.value,
+)
+
+watchEffect(() => {
+  if (!venue.value) return
+  useSiteSeo({
+    title: seoTitle.value,
+    description: seoDescription.value,
+    keywords: seoKeywords.value || undefined,
+    path: canonicalPath,
+    jsonLd: [
+      venueJsonLd(venue.value, `${siteUrl}${canonicalPath}`),
+      breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
+    ],
+  })
 })
 
 onMounted(async () => {

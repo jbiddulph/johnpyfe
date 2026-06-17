@@ -25,6 +25,9 @@ export default defineEventHandler(async (event) => {
     menuDrinksUrl: null,
     socialLinks: null,
     customDescription: null,
+    pageTitle: null,
+    seoKeywords: null,
+    metaDescription: null,
     showOriginalVenueImage: false,
   }
 

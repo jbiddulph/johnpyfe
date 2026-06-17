@@ -99,6 +99,9 @@ model VenueProfile {
   menuDrinksUrl    String? @map("menu_drinks_url")
   socialLinks      Json?   @map("social_links")
   customDescription String? @map("custom_description") @db.VarChar(5000)
+  pageTitle        String? @map("page_title") @db.VarChar(100)
+  seoKeywords      String? @map("seo_keywords") @db.VarChar(500)
+  metaDescription  String? @map("meta_description") @db.VarChar(500)
   updatedAt        DateTime @updatedAt @map("updated_at")
   venue            Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
 

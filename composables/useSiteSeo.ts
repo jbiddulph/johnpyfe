@@ -1,9 +1,11 @@
 import { cleanDbString, isValidWebsite } from '../utils/format-venue'
+import { siteSeoTitle } from '../utils/site-seo-copy'
 import { canonicalSiteUrl } from '../utils/site-url'
 
 type SiteSeoOptions = {
   title: string
   description: string
+  keywords?: string
   path?: string
   image?: string
   type?: 'website' | 'article'
@@ -51,24 +53,28 @@ export function useSiteSeo(options: SiteSeoOptions) {
   const image = options.image?.startsWith('http')
     ? options.image
     : `${siteUrl}${options.image ?? '/ukpubs-logo.png'}`
+  const brandedTitle = siteSeoTitle(options.title)
 
   useSeoMeta({
     title: options.title,
     description: options.description,
-    ogTitle: options.title,
+    ogTitle: brandedTitle,
     ogDescription: options.description,
     ogUrl: canonical,
     ogImage: image,
     ogType: options.type ?? 'website',
     ogLocale: 'en_GB',
     twitterCard: 'summary_large_image',
-    twitterTitle: options.title,
+    twitterTitle: brandedTitle,
     twitterDescription: options.description,
     twitterImage: image,
   })
 
   useHead({
     link: [{ rel: 'canonical', href: canonical }],
+    ...(options.keywords
+      ? { meta: [{ name: 'keywords', content: options.keywords }] }
+      : {}),
     ...(options.jsonLd
       ? {
           script: [
