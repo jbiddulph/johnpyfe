@@ -1,11 +1,13 @@
 <template>
-  <HomeWorldCupBanner />
   <HomeHeroSearch />
+  <HomeWorldCupBanner />
 
   <div class="container mx-auto px-4 py-10">
     <section class="mb-12 text-center max-w-3xl mx-auto">
       <p class="text-xl text-gray-600 dark:text-gray-400">
-        Discover events, browse by town or county, and find pubs near you — including coastal towns and Premier League grounds.
+        Discover events, browse by town or county, and find pubs near you — including
+        <strong class="font-medium text-gray-700 dark:text-gray-300">World Cup 2026 sports pubs</strong>,
+        coastal towns and Premier League grounds.
       </p>
       <div class="flex flex-wrap justify-center gap-3 mt-6">
         <UButton to="/venues" size="lg" color="amber">Browse venues</UButton>
@@ -85,10 +87,59 @@ const stadiumListItems = computed(() =>
   })),
 )
 
+const siteUrl = siteBaseUrl()
+
 useSiteSeo({
-  title: 'Events in pubs and venues around the UK',
+  title: 'World Cup 2026 Pubs & Sports Bars UK — Watch England Live',
   description:
-    'Discover gigs, live music, comedy, quizzes and events at pubs and venues across the UK. Top towns, counties, seaside destinations, and pubs near Premier League stadiums.',
+    'Find pubs and sports bars showing FIFA World Cup 2026 across the UK. Watch Mexico vs England live on Monday 6 July at 1am BST — discover World Cup pubs in London, Manchester, Birmingham, Leeds, Liverpool, Bristol, Brighton, Glasgow, Edinburgh, Newcastle, Sheffield, Nottingham and Cardiff. Browse sports bars with big screens, late-night venues, England match screenings, BBC One and ITV pub viewings, and bookable sports pubs near you.',
+  keywords:
+    'World Cup 2026 pubs, World Cup pubs UK, sports bars UK, pubs showing World Cup, England World Cup pubs, watch England World Cup pub, Mexico vs England pub, World Cup sports bars, late night World Cup pubs, FIFA World Cup venues UK, pubs showing football UK, sports pub finder, World Cup 2026 London pubs, World Cup pubs Manchester, World Cup pubs Birmingham, World Cup pubs Leeds, World Cup pubs Liverpool, World Cup pubs Bristol, World Cup pubs Brighton, World Cup pubs Newcastle, World Cup pubs Sheffield, World Cup pubs Nottingham, World Cup pubs Cardiff, World Cup pubs Glasgow, World Cup pubs Edinburgh, pubs with big screens, sports bars near me, England knockout pubs, Round of 16 World Cup pub, BBC One World Cup pub, watch World Cup in pub, UK sports venues, football pubs UK, World Cup screening pubs, book sports pub table, FANZO pubs, O\'Neills World Cup, Walkabout World Cup, BOX sports bar, sports TV pubs, late night football pub, England Mexico pub screening',
   path: '/',
+  jsonLd: [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SportsEvent',
+      name: 'Mexico vs England — FIFA World Cup 2026 Round of 16',
+      description:
+        'Watch Mexico vs England in the FIFA World Cup 2026 Round of 16 at UK pubs and sports bars. Kick-off Monday 6 July 2026 at 1:00am BST, live on BBC One from Estadio Azteca, Mexico City.',
+      startDate: '2026-07-06T01:00:00+01:00',
+      eventStatus: 'https://schema.org/EventScheduled',
+      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      location: {
+        '@type': 'Place',
+        name: 'Estadio Azteca',
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: 'Mexico City',
+          addressCountry: 'MX',
+        },
+      },
+      organizer: {
+        '@type': 'Organization',
+        name: 'FIFA',
+      },
+      offers: {
+        '@type': 'Offer',
+        url: `${siteUrl}/search?q=sports+bar`,
+        availability: 'https://schema.org/InStock',
+        price: '0',
+        priceCurrency: 'GBP',
+        description: 'Find UK pubs and sports bars screening the match',
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'World Cup 2026 Pubs & Sports Bars UK',
+      description:
+        'UK Pubs directory of sports bars, football pubs and venues showing FIFA World Cup 2026 matches including England fixtures.',
+      url: siteUrl,
+      about: {
+        '@type': 'Thing',
+        name: 'FIFA World Cup 2026 pub and sports bar listings',
+      },
+    },
+  ],
 })
 </script>
