@@ -1,4 +1,5 @@
 <template>
+  <HomeWorldCupBanner />
   <HomeHeroSearch />
 
   <div class="container mx-auto px-4 py-10">

@@ -1,11 +1,11 @@
 <template>
   <div class="venue-location-picker">
     <p class="mb-2 text-sm text-gray-600 dark:text-gray-400">
-      Drag the map so the crosshair marks your pub’s location.
+      Drag the map so the marker shows your pub’s location.
     </p>
     <div class="map-shell">
       <div ref="mapContainer" class="map-container" />
-      <div class="crosshair" aria-hidden="true" />
+      <div class="map-marker" aria-hidden="true" />
     </div>
     <p v-if="displayCoords" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
       {{ displayCoords }}
@@ -118,36 +118,18 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-.crosshair {
+.map-marker {
   pointer-events: none;
   position: absolute;
   top: 50%;
   left: 50%;
   z-index: 2;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   transform: translate(-50%, -50%);
-}
-
-.crosshair::before,
-.crosshair::after {
-  content: '';
-  position: absolute;
-  background: #dc2626;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85);
-}
-
-.crosshair::before {
-  width: 2px;
-  height: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.crosshair::after {
-  height: 2px;
-  width: 100%;
-  top: 50%;
-  transform: translateY(-50%);
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background-color: #ea580c;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 </style>
