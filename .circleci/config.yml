@@ -3,7 +3,7 @@ version: 2.1
 executors:
   node/default:
     docker:
-      - image: cimg/node:20.19
+      - image: cimg/node:20.19-browsers
 
 jobs:
   build-node:
@@ -37,7 +37,6 @@ jobs:
           command: npx cypress run
 
 workflows:
-  version: 2
   build_and_test:
     jobs:
       - build-node
