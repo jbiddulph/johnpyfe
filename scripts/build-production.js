@@ -27,7 +27,7 @@ USER_NAME=John Biddulph
 
 try {
   console.log('🔧 Generating Prisma client...')
-  execSync('npx prisma generate', { stdio: 'inherit' })
+  execSync('npx prisma@6.0.1 generate', { stdio: 'inherit' })
   
   console.log('\n📦 Building Nuxt application...')
   execSync('npx nuxt build', { stdio: 'inherit' })
