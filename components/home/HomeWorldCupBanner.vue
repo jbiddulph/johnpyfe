@@ -2,7 +2,7 @@
   <section
     v-if="showBanner"
     class="world-cup-banner border-b border-amber-700/30 bg-gradient-to-r from-green-900 via-gray-900 to-red-900"
-    aria-label="Mexico vs England World Cup match"
+    aria-label="Norway vs England World Cup match"
   >
     <div class="container mx-auto px-4 py-8 md:py-10">
       <div class="text-center">
@@ -11,21 +11,21 @@
         </p>
 
         <h2 class="sr-only">
-          Mexico vs England World Cup 2026 — pubs and sports bars showing the match across the UK
+          Norway vs England World Cup 2026 — pubs and sports bars showing the match across the UK
         </h2>
 
-        <div class="mb-4 flex items-center justify-center gap-4 md:gap-8" role="group" aria-label="Mexico vs England">
+        <div class="mb-4 flex items-center justify-center gap-4 md:gap-8" role="group" aria-label="Norway vs England">
           <div class="flex flex-col items-center gap-2">
             <img
-              src="https://flagcdn.com/w80/mx.png"
-              srcset="https://flagcdn.com/w160/mx.png 2x"
+              src="https://flagcdn.com/w80/no.png"
+              srcset="https://flagcdn.com/w160/no.png 2x"
               width="64"
               height="43"
-              alt="Mexico flag"
+              alt="Norway flag"
               class="h-12 w-auto rounded shadow-md md:h-16"
               loading="eager"
             />
-            <span class="text-lg font-bold text-white md:text-xl">Mexico</span>
+            <span class="text-lg font-bold text-white md:text-xl">Norway</span>
           </div>
 
           <div class="flex flex-col items-center">
@@ -53,7 +53,7 @@
         </div>
 
         <p class="mx-auto mb-4 max-w-2xl text-sm text-white/80 md:text-base">
-          Live on <strong class="text-white">BBC One</strong> from Estadio Azteca, Mexico City.
+          Live on <strong class="text-white">BBC One</strong> from Ullevaal Stadion, Oslo.
           Find a <strong class="text-white">sports pub</strong> or <strong class="text-white">World Cup venue</strong> near you —
           many pubs are applying for late licences for this 1am kick-off.
         </p>
@@ -95,7 +95,7 @@
         </h3>
         <p class="border-t border-white/10 px-4 pt-4 text-sm leading-relaxed text-white/70">
           These are among the best <strong class="text-white/90">UK sports pubs and World Cup venues</strong> likely
-          screening Mexico vs England — popular <strong class="text-white/90">football pubs</strong> with multiple
+          screening Norway vs England — popular <strong class="text-white/90">football pubs</strong> with multiple
           screens, late opening hours and strong match-day atmosphere. Search UK Pubs for
           <strong class="text-white/90">sports bars near you</strong>, or browse by city for
           <strong class="text-white/90">World Cup 2026 pub listings</strong> in your area.

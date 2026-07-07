@@ -92,27 +92,27 @@ const siteUrl = siteBaseUrl()
 useSiteSeo({
   title: 'World Cup 2026 Pubs & Sports Bars UK — Watch England Live',
   description:
-    'Find pubs and sports bars showing FIFA World Cup 2026 across the UK. Watch Mexico vs England live on Monday 6 July at 1am BST — discover World Cup pubs in London, Manchester, Birmingham, Leeds, Liverpool, Bristol, Brighton, Glasgow, Edinburgh, Newcastle, Sheffield, Nottingham and Cardiff. Browse sports bars with big screens, late-night venues, England match screenings, BBC One and ITV pub viewings, and bookable sports pubs near you.',
+    'Find pubs and sports bars showing FIFA World Cup 2026 across the UK. Watch Norway vs England live on Monday 6 July at 1am BST — discover World Cup pubs in London, Manchester, Birmingham, Leeds, Liverpool, Bristol, Brighton, Glasgow, Edinburgh, Newcastle, Sheffield, Nottingham and Cardiff. Browse sports bars with big screens, late-night venues, England match screenings, BBC One and ITV pub viewings, and bookable sports pubs near you.',
   keywords:
-    'World Cup 2026 pubs, World Cup pubs UK, sports bars UK, pubs showing World Cup, England World Cup pubs, watch England World Cup pub, Mexico vs England pub, World Cup sports bars, late night World Cup pubs, FIFA World Cup venues UK, pubs showing football UK, sports pub finder, World Cup 2026 London pubs, World Cup pubs Manchester, World Cup pubs Birmingham, World Cup pubs Leeds, World Cup pubs Liverpool, World Cup pubs Bristol, World Cup pubs Brighton, World Cup pubs Newcastle, World Cup pubs Sheffield, World Cup pubs Nottingham, World Cup pubs Cardiff, World Cup pubs Glasgow, World Cup pubs Edinburgh, pubs with big screens, sports bars near me, England knockout pubs, Round of 16 World Cup pub, BBC One World Cup pub, watch World Cup in pub, UK sports venues, football pubs UK, World Cup screening pubs, book sports pub table, FANZO pubs, O\'Neills World Cup, Walkabout World Cup, BOX sports bar, sports TV pubs, late night football pub, England Mexico pub screening',
+    'World Cup 2026 pubs, World Cup pubs UK, sports bars UK, pubs showing World Cup, England World Cup pubs, watch England World Cup pub, Norway vs England pub, World Cup sports bars, late night World Cup pubs, FIFA World Cup venues UK, pubs showing football UK, sports pub finder, World Cup 2026 London pubs, World Cup pubs Manchester, World Cup pubs Birmingham, World Cup pubs Leeds, World Cup pubs Liverpool, World Cup pubs Bristol, World Cup pubs Brighton, World Cup pubs Newcastle, World Cup pubs Sheffield, World Cup pubs Nottingham, World Cup pubs Cardiff, World Cup pubs Glasgow, World Cup pubs Edinburgh, pubs with big screens, sports bars near me, England knockout pubs, Round of 16 World Cup pub, BBC One World Cup pub, watch World Cup in pub, UK sports venues, football pubs UK, World Cup screening pubs, book sports pub table, FANZO pubs, O\'Neills World Cup, Walkabout World Cup, BOX sports bar, sports TV pubs, late night football pub, England Norway pub screening',
   path: '/',
   jsonLd: [
     {
       '@context': 'https://schema.org',
       '@type': 'SportsEvent',
-      name: 'Mexico vs England — FIFA World Cup 2026 Round of 16',
+      name: 'Norway vs England — FIFA World Cup 2026 Round of 16',
       description:
-        'Watch Mexico vs England in the FIFA World Cup 2026 Round of 16 at UK pubs and sports bars. Kick-off Monday 6 July 2026 at 1:00am BST, live on BBC One from Estadio Azteca, Mexico City.',
+        'Watch Norway vs England in the FIFA World Cup 2026 Round of 16 at UK pubs and sports bars. Kick-off Monday 6 July 2026 at 1:00am BST, live on BBC One from Ullevaal Stadion, Oslo.',
       startDate: '2026-07-06T01:00:00+01:00',
       eventStatus: 'https://schema.org/EventScheduled',
       eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
       location: {
         '@type': 'Place',
-        name: 'Estadio Azteca',
+        name: 'Ullevaal Stadion',
         address: {
           '@type': 'PostalAddress',
-          addressLocality: 'Mexico City',
-          addressCountry: 'MX',
+          addressLocality: 'Oslo',
+          addressCountry: 'NO',
         },
       },
       organizer: {
