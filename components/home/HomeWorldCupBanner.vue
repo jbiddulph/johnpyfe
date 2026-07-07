@@ -7,7 +7,7 @@
     <div class="container mx-auto px-4 py-8 md:py-10">
       <div class="text-center">
         <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
-          FIFA World Cup 2026 · Round of 16
+          FIFA World Cup 2026 · Quarter-final
         </p>
 
         <h2 class="sr-only">
@@ -31,10 +31,10 @@
           <div class="flex flex-col items-center">
             <span class="text-2xl font-light text-white/60 md:text-3xl">vs</span>
             <time
-              datetime="2026-07-06T01:00:00+01:00"
+              datetime="2026-07-11T22:00:00+01:00"
               class="mt-1 text-sm font-medium text-amber-200 md:text-base"
             >
-              Mon 6 Jul · 1:00am BST
+              Sat 11 Jul · 10:00pm BST
             </time>
           </div>
 
@@ -53,9 +53,9 @@
         </div>
 
         <p class="mx-auto mb-4 max-w-2xl text-sm text-white/80 md:text-base">
-          Live on <strong class="text-white">BBC One</strong> from Ullevaal Stadion, Oslo.
+          Live on <strong class="text-white">BBC One</strong> from Hard Rock Stadium, Miami.
           Find a <strong class="text-white">sports pub</strong> or <strong class="text-white">World Cup venue</strong> near you —
-          many pubs are applying for late licences for this 1am kick-off.
+          watch this 10pm quarter-final at your local sports bar.
         </p>
 
         <p class="mx-auto mb-6 max-w-3xl text-xs leading-relaxed text-white/60 md:text-sm">
@@ -112,13 +112,12 @@
           </div>
         </div>
         <p class="border-t border-white/10 px-4 py-3 text-xs leading-relaxed text-white/50">
-          Confirm with venues before travelling — the 1am kick-off falls outside standard World Cup licensing
-          extensions, so pubs need a late licence or Temporary Event Notice to screen
-          <strong class="text-white/65">England World Cup knockout matches</strong> legally.
+          Confirm with venues before travelling — many sports pubs and bars will be screening this
+          <strong class="text-white/65">England World Cup quarter-final</strong>.
           Listings sourced from FANZO and major UK sports bar chains. Also search UK Pubs for
           <strong class="text-white/65">sports TV pubs</strong>,
           <strong class="text-white/65">football bars</strong>,
-          <strong class="text-white/65">late-night sports venues</strong> and
+          <strong class="text-white/65">World Cup venues</strong> and
           <strong class="text-white/65">pubs showing live sport</strong> in your town or county.
         </p>
       </section>
@@ -127,8 +126,8 @@
 </template>
 
 <script setup lang="ts">
-/** Banner hides at kick-off: Monday 6 July 2026, 1:00am BST */
-const MATCH_EXPIRY = new Date('2026-07-06T01:00:00+01:00')
+/** Banner hides at kick-off: Saturday 11 July 2026, 10:00pm BST */
+const MATCH_EXPIRY = new Date('2026-07-11T22:00:00+01:00')
 
 const showBanner = computed(() => new Date() < MATCH_EXPIRY)
 
