@@ -3,7 +3,7 @@ version: 2.1
 executors:
   node/default:
     docker:
-      - image: circleci/node:18.18-browsers # Update to Node.js 18.18 or higher
+      - image: cimg/node:20.19
 
 jobs:
   build-node:
