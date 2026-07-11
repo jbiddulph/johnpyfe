@@ -1,31 +1,16 @@
 import { prisma } from '../../utils/prisma'
-import { cleanDbString, slugifyPlace } from '../../../utils/format-venue'
-
 type MapVenueRow = {
-  id: number
   fsa_id: number
-  slug: string
   venuename: string
-  address: string
-  address2: string
-  town: string
-  county: string
   latitude: string
   longitude: string
 }
 
 type MapVenuePoint = {
-  id: number
-  fsa_id: number
-  slug: string
-  venuename: string
-  address: string | null
-  address2: string | null
-  town: string | null
-  latitude: string
-  longitude: string
-  county: string | null
-  countySlug: string
+  fsaId: number
+  name: string
+  lat: number
+  lng: number
 }
 
 let cachedPoints: MapVenuePoint[] | null = null
@@ -44,19 +29,11 @@ function mapRowsToPoints(rows: MapVenueRow[]): MapVenuePoint[] {
     const lng = parseCoord(venue.longitude)
     if (lat == null || lng == null) continue
 
-    const countyName = cleanDbString(venue.county)
     points.push({
-      id: venue.id,
-      fsa_id: venue.fsa_id,
-      slug: venue.slug,
-      venuename: venue.venuename,
-      address: cleanDbString(venue.address),
-      address2: cleanDbString(venue.address2),
-      town: cleanDbString(venue.town),
-      latitude: String(lat),
-      longitude: String(lng),
-      county: countyName,
-      countySlug: countyName ? slugifyPlace(countyName) : '',
+      fsaId: venue.fsa_id,
+      name: venue.venuename,
+      lat,
+      lng,
     })
   }
   return points
@@ -72,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const rows = await prisma.$queryRaw<MapVenueRow[]>`
-      SELECT id, fsa_id, slug, venuename, address, address2, town, county, latitude, longitude
+      SELECT fsa_id, venuename, latitude, longitude
       FROM "Venue"
       WHERE slug <> ''
         AND latitude IS NOT NULL

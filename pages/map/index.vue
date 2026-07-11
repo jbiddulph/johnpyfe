@@ -82,20 +82,15 @@ const LAYER_CLUSTER_COUNT = 'venue-clusters-count'
 const LAYER_UNCLUSTERED = 'venue-unclustered-point'
 
 type MapVenuePoint = {
-  id: number
-  fsa_id: number
-  slug: string
-  venuename: string
-  address?: string | null
-  address2?: string | null
-  town?: string | null
-  county?: string | null
-  latitude: string
-  longitude: string
+  fsaId: number
+  name: string
+  lat: number
+  lng: number
 }
 
 onMounted(async () => {
-  eventStore.fetchCities()
+  void eventStore.fetchCities()
+  void loadFilterData()
   await createMap()
 })
 
@@ -130,14 +125,6 @@ async function createMap() {
   }
 
   try {
-    const order = '-venue_count'
-    const [, , venuePoints] = await Promise.all([
-      venueStore.fetchTowns(),
-      venueStore.fetchNames(order),
-      $fetch<MapVenuePoint[]>('/api/venues/map'),
-    ])
-    mapVenues.value = venuePoints
-
     mapboxgl = (await import('mapbox-gl')).default
     mapboxgl.accessToken = mapboxToken.value
 
@@ -163,10 +150,28 @@ async function createMap() {
       ensureClusterLayers()
       bindClusterHandlers()
       updateMapLayer(venueName.value)
+      void loadVenueClusters()
     })
   } catch (err) {
     console.error('Failed to create map:', err)
     mapError.value = 'Unable to load the map. Please try again later.'
+  }
+}
+
+async function loadFilterData() {
+  try {
+    await Promise.all([venueStore.fetchTowns(), venueStore.fetchNames('-venue_count')])
+  } catch (err) {
+    console.error('Failed to load map filters:', err)
+  }
+}
+
+async function loadVenueClusters() {
+  try {
+    mapVenues.value = await $fetch<MapVenuePoint[]>('/api/venues/map')
+    updateMapLayer(venueName.value)
+  } catch (err) {
+    console.error('Failed to load venue clusters:', err)
   }
 }
 
@@ -204,7 +209,7 @@ function filteredVenuePoints(layerId: string) {
   const selected = layerId.trim().toUpperCase()
   if (!selected || selected === 'VENUES') return mapVenues.value
 
-  return mapVenues.value.filter((venue) => venue.venuename?.toUpperCase() === selected)
+  return mapVenues.value.filter((venue) => venue.name?.toUpperCase() === selected)
 }
 
 function parseCoord(value: string | number | null | undefined) {
@@ -217,8 +222,8 @@ function buildVenueGeoJson(venues: MapVenuePoint[]) {
     type: 'FeatureCollection' as const,
     features: venues
       .map((venue) => {
-        const lat = parseCoord(venue.latitude)
-        const lng = parseCoord(venue.longitude)
+        const lat = parseCoord(venue.lat)
+        const lng = parseCoord(venue.lng)
         if (lat == null || lng == null) return null
 
         return {
@@ -228,13 +233,8 @@ function buildVenueGeoJson(venues: MapVenuePoint[]) {
             coordinates: [lng, lat],
           },
           properties: {
-            id: venue.id,
-            fsa_id: venue.fsa_id,
-            venuename: venue.venuename,
-            address: venue.address || '',
-            address2: venue.address2 || '',
-            town: venue.town || '',
-            county: venue.county || '',
+            fsa_id: venue.fsaId,
+            venuename: venue.name,
           },
         }
       })
@@ -353,13 +353,12 @@ function bindClusterHandlers() {
     if (!feature) return
 
     const coordinates = feature.geometry.coordinates.slice()
-    const { venuename, address, address2, town, county } = feature.properties
-    const addressParts = [address, address2, town, county].filter(Boolean)
+    const { venuename } = feature.properties
 
     popup = new mapboxgl.Popup({ closeButton: false })
       .setLngLat(coordinates)
       .setHTML(
-        `<div class="p-2"><h1 class="mb-2 text-lg font-semibold">${escapeHtml(venuename)}</h1><div>${escapeHtml(addressParts.join(', '))}</div></div>`,
+        `<div class="p-2"><h1 class="text-lg font-semibold">${escapeHtml(venuename)}</h1></div>`,
       )
       .addTo(map.value)
   })
