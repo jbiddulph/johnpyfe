@@ -2,8 +2,8 @@ import { prisma } from '../../utils/prisma'
 type MapVenueRow = {
   fsa_id: number
   venuename: string
-  latitude: string
-  longitude: string
+  latitude: string | null
+  longitude: string | null
 }
 
 type MapVenuePoint = {
@@ -48,19 +48,19 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const rows = await prisma.$queryRaw<MapVenueRow[]>`
-      SELECT fsa_id, venuename, latitude, longitude
-      FROM "Venue"
-      WHERE slug <> ''
-        AND latitude IS NOT NULL
-        AND longitude IS NOT NULL
-        AND latitude <> ''
-        AND longitude <> ''
-        AND latitude <> '0'
-        AND longitude <> '0'
-        AND latitude ~ '^-?[0-9]+(\\.[0-9]+)?$'
-        AND longitude ~ '^-?[0-9]+(\\.[0-9]+)?$'
-    `
+    const rows = await prisma.venue.findMany({
+      where: {
+        slug: { not: '' },
+        latitude: { not: '' },
+        longitude: { not: '' },
+      },
+      select: {
+        fsa_id: true,
+        venuename: true,
+        latitude: true,
+        longitude: true,
+      },
+    })
 
     cachedPoints = mapRowsToPoints(rows)
     cacheExpiresAt = Date.now() + CACHE_MS
