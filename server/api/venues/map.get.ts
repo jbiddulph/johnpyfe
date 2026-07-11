@@ -3,7 +3,6 @@ type MapVenueRow = {
   id: number
   fsa_id: number
   venuename: string
-  venuetype: string
   address: string
   town: string
   county: string
@@ -16,11 +15,7 @@ type MapVenuePoint = {
   id: number
   fsaId: number
   name: string
-  type: string
   address: string
-  town: string
-  county: string
-  postcode: string
   lat: number
   lng: number
 }
@@ -45,16 +40,22 @@ function mapRowsToPoints(rows: MapVenueRow[]): MapVenuePoint[] {
       id: venue.id,
       fsaId: venue.fsa_id,
       name: venue.venuename,
-      type: venue.venuetype,
-      address: venue.address,
-      town: venue.town,
-      county: venue.county,
-      postcode: venue.postcode,
+      address: formatAddress(venue),
       lat,
       lng,
     })
   }
   return points
+}
+
+function formatAddress(venue: Pick<MapVenueRow, 'address' | 'town' | 'county' | 'postcode'>) {
+  return [
+    venue.address,
+    [venue.town, venue.county].filter(Boolean).join(', '),
+    venue.postcode,
+  ]
+    .filter((part) => Boolean(String(part || '').trim()))
+    .join(', ')
 }
 
 /** Lightweight venue points for clustered hub maps (cached, coord-filtered in SQL). */
@@ -76,7 +77,6 @@ export default defineEventHandler(async (event) => {
         id: true,
         fsa_id: true,
         venuename: true,
-        venuetype: true,
         address: true,
         town: true,
         county: true,
