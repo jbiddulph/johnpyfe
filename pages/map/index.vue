@@ -190,6 +190,7 @@ const mapVenues = ref<MapVenuePoint[]>([])
 let mapboxgl: typeof import('mapbox-gl').default | null = null
 let popup: InstanceType<typeof import('mapbox-gl').default.Popup> | null = null
 let popupTimeout: ReturnType<typeof setTimeout> | null = null
+let activePopupVenueId: number | null = null
 const hiddenLegacyLayerIds = ref(new Set<string>())
 
 const SOURCE_ID = 'venue-clusters'
@@ -201,7 +202,6 @@ type MapVenuePoint = {
   id: number
   fsaId: number
   name: string
-  address: string
   lat: number
   lng: number
 }
@@ -324,6 +324,7 @@ const selectedVenueDetailRows = computed(() => {
 })
 
 let desktopMediaQuery: MediaQueryList | null = null
+const venueDetailsCache = new Map<number, VenueDetails>()
 
 function closeVenueModal() {
   isVenueModalOpen.value = false
@@ -476,7 +477,6 @@ function buildVenueGeoJson(venues: MapVenuePoint[]) {
             id: venue.id,
             fsa_id: venue.fsaId,
             venuename: venue.name,
-            address: venue.address,
             lat,
             lng,
           },
@@ -598,24 +598,25 @@ function bindClusterHandlers() {
 
     const coordinates = feature.geometry.coordinates.slice()
     const { venuename } = feature.properties
-    const address = formatAddress(feature.properties)
+    const venueId = Number(feature.properties?.id || 0)
+    activePopupVenueId = venueId || null
 
     popup?.remove()
     popup = new mapboxgl.Popup({ closeButton: false })
       .setLngLat(coordinates)
-      .setHTML(
-        `<div class="p-2">
-          <h1 class="text-lg font-semibold">${escapeHtml(venuename)}</h1>
-          ${address ? `<p class="mt-1 text-sm leading-snug">${escapeHtml(address)}</p>` : ''}
-        </div>`,
-      )
+      .setHTML(renderVenuePopupHtml(venuename, popupAddressForVenue(venueId)))
       .addTo(map.value)
+
+    if (venueId && !venueDetailsCache.has(venueId)) {
+      void fetchVenueDetailsForPopup(venueId, venuename, coordinates)
+    }
   })
 
   map.value.on('mouseleave', LAYER_UNCLUSTERED, () => {
     popupTimeout = setTimeout(() => {
       popup?.remove()
       popup = null
+      activePopupVenueId = null
     }, 500)
   })
 
@@ -668,7 +669,13 @@ function compactAddressLines(venue: {
 }
 
 function formatAddress(properties: Record<string, unknown>) {
-  return String(properties.address || '').trim()
+  return compactAddressLines({
+    address: String(properties.address || ''),
+    address2: String(properties.address2 || ''),
+    town: String(properties.town || ''),
+    county: String(properties.county || ''),
+    postcode: String(properties.postcode || ''),
+  }).join(', ')
 }
 
 function mapFeatureToVenue(properties?: Record<string, unknown>): SelectedMapVenue | null {
@@ -681,7 +688,6 @@ function mapFeatureToVenue(properties?: Record<string, unknown>): SelectedMapVen
     id: Number(properties.id || 0),
     fsaId: Number(properties.fsa_id || 0),
     name: String(properties.venuename || ''),
-    address: String(properties.address || ''),
     lat,
     lng,
   }
@@ -692,12 +698,43 @@ async function loadSelectedVenueDetails(id: number) {
   isVenueDetailsLoading.value = true
   venueDetailsError.value = ''
   try {
-    selectedVenueDetails.value = await venueStore.fetchVenueDetails(id)
+    selectedVenueDetails.value = await fetchVenueDetailsCached(id)
   } catch (err) {
     console.error('Failed to load venue details:', err)
     venueDetailsError.value = 'Unable to load full venue details. Please try again.'
   } finally {
     isVenueDetailsLoading.value = false
+  }
+}
+
+async function fetchVenueDetailsCached(id: number) {
+  const cached = venueDetailsCache.get(id)
+  if (cached) return cached
+
+  const details = await venueStore.fetchVenueDetails(id)
+  venueDetailsCache.set(id, details)
+  return details
+}
+
+function popupAddressForVenue(id: number) {
+  const details = venueDetailsCache.get(id)
+  return details ? formatAddress(details) : ''
+}
+
+function renderVenuePopupHtml(venuename: unknown, address = '') {
+  return `<div class="p-2">
+    <h1 class="text-lg font-semibold">${escapeHtml(venuename)}</h1>
+    ${address ? `<p class="mt-1 text-sm leading-snug">${escapeHtml(address)}</p>` : '<p class="mt-1 text-sm leading-snug text-gray-500">Loading address...</p>'}
+  </div>`
+}
+
+async function fetchVenueDetailsForPopup(id: number, venuename: unknown, coordinates: [number, number]) {
+  try {
+    const details = await fetchVenueDetailsCached(id)
+    if (!popup || !map.value || activePopupVenueId !== id) return
+    popup.setLngLat(coordinates).setHTML(renderVenuePopupHtml(venuename, formatAddress(details)))
+  } catch (err) {
+    console.error('Failed to load venue popup details:', err)
   }
 }
 

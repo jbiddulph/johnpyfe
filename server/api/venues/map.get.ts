@@ -3,10 +3,6 @@ type MapVenueRow = {
   id: number
   fsa_id: number
   venuename: string
-  address: string
-  town: string
-  county: string
-  postcode: string
   latitude: string | null
   longitude: string | null
 }
@@ -15,7 +11,6 @@ type MapVenuePoint = {
   id: number
   fsaId: number
   name: string
-  address: string
   lat: number
   lng: number
 }
@@ -40,7 +35,6 @@ function mapRowsToPoints(rows: MapVenueRow[]): MapVenuePoint[] {
       id: venue.id,
       fsaId: venue.fsa_id,
       name: venue.venuename,
-      address: formatAddress(venue),
       lat,
       lng,
     })
@@ -48,17 +42,7 @@ function mapRowsToPoints(rows: MapVenueRow[]): MapVenuePoint[] {
   return points
 }
 
-function formatAddress(venue: Pick<MapVenueRow, 'address' | 'town' | 'county' | 'postcode'>) {
-  return [
-    venue.address,
-    [venue.town, venue.county].filter(Boolean).join(', '),
-    venue.postcode,
-  ]
-    .filter((part) => Boolean(String(part || '').trim()))
-    .join(', ')
-}
-
-/** Lightweight venue points for clustered hub maps (cached, coord-filtered in SQL). */
+/** Lightweight venue points for clustered hub maps. Keep this response below Netlify payload limits. */
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
 
@@ -77,10 +61,6 @@ export default defineEventHandler(async (event) => {
         id: true,
         fsa_id: true,
         venuename: true,
-        address: true,
-        town: true,
-        county: true,
-        postcode: true,
         latitude: true,
         longitude: true,
       },
