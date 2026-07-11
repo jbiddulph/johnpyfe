@@ -72,8 +72,8 @@
               <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
                 {{ selectedVenue.name }}
               </h3>
-              <p v-if="selectedVenue.type" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {{ selectedVenue.type }}
+              <p v-if="selectedVenueDetails?.venuetype" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ selectedVenueDetails.venuetype }}
               </p>
             </div>
             <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="closeVenueModal" />
@@ -201,11 +201,7 @@ type MapVenuePoint = {
   id: number
   fsaId: number
   name: string
-  type: string
   address: string
-  town: string
-  county: string
-  postcode: string
   lat: number
   lng: number
 }
@@ -480,11 +476,7 @@ function buildVenueGeoJson(venues: MapVenuePoint[]) {
             id: venue.id,
             fsa_id: venue.fsaId,
             venuename: venue.name,
-            venuetype: venue.type,
             address: venue.address,
-            town: venue.town,
-            county: venue.county,
-            postcode: venue.postcode,
             lat,
             lng,
           },
@@ -676,13 +668,7 @@ function compactAddressLines(venue: {
 }
 
 function formatAddress(properties: Record<string, unknown>) {
-  return compactAddressLines({
-    address: String(properties.address || ''),
-    address2: '',
-    town: String(properties.town || ''),
-    county: String(properties.county || ''),
-    postcode: String(properties.postcode || ''),
-  }).join(', ')
+  return String(properties.address || '').trim()
 }
 
 function mapFeatureToVenue(properties?: Record<string, unknown>): SelectedMapVenue | null {
@@ -695,11 +681,7 @@ function mapFeatureToVenue(properties?: Record<string, unknown>): SelectedMapVen
     id: Number(properties.id || 0),
     fsaId: Number(properties.fsa_id || 0),
     name: String(properties.venuename || ''),
-    type: String(properties.venuetype || ''),
     address: String(properties.address || ''),
-    town: String(properties.town || ''),
-    county: String(properties.county || ''),
-    postcode: String(properties.postcode || ''),
     lat,
     lng,
   }
