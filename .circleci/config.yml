@@ -12,7 +12,7 @@ jobs:
       - run:
           name: Checkout source
           command: |
-            git clone --blobless https://github.com/jbiddulph/johnpyfe.git .
+            git clone --filter=blob:none https://github.com/jbiddulph/johnpyfe.git .
             git checkout "$CIRCLE_SHA1"
       - run:
           name: Install dependencies
@@ -35,7 +35,7 @@ jobs:
       - run:
           name: Checkout source
           command: |
-            git clone --blobless https://github.com/jbiddulph/johnpyfe.git .
+            git clone --filter=blob:none https://github.com/jbiddulph/johnpyfe.git .
             git checkout "$CIRCLE_SHA1"
       - run:
           name: Install dependencies
