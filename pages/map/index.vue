@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch, computed } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useVenueStore } from '@/store/venue.js'
 import { useEventStore } from '@/store/event.js'
 
@@ -70,10 +70,29 @@ const isOpenLeft = reactive({
 const venueName = ref('VENUES')
 const map = ref<any>(null)
 const mapError = ref('')
+const mapVenues = ref<MapVenuePoint[]>([])
 let mapboxgl: typeof import('mapbox-gl').default | null = null
 let popup: InstanceType<typeof import('mapbox-gl').default.Popup> | null = null
 let popupTimeout: ReturnType<typeof setTimeout> | null = null
-const layersAdded = ref<string[]>([])
+const hiddenLegacyLayerIds = ref(new Set<string>())
+
+const SOURCE_ID = 'venue-clusters'
+const LAYER_CLUSTERS = 'venue-clusters-circle'
+const LAYER_CLUSTER_COUNT = 'venue-clusters-count'
+const LAYER_UNCLUSTERED = 'venue-unclustered-point'
+
+type MapVenuePoint = {
+  id: number
+  fsa_id: number
+  slug: string
+  venuename: string
+  address?: string | null
+  address2?: string | null
+  town?: string | null
+  county?: string | null
+  latitude: string
+  longitude: string
+}
 
 onMounted(async () => {
   eventStore.fetchCities()
@@ -112,7 +131,12 @@ async function createMap() {
 
   try {
     const order = '-venue_count'
-    await Promise.all([venueStore.fetchTowns(), venueStore.fetchNames(order)])
+    const [, , venuePoints] = await Promise.all([
+      venueStore.fetchTowns(),
+      venueStore.fetchNames(order),
+      $fetch<MapVenuePoint[]>('/api/venues/map'),
+    ])
+    mapVenues.value = venuePoints
 
     mapboxgl = (await import('mapbox-gl')).default
     mapboxgl.accessToken = mapboxToken.value
@@ -136,6 +160,8 @@ async function createMap() {
 
     map.value.on('load', () => {
       map.value.resize()
+      ensureClusterLayers()
+      bindClusterHandlers()
       updateMapLayer(venueName.value)
     })
   } catch (err) {
@@ -151,46 +177,226 @@ function updateMapLayer(layerId: string) {
     return
   }
 
-  layersAdded.value.forEach((id) => {
+  hideLegacyVenueLayers(layerId)
+
+  const source = map.value.getSource(SOURCE_ID)
+  source?.setData(buildVenueGeoJson(filteredVenuePoints(layerId)))
+}
+
+function hideLegacyVenueLayers(activeLayerId: string) {
+  if (!map.value) return
+
+  const legacyLayerIds = new Set([
+    'VENUES',
+    activeLayerId,
+    ...Array.from(hiddenLegacyLayerIds.value),
+  ])
+
+  for (const id of legacyLayerIds) {
     if (map.value.getLayer(id)) {
       map.value.setLayoutProperty(id, 'visibility', 'none')
+      hiddenLegacyLayerIds.value.add(id)
     }
+  }
+}
+
+function filteredVenuePoints(layerId: string) {
+  const selected = layerId.trim().toUpperCase()
+  if (!selected || selected === 'VENUES') return mapVenues.value
+
+  return mapVenues.value.filter((venue) => venue.venuename?.toUpperCase() === selected)
+}
+
+function parseCoord(value: string | number | null | undefined) {
+  const n = Number(value)
+  return Number.isFinite(n) && n !== 0 ? n : null
+}
+
+function buildVenueGeoJson(venues: MapVenuePoint[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: venues
+      .map((venue) => {
+        const lat = parseCoord(venue.latitude)
+        const lng = parseCoord(venue.longitude)
+        if (lat == null || lng == null) return null
+
+        return {
+          type: 'Feature' as const,
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [lng, lat],
+          },
+          properties: {
+            id: venue.id,
+            fsa_id: venue.fsa_id,
+            venuename: venue.venuename,
+            address: venue.address || '',
+            address2: venue.address2 || '',
+            town: venue.town || '',
+            county: venue.county || '',
+          },
+        }
+      })
+      .filter(Boolean),
+  }
+}
+
+function ensureClusterLayers() {
+  if (!map.value || map.value.getSource(SOURCE_ID)) return
+
+  map.value.addSource(SOURCE_ID, {
+    type: 'geojson',
+    data: buildVenueGeoJson([]),
+    cluster: true,
+    clusterMaxZoom: 13,
+    clusterRadius: 56,
   })
 
-  if (map.value.getLayer(layerId)) {
-    map.value.setLayoutProperty(layerId, 'visibility', 'visible')
-    layersAdded.value.push(layerId)
-  }
+  map.value.addLayer({
+    id: LAYER_CLUSTERS,
+    type: 'circle',
+    source: SOURCE_ID,
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': [
+        'step',
+        ['get', 'point_count'],
+        '#f59e0b',
+        25,
+        '#d97706',
+        100,
+        '#b45309',
+        500,
+        '#92400e',
+      ],
+      'circle-radius': [
+        'step',
+        ['get', 'point_count'],
+        18,
+        25,
+        23,
+        100,
+        29,
+        500,
+        36,
+      ],
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ffffff',
+      'circle-opacity': 0.95,
+    },
+  })
 
-  map.value.off('mouseenter', layerId)
-  map.value.off('mouseleave', layerId)
-  map.value.off('click', layerId)
+  map.value.addLayer({
+    id: LAYER_CLUSTER_COUNT,
+    type: 'symbol',
+    source: SOURCE_ID,
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': ['get', 'point_count_abbreviated'],
+      'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+      'text-size': 12,
+    },
+    paint: {
+      'text-color': '#ffffff',
+    },
+  })
 
-  map.value.on('mouseenter', layerId, (e: { features: any[] }) => {
-    if (!mapboxgl) return
+  map.value.addLayer({
+    id: LAYER_UNCLUSTERED,
+    type: 'circle',
+    source: SOURCE_ID,
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': '#d97706',
+      'circle-radius': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        5,
+        5,
+        12,
+        7,
+        16,
+        9,
+      ],
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ffffff',
+      'circle-opacity': 1,
+    },
+  })
+}
+
+function bindClusterHandlers() {
+  if (!map.value || !mapboxgl) return
+
+  map.value.on('click', LAYER_CLUSTERS, (e: { point: unknown }) => {
+    const features = map.value.queryRenderedFeatures(e.point, { layers: [LAYER_CLUSTERS] })
+    if (!features.length) return
+
+    const clusterId = features[0].properties?.cluster_id
+    const source = map.value.getSource(SOURCE_ID)
+    if (!source || clusterId == null) return
+
+    source.getClusterExpansionZoom(clusterId, (err: Error | null, zoom: number) => {
+      if (err) return
+      map.value.easeTo({
+        center: features[0].geometry.coordinates,
+        zoom,
+      })
+    })
+  })
+
+  map.value.on('mouseenter', LAYER_UNCLUSTERED, (e: { features: any[] }) => {
+    if (popupTimeout) clearTimeout(popupTimeout)
     const feature = e.features[0]
+    if (!feature) return
+
     const coordinates = feature.geometry.coordinates.slice()
+    const { venuename, address, address2, town, county } = feature.properties
+    const addressParts = [address, address2, town, county].filter(Boolean)
+
     popup = new mapboxgl.Popup({ closeButton: false })
       .setLngLat(coordinates)
       .setHTML(
-        `<div class='p-2'><h1 class='mb-4 text-2xl'>${feature.properties.venuename}</h1> <h2>${feature.properties.address}, ${feature.properties.address2}</h2></div>`,
+        `<div class="p-2"><h1 class="mb-2 text-lg font-semibold">${escapeHtml(venuename)}</h1><div>${escapeHtml(addressParts.join(', '))}</div></div>`,
       )
       .addTo(map.value)
   })
 
-  map.value.on('mouseleave', layerId, () => {
+  map.value.on('mouseleave', LAYER_UNCLUSTERED, () => {
     popupTimeout = setTimeout(() => {
       popup?.remove()
       popup = null
-    }, 1000)
+    }, 500)
   })
 
-  map.value.on('click', layerId, (e: { features: { properties: { fsa_id: unknown } }[] }) => {
+  map.value.on('click', LAYER_UNCLUSTERED, (e: { features: { properties: { fsa_id: unknown } }[] }) => {
     popup?.remove()
     popup = null
     isOpenRight.slideover = true
     isOpenRight.featureId = e.features[0].properties.fsa_id as string | number
   })
+
+  const setPointer = () => {
+    map.value.getCanvas().style.cursor = 'pointer'
+  }
+  const clearPointer = () => {
+    map.value.getCanvas().style.cursor = ''
+  }
+
+  for (const layerId of [LAYER_CLUSTERS, LAYER_UNCLUSTERED]) {
+    map.value.on('mouseenter', layerId, setPointer)
+    map.value.on('mouseleave', layerId, clearPointer)
+  }
+}
+
+function escapeHtml(text: unknown) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 onBeforeUnmount(() => {
