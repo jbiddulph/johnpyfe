@@ -3,8 +3,12 @@ import { cleanDbString, slugifyPlace } from '../../../utils/format-venue'
 
 type MapVenueRow = {
   id: number
+  fsa_id: number
   slug: string
   venuename: string
+  address: string
+  address2: string
+  town: string
   county: string
   latitude: string
   longitude: string
@@ -12,8 +16,12 @@ type MapVenueRow = {
 
 type MapVenuePoint = {
   id: number
+  fsa_id: number
   slug: string
   venuename: string
+  address: string | null
+  address2: string | null
+  town: string | null
   latitude: string
   longitude: string
   county: string | null
@@ -39,8 +47,12 @@ function mapRowsToPoints(rows: MapVenueRow[]): MapVenuePoint[] {
     const countyName = cleanDbString(venue.county)
     points.push({
       id: venue.id,
+      fsa_id: venue.fsa_id,
       slug: venue.slug,
       venuename: venue.venuename,
+      address: cleanDbString(venue.address),
+      address2: cleanDbString(venue.address2),
+      town: cleanDbString(venue.town),
       latitude: String(lat),
       longitude: String(lng),
       county: countyName,
@@ -60,7 +72,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const rows = await prisma.$queryRaw<MapVenueRow[]>`
-      SELECT id, slug, venuename, county, latitude, longitude
+      SELECT id, fsa_id, slug, venuename, address, address2, town, county, latitude, longitude
       FROM "Venue"
       WHERE slug <> ''
         AND latitude IS NOT NULL

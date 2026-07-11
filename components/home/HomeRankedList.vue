@@ -14,10 +14,18 @@
           class="home-ranked-photo block overflow-hidden rounded-lg shadow-sm transition-transform hover:-translate-y-0.5"
         >
           <div
-            class="home-ranked-photo__media relative min-h-[140px] bg-cover bg-center"
-            :class="{ 'home-ranked-photo__media--fallback': !item.imageUrl }"
-            :style="photoStyle(item)"
+            class="home-ranked-photo__media relative min-h-[140px] overflow-hidden"
+            :class="{ 'home-ranked-photo__media--fallback': !hasUsableImage(item, index) }"
           >
+            <img
+              v-if="hasUsableImage(item, index)"
+              :src="item.imageUrl || ''"
+              :alt="imageAlt(item)"
+              class="absolute inset-0 h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
+              @error="markImageFailed(item, index)"
+            >
             <div class="home-ranked-photo__overlay" aria-hidden="true" />
             <div class="home-ranked-photo__content relative z-[1] flex min-h-[140px] flex-col justify-end p-4 text-white">
               <span class="home-ranked__rank home-ranked__rank--photo mb-2 w-fit" aria-hidden="true">
@@ -62,6 +70,7 @@ export type HomeRankedItem = {
   slug?: string
   imageUrl?: string | null
   imageAttribution?: string | null
+  imageAlt?: string | null
 }
 
 const props = withDefaults(
@@ -82,8 +91,24 @@ function itemKey(item: HomeRankedItem, index: number) {
   return item.slug || item.href || `${item.displayName}-${index}`
 }
 
-function photoStyle(item: HomeRankedItem) {
-  return item.imageUrl ? { backgroundImage: `url('${item.imageUrl}')` } : undefined
+const failedImageKeys = ref(new Set<string>())
+
+function imageKey(item: HomeRankedItem, index: number) {
+  return item.imageUrl || itemKey(item, index)
+}
+
+function hasUsableImage(item: HomeRankedItem, index: number) {
+  return Boolean(item.imageUrl) && !failedImageKeys.value.has(imageKey(item, index))
+}
+
+function markImageFailed(item: HomeRankedItem, index: number) {
+  const nextFailedImageKeys = new Set(failedImageKeys.value)
+  nextFailedImageKeys.add(imageKey(item, index))
+  failedImageKeys.value = nextFailedImageKeys
+}
+
+function imageAlt(item: HomeRankedItem) {
+  return item.imageAlt || (item.meta ? `${item.displayName} - ${item.meta}` : item.displayName)
 }
 </script>
 

@@ -84,6 +84,7 @@ const stadiumListItems = computed(() =>
     slug: s.slug,
     imageUrl: s.imageUrl,
     imageAttribution: s.imageAttribution,
+    imageAlt: `${s.stadiumName}, home of ${s.club}`,
   })),
 )
 
