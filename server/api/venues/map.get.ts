@@ -1,14 +1,26 @@
 import { prisma } from '../../utils/prisma'
 type MapVenueRow = {
+  id: number
   fsa_id: number
   venuename: string
+  venuetype: string
+  address: string
+  town: string
+  county: string
+  postcode: string
   latitude: string | null
   longitude: string | null
 }
 
 type MapVenuePoint = {
+  id: number
   fsaId: number
   name: string
+  type: string
+  address: string
+  town: string
+  county: string
+  postcode: string
   lat: number
   lng: number
 }
@@ -30,8 +42,14 @@ function mapRowsToPoints(rows: MapVenueRow[]): MapVenuePoint[] {
     if (lat == null || lng == null) continue
 
     points.push({
+      id: venue.id,
       fsaId: venue.fsa_id,
       name: venue.venuename,
+      type: venue.venuetype,
+      address: venue.address,
+      town: venue.town,
+      county: venue.county,
+      postcode: venue.postcode,
       lat,
       lng,
     })
@@ -55,8 +73,14 @@ export default defineEventHandler(async (event) => {
         longitude: { not: '' },
       },
       select: {
+        id: true,
         fsa_id: true,
         venuename: true,
+        venuetype: true,
+        address: true,
+        town: true,
+        county: true,
+        postcode: true,
         latitude: true,
         longitude: true,
       },
