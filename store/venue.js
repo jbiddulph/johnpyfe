@@ -133,6 +133,27 @@ export const useVenueStore = defineStore({
         throw error;
       }
     },
+    async editVenue(id, data) {
+      try {
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/venues/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        })
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}))
+          throw new Error(errBody.message || errBody.statusMessage || 'Failed to update venue')
+        }
+        const updated = await response.json()
+        this.venue = updated
+        return updated
+      } catch (error) {
+        console.error('Error saving venue details:', error)
+        throw error
+      }
+    },
     async editVenueCoords(id, data) {
       try {
         console.log("Editing ID IS: ", id)

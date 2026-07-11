@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from '../../utils/prisma'
+;
 
 export default defineEventHandler(async (event) => {
   // Get events with "Untitled" in the title, ordered by most recent first

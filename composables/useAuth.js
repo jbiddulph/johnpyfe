@@ -3,16 +3,15 @@ const user = ref(null);
 const isInitialized = ref(false);
 
 export const useAuth = () => {
-  const nuxtApp = useNuxtApp();
-  const $supabase = nuxtApp.$supabase;
+  const { $supabase } = useNuxtApp();
   const config = useRuntimeConfig();
 
   // Initialize authentication state (only once)
   const initializeAuth = async () => {
     if (isInitialized.value) return;
-    if (!$supabase) {
+
+    if (!$supabase?.auth) {
       isInitialized.value = true;
-      user.value = null;
       return;
     }
     

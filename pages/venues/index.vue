@@ -1,32 +1,64 @@
 <template>
   <div class="container mx-auto p-4">
-    <div class="flex w-full justify-between items-center">
+    <div class="flex w-full flex-wrap justify-between items-center gap-4">
       <h1 class="text-4xl font-bold my-8">Venues</h1>
-      <UButton v-if="user && isAdmin" icon="i-heroicons-plus-circle" label="Add" @click="openAddModal(venue)" />
+      <div class="flex flex-wrap items-center gap-3 ml-auto">
+        <select v-model="selectedCounty" class="select min-w-[200px]" @change="onCountyChange">
+          <option value="">All Counties</option>
+          <option v-for="county in counties" :key="county.value" :value="county.value">
+            {{ county.label }}
+          </option>
+        </select>
+        <UButton icon="i-heroicons-plus-circle" label="Add" @click="openAddModal" />
+      </div>
     </div>
-    <div class="flex w-full justify-between items-center mb-4">
-      <input v-model="searchQuery" type="text" placeholder="Search by venue name" class="input" />
-      <select v-model="selectedTown" class="select">
+    <div class="flex flex-wrap gap-3 items-center mb-4">
+      <div class="flex gap-2 flex-1 min-w-[220px]">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search by venue name"
+          class="input flex-1"
+          @keyup.enter="runSearch"
+        />
+        <UButton
+          v-if="showSearchGo"
+          label="Go"
+          color="amber"
+          @click="runSearch"
+        />
+      </div>
+      <select v-model="selectedTown" class="select min-w-[180px]" @change="onTownChange">
         <option value="">All Towns</option>
-        <option v-for="town in towns" :key="town" :value="town">{{ town }}</option>
+        <option v-for="town in towns" :key="town.value" :value="town.value">{{ town.label }}</option>
       </select>
     </div>
     <div class="pb-12">
       <!-- Pagination controls -->
-      <div class="flex justify-center mb-4  mt-2">
-        <!-- <UButton label="First" @click="prevPage(currentPage.value = 1)" /> -->
-        <UButton label="Previous" @click="prevPage(currentPage.value - 1)" />
-        <UButton :label="currentPage" class="mx-4" variant="soft" />
-        <UButton label="Next" @click="nextPage(currentPage + 1)" />
-        <!-- <UButton label="Last" @click="nextPage(currentPage = totalPages)" /> -->
+      <p v-if="loadError" class="text-center text-red-600 mb-4">{{ loadError }}</p>
+      <p v-if="!loadError && (activeSearch || selectedTown || selectedCounty || totalItems > 0)" class="text-center text-sm text-gray-600 mb-4">
+        <template v-if="activeSearch || selectedTown || selectedCounty">
+          <span v-if="activeSearch">Search: “{{ activeSearch }}”</span>
+          <span v-if="activeSearch && (selectedTown || selectedCounty)"> · </span>
+          <span v-if="selectedCounty">County: {{ selectedCountyLabel }}</span>
+          <span v-if="selectedCounty && selectedTown"> · </span>
+          <span v-if="selectedTown">Town: {{ selectedTownLabel }}</span>
+          <button type="button" class="ml-2 text-amber-600 hover:underline" @click="clearFilters">
+            Clear filters
+          </button>
+          <span class="mx-2">·</span>
+        </template>
+        {{ totalItems }} venues<span v-if="totalPages > 1"> — page {{ currentPage }} of {{ totalPages }}</span>
+      </p>
+      <div class="flex justify-center mb-4 mt-2">
+        <UButton label="Previous" :disabled="currentPage <= 1 || loading" @click="prevPage" />
+        <UButton :label="String(currentPage)" class="mx-4" variant="soft" />
+        <UButton label="Next" :disabled="currentPage >= totalPages || loading" @click="nextPage" />
       </div>
-      <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <li v-for="(venue, index) in filteredVenues" :key="index">
-          <UCard class="h-[250px]">
-            <template #header>
-              <h3 class="font-bold">{{ venue.venuename }}</h3>
-            </template>
-            <div>{{ venue.venuename }}, {{ venue.town }}, {{ venue.county }}</div> 
+      <p v-if="loading && !venues.length" class="text-center text-gray-600 mb-4">Loading venues…</p>
+      <ul v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <li v-for="venue in venues" :key="venue.id">
+          <VenueHubCard :venue="venue" class="venue-card">
             <template #footer>
               <div class="flex justify-center">
                 <div v-if="user && isAdmin" class="controls">
@@ -49,7 +81,7 @@
                 </div>
               </div>
             </template>
-          </UCard>
+          </VenueHubCard>
         </li>
       </ul>
     </div>
@@ -123,7 +155,13 @@ useHead({
 const toast = useToast();
 import { useVenueStore } from "@/store/venue.js";
 import { useAuthStore } from "@/store/auth.js";
-import axios from "axios";
+
+const requestFetch = useRequestFetch();
+const route = useRoute();
+const legacySearchQuery = String(route.query.q || '').trim();
+if (legacySearchQuery.length >= 2) {
+  await navigateTo({ path: '/search', query: { q: legacySearchQuery } }, { replace: true });
+}
 const venueStore = useVenueStore();
 const authStore = useAuthStore();
 const { $supabase } = useNuxtApp();
@@ -150,91 +188,148 @@ const userID = process.env.USER_ID;
 const PAGE_SIZE = 104; // Define the page size constant
 const selectedFile = ref<File | null>(null);
 const searchQuery = ref('');
+const activeSearch = ref('');
+
+function syncSearchFromRoute() {
+  const q = String(route.query.q || '').trim();
+  searchQuery.value = q;
+  activeSearch.value = q;
+}
+
+syncSearchFromRoute();
 const selectedTown = ref('');
-const towns = ref([]); // List of towns for the dropdown
-const getVenueCacheKey = () => `venues:${currentPage.value}:${itemsPerPage.value}`;
+const selectedCounty = ref('');
+const towns = ref<Array<{ label: string; value: string }>>([]);
+const counties = ref<Array<{ label: string; value: string }>>([]);
+const loading = ref(false);
+const loadError = ref('');
+
+type VenuesPage = {
+  items: typeof venues.value;
+  total: number;
+  totalPages: number;
+};
+
+function applyVenuesPage(data: VenuesPage) {
+  venues.value = data.items ?? [];
+  totalItems.value = data.total ?? 0;
+  totalPages.value = data.totalPages ?? 1;
+}
+
+const { data: initialVenues, error: initialVenuesError } = await useAsyncData(
+  () => `venues-list-${activeSearch.value}-${selectedTown.value}-${selectedCounty.value}-1`,
+  () => requestFetch<VenuesPage>(buildVenuesUrl(1)),
+);
+
+function buildVenuesUrl(page = currentPage.value) {
+  const params = new URLSearchParams({
+    skip: String((page - 1) * itemsPerPage.value),
+    take: String(itemsPerPage.value),
+  });
+  if (selectedTown.value) params.set('town', selectedTown.value);
+  if (selectedCounty.value) params.set('county', selectedCounty.value);
+  if (activeSearch.value) params.set('q', activeSearch.value);
+  return `/api/venues?${params}`;
+}
+
+const showSearchGo = computed(() => searchQuery.value.trim().length >= 2);
+
+function runSearch() {
+  const q = searchQuery.value.trim();
+  if (q.length < 2) return;
+  activeSearch.value = q;
+  currentPage.value = 1;
+  fetchAllVenues();
+}
+
+function clearFilters() {
+  searchQuery.value = '';
+  activeSearch.value = '';
+  selectedTown.value = '';
+  selectedCounty.value = '';
+  currentPage.value = 1;
+  fetchAllVenues();
+}
+
+function onTownChange() {
+  currentPage.value = 1;
+  fetchAllVenues();
+}
+
+function onCountyChange() {
+  currentPage.value = 1;
+  fetchAllVenues();
+}
+
+const selectedTownLabel = computed(() => {
+  const match = towns.value.find((t) => t.value === selectedTown.value);
+  return match?.label ?? selectedTown.value;
+});
+
+const selectedCountyLabel = computed(() => {
+  const match = counties.value.find((c) => c.value === selectedCounty.value);
+  return match?.label ?? selectedCounty.value;
+});
 
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
     fetchAllVenues();
   }
-}
+};
+
 const nextPage = () => {
-  // if (currentPage.value * itemsPerPage.value < totalItems.value) {
+  if (currentPage.value < totalPages.value) {
     currentPage.value++;
     fetchAllVenues();
-  // }
-}
-const fetchAllVenues = async () => {
-  let hasCachedVenues = false;
-
-  try {
-    const skip = (currentPage.value - 1) * itemsPerPage.value;
-    const cacheKey = getVenueCacheKey();
-
-    if (process.client) {
-      const cachedVenues = sessionStorage.getItem(cacheKey);
-      if (cachedVenues) {
-        try {
-          const parsedVenues = JSON.parse(cachedVenues);
-          if (Array.isArray(parsedVenues)) {
-            venues.value = parsedVenues;
-            totalItems.value = parsedVenues.length;
-            towns.value = [...new Set(parsedVenues.map((venue: any) => venue.town))];
-            totalPages.value = Math.max(1, Math.ceil(totalItems.value / itemsPerPage.value));
-            hasCachedVenues = true;
-          }
-        } catch {
-          sessionStorage.removeItem(cacheKey);
-        }
-      }
-    }
-
-    const response = await fetch(`/api/venues?skip=${skip}&take=${itemsPerPage.value}`);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (Array.isArray(data)) {
-      venues.value = data;
-      totalItems.value = data.length;
-      towns.value = [...new Set(data.map((venue: any) => venue.town))]; // Extract unique towns
-      if (process.client) {
-        sessionStorage.setItem(cacheKey, JSON.stringify(data));
-      }
-    } else {
-      console.error("Unexpected data format:", data);
-      venues.value = [];
-      totalItems.value = 0;
-      towns.value = [];
-    }
-    
-    const totalPagesCount = Math.ceil(totalItems.value / itemsPerPage.value);
-    totalPages.value = totalPagesCount;
-  } catch (error) {
-    console.error('Error loading venues:', error);
-    if (hasCachedVenues) {
-      return;
-    }
-
-    venues.value = [];
-    totalItems.value = 0;
-    towns.value = [];
-    totalPages.value = 1;
   }
 };
-const filteredVenues = computed(() => {
-  return venues.value.filter(venue => {
-    return (
-      venue.venuename.toLowerCase().includes(searchQuery.value.toLowerCase()) &&
-      (selectedTown.value === '' || venue.town === selectedTown.value)
+
+if (initialVenuesError.value) {
+  loadError.value =
+    'Could not load venues. The database may be unreachable — check Netlify DATABASE_URL uses Supabase port 6543 (transaction pooler).';
+} else if (initialVenues.value) {
+  applyVenuesPage(initialVenues.value);
+}
+
+const fetchAllVenues = async () => {
+  loading.value = true;
+  loadError.value = '';
+  try {
+    const data = await requestFetch<VenuesPage>(buildVenuesUrl());
+    applyVenuesPage(data);
+  } catch (error) {
+    console.error('Error loading venues:', error);
+    loadError.value =
+      'Could not load venues. Please try again — if this persists, verify DATABASE_URL on Netlify (Supabase port 6543, not 5432).';
+    venues.value = [];
+    totalItems.value = 0;
+    totalPages.value = 1;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const fetchTowns = async () => {
+  try {
+    towns.value = await requestFetch<Array<{ label: string; value: string }>>(
+      '/api/venues/towns-list',
     );
-  });
-});
+  } catch {
+    towns.value = [];
+  }
+};
+
+const fetchCounties = async () => {
+  try {
+    counties.value = await requestFetch<Array<{ label: string; value: string }>>(
+      '/api/venues/counties-list',
+    );
+  } catch {
+    counties.value = [];
+  }
+};
+
 const openDetailsModal = (venue: object) => {
   isDetailsOpen.value = true
   content.value = venue
@@ -243,9 +338,10 @@ const editDetailsModal = (venue: object) => {
   isDetailsOpen.value = true
   content.value = venue
 }
-const openAddModal = (venue: object) => {
+const openAddModal = () => {
+  editMode.value = false
+  venueid.value = null
   isAddEditOpen.value = true
-  content.value = venue
 }
 const openDeleteModal = (venue: object) => {
   isDeleteOpen.value = true
@@ -280,85 +376,31 @@ const handleFileUpload = (event: Event) => {
     selectedFile.value = target.files[0];
   }
 }
-
-const compressVenueImage = async (file: File): Promise<File> => {
-  const image = new Image();
-  const imageUrl = URL.createObjectURL(file);
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve();
-      image.onerror = () => reject(new Error('Unable to read selected image.'));
-      image.src = imageUrl;
-    });
-
-    const maxWidth = 1200;
-    const maxHeight = 900;
-    const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
-    const width = Math.round(image.naturalWidth * scale);
-    const height = Math.round(image.naturalHeight * scale);
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-
-    const context = canvas.getContext('2d');
-    if (!context) {
-      throw new Error('Unable to prepare selected image.');
-    }
-
-    context.drawImage(image, 0, 0, width, height);
-
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, 'image/webp', 0.82);
-    });
-
-    if (!blob) {
-      throw new Error('Unable to compress selected image.');
-    }
-
-    const compressedName = file.name.replace(/\.[^.]+$/, '.webp');
-    return new File([blob], compressedName, {
-      type: 'image/webp',
-      lastModified: Date.now()
-    });
-  } finally {
-    URL.revokeObjectURL(imageUrl);
-  }
-}
-
 const uploadPhoto = async () => {
   if (!selectedFile.value) {
     toast.add({ title: 'No file selected!' });
     return;
   }
 
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
   if (!allowedTypes.includes(selectedFile.value.type)) {
-    toast.add({ title: 'Invalid file type!', description: 'Please select a JPG, PNG, or WebP image.' });
+    toast.add({ title: 'Invalid file type!', description: 'Please select a JPG, PNG, WebP, or GIF image.' });
     return;
   }
 
-  const maxSize = 10 * 1024 * 1024;
+  // Validate file size (max 10MB)
+  const maxSize = 10 * 1024 * 1024; // 10MB
   if (selectedFile.value.size > maxSize) {
     toast.add({ title: 'File too large!', description: 'Please select an image smaller than 10MB.' });
     return;
   }
 
-  let uploadFile: File;
-  try {
-    uploadFile = await compressVenueImage(selectedFile.value);
-  } catch (error) {
-    console.error('Error compressing photo:', error);
-    toast.add({ title: 'Could not prepare image!', description: 'Please try a different image.' });
-    return;
-  }
-
-  const fileName = `${Date.now().toString()}.webp`;
+  const fileName = Date.now().toString();
   const { data, error } = await supabase.storage
     .from("venue_images")
-    .upload(`public/${fileName}`, uploadFile, {
-      cacheControl: '31536000',
-      contentType: uploadFile.type,
+    .upload(`public/${fileName}`, selectedFile.value, {
+      cacheControl: '3600',
       upsert: false
     });
 
@@ -391,9 +433,9 @@ const handleCloseModal = () => {
   isAddEditOpen.value = false
   isDeleteOpen.value = false
   isAddEventOpen.value = false
-  toast.add({ title: 'Deleted Venue!' })
-  //fetch venues again
-  // venueStore.fetchVenues()
+  editMode.value = false
+  venueid.value = null
+  fetchAllVenues()
 }
 
 watch(isAddEditOpen, (newValue: any) => {
@@ -407,18 +449,32 @@ watch(isMapOpen, (newValue: any) => {
   }
 });
 
+watch(
+  () => route.query.q,
+  () => {
+    syncSearchFromRoute();
+    currentPage.value = 1;
+    fetchAllVenues();
+  },
+);
+
 onMounted(async () => {
-  fetchAllVenues();
-  initializeAuth().catch((error: unknown) => {
-    console.error('Error initializing auth:', error);
-  });
-  // userName.value = process.env.USER_NAME;
+  await initializeAuth();
+  if (!venues.value.length && !loadError.value) {
+    await fetchAllVenues();
+  }
+  await fetchTowns();
+  await fetchCounties();
   userName.value = useRuntimeConfig().public.admin;
 });
 
 </script>
 
 <style lang="scss" scoped>
+.venue-card {
+  min-height: 360px;
+}
+
 .controls button span{
   font-size: 0.8em!important;
 }

@@ -1,5 +1,6 @@
 // store/event.js
-import { defineStore } from 'pinia'; // Import defineStore from 'pinia'
+import { defineStore } from 'pinia'
+import { sortEventsByStartAsc } from '@/utils/sort-events'
 
 export const useEventStore = defineStore({
   id: 'event',
@@ -160,33 +161,30 @@ export const useEventStore = defineStore({
         this.cities = [];
       }
     },
-    async fetchAllEvents() {
+    async fetchAllEvents(page = this.currentPage) {
       try {
-        const skip = (this.currentPage - 1) * this.itemsPerPage;
-        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events?skip=${skip}&take=${this.itemsPerPage}`);
+        this.currentPage = Math.max(1, page)
+        const skip = (this.currentPage - 1) * this.itemsPerPage
+        const response = await fetch(`${useRuntimeConfig().public.baseURL}/api/events?skip=${skip}&take=${this.itemsPerPage}`)
         
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status}`)
         }
         
-        const data = await response.json();
-        
-        if (Array.isArray(data)) {
-          this.events = data;
-          this.totalItems = data.length;
-        } else {
-          console.error("Unexpected data format:", data);
-          this.events = []; // Assign an empty array to avoid further errors
-          this.totalItems = 0;
-        }
-    
-        const totalPagesCount = Math.ceil(this.totalItems / this.itemsPerPage);
-        this.totalPages = totalPagesCount;
+        const data = await response.json()
+        const items = Array.isArray(data) ? data : (data.items ?? [])
+        const total = Array.isArray(data) ? items.length : (data.total ?? items.length)
+
+        this.events = sortEventsByStartAsc(items)
+        this.totalItems = total
+        this.totalPages = Array.isArray(data)
+          ? Math.max(1, Math.ceil(total / this.itemsPerPage))
+          : (data.totalPages ?? Math.max(1, Math.ceil(total / this.itemsPerPage)))
       } catch (error) {
-        console.error('Error loading events:', error);
-        this.events = []; // Assign an empty array on error
-        this.totalItems = 0;
-        this.totalPages = 1;
+        console.error('Error loading events:', error)
+        this.events = []
+        this.totalItems = 0
+        this.totalPages = 1
       }
     },
     async fetchAllEventsTopten() {
@@ -217,21 +215,21 @@ export const useEventStore = defineStore({
             "Accept": "application/json",
           }
         });
-        const content = await response.json();
-        console.log("events: ", content);
-        return content;
+        const content = await response.json()
+        console.log("events: ", content)
+        return sortEventsByStartAsc(Array.isArray(content) ? content : (content.items ?? []))
       } catch (error) {
         console.error("Error fetching event:", error);
       }
     },
     async fetchTownEvents(townSlug) {
       try {
-        const response = await fetch(`/api/events/town/${townSlug}`);
+        const response = await fetch(`/api/towns/${townSlug}`);
         const data = await response.json();
         console.log("Town Events:", data);
         if (data && data.cityName && Array.isArray(data.events)) {
-          this.selectedTown = data.cityName;
-          this.townEvents = data.events;
+          this.selectedTown = data.cityName
+          this.townEvents = sortEventsByStartAsc(data.events)
         } else {
           console.error("Unexpected data format:", data);
         }

@@ -1,15 +1,19 @@
 version: 2.1
 
 executors:
-  node/default:
+  node-executor:
     docker:
-      - image: circleci/node:18.18-browsers # Update to Node.js 18.18 or higher
+      - image: cimg/node:20.19-browsers
 
 jobs:
   build-node:
-    executor: node/default
+    executor: node-executor
     steps:
-      - checkout
+      - run:
+          name: Checkout source
+          command: |
+            git clone --filter=blob:none https://github.com/jbiddulph/johnpyfe.git .
+            git checkout "$CIRCLE_SHA1"
       - run:
           name: Install dependencies
           command: npm install
@@ -26,9 +30,13 @@ jobs:
           path: ~/artifacts
 
   test:
-    executor: node/default
+    executor: node-executor
     steps:
-      - checkout
+      - run:
+          name: Checkout source
+          command: |
+            git clone --filter=blob:none https://github.com/jbiddulph/johnpyfe.git .
+            git checkout "$CIRCLE_SHA1"
       - run:
           name: Install dependencies
           command: npm install
@@ -37,7 +45,6 @@ jobs:
           command: npx cypress run
 
 workflows:
-  version: 2
   build_and_test:
     jobs:
       - build-node

@@ -1,10 +1,32 @@
 <template>
   <div>
+    <div
+      v-if="isAdmin"
+      class="bg-amber-50 border-b border-amber-200 text-sm dark:bg-amber-950 dark:border-amber-900"
+    >
+      <div class="max-w-screen-xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2">
+        <span class="font-medium text-amber-900 dark:text-amber-100">Admin</span>
+        <div class="flex flex-wrap gap-4">
+          <NuxtLink to="/admin/reports" class="font-semibold text-amber-700 hover:underline dark:text-amber-300">
+            Reports
+          </NuxtLink>
+          <NuxtLink to="/admin/claims" class="text-amber-700 hover:underline dark:text-amber-300">
+            Pub claims
+          </NuxtLink>
+          <NuxtLink to="/admin/dashboard" class="text-amber-700 hover:underline dark:text-amber-300">
+            Dashboard
+          </NuxtLink>
+          <NuxtLink to="/admin/past-events" class="text-amber-700 hover:underline dark:text-amber-300">
+            Past events
+          </NuxtLink>
+        </div>
+      </div>
+    </div>
     <nav class="bg-white border-gray-200 dark:bg-gray-900">
       <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 sticky">
         <NuxtLink to="/" class="h-12 flex items-center space-x-3 rtl:space-x-reverse">
-            <img src="/assets/2907054.png" class="h-8 w-8" alt="UK Pubs Logo" width="32" height="32" />
-            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white" title="Pubs in the UK">UKPubs.co.uk</span>
+            <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" />
+            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white" title="Pubs in the UK">UK Pubs</span>
         </NuxtLink>
         <button @click="toggleMenu" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="navbar-default" aria-expanded="false">
             <span class="sr-only">Open main menu</span>
@@ -36,6 +58,18 @@
               <li>
                 <NuxtLink @click="toggleMenu" to="/events" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Events</NuxtLink>
               </li>
+              <li>
+                <NuxtLink @click="toggleMenu" to="/counties" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Counties</NuxtLink>
+              </li>
+              <li>
+                <NuxtLink @click="toggleMenu" to="/dashboard" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">My pubs</NuxtLink>
+              </li>
+              <li v-if="isAdmin">
+                <NuxtLink @click="toggleMenu" to="/admin/reports" class="block py-2 px-3 text-amber-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-amber-800 md:p-0 dark:text-amber-400 md:dark:hover:text-amber-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Reports</NuxtLink>
+              </li>
+              <li v-if="isAdmin">
+                <NuxtLink @click="toggleMenu" to="/admin/claims" class="block py-2 px-3 text-amber-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-amber-800 md:p-0 dark:text-amber-400 md:dark:hover:text-amber-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Pub claims</NuxtLink>
+              </li>
               <li v-if="isAdmin">
                 <NuxtLink @click="toggleMenu" to="/admin/past-events" class="block py-2 px-3 text-red-600 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-red-700 md:p-0 dark:text-red-400 md:dark:hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Past Events (Admin)</NuxtLink>
               </li>
@@ -57,6 +91,9 @@
             </li>
             <li>
               <NuxtLink @click="toggleMenu" to="/events" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Events</NuxtLink>
+            </li>
+            <li>
+              <NuxtLink @click="toggleMenu" to="/counties" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Counties</NuxtLink>
             </li>
             <li>
               <NuxtLink @click="toggleMenu" to="/venues" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Venues</NuxtLink>
@@ -89,13 +126,13 @@
             <i><NuxtLink to="/" title="UK Pubs">ukpubs.co.uk</NuxtLink></i> is an events listings website for pubs and venues  around the UK
           </p>
           <p>More events at the following venues</p>
-          <div v-if="eventsFetched" class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+          <div v-if="topVenues.length || topTowns.length" class="footer-top-lists mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
             <!-- Venue Section -->
             <div class="border-b-2 sm:border-b-0">
               <h3 class="text-2xl mb-4">Top 10 venues with events</h3>
               <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4 sm:mb-0">
-                <li v-for="event in reversedVenues" :key="event.venueId">
-                  <NuxtLink :to="`/venues/${event.venueId}/${event.slug}`" :title="`${event.venueName} in ${event.town}`">{{ event.venueName }} ({{ event.count }})</NuxtLink>
+                <li v-for="venue in topVenues" :key="venue.venueId">
+                  <NuxtLink :to="venue.href" :title="`${venue.venueName} in ${venue.town}`">{{ venue.venueName }} ({{ venue.count }})</NuxtLink>
                 </li>
               </ul>
             </div>
@@ -104,8 +141,8 @@
             <div class="border-b-2 sm:border-b-0">
               <h3 class="text-2xl mb-4">Top 10 towns with events</h3>
               <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4 sm:mb-0">
-                <li v-for="town in townsWithSlug" :key="town.town">
-                  <NuxtLink :to="`/town/${town.townslug}`" :title="`Events in ${town.town}`">{{ town.town }} ({{ town.eventCount }})</NuxtLink>
+                <li v-for="town in topTowns" :key="town.slug">
+                  <NuxtLink :to="town.href" :title="`Events in ${town.town}`">{{ town.town }} ({{ town.eventCount }})</NuxtLink>
                 </li>
               </ul>
             </div>
@@ -113,7 +150,7 @@
         </div>
       </div>
       <div class="bg-gray-900 text-white text-xs text-center py-4 px-4">
-        &copy; 2021 - 2025 <NuxtLink to="/" title="UK Pubs listing">UKPubs.co.uk</NuxtLink> - events listings for pubs and venues in the UK
+        &copy; {{ currentYear }} <NuxtLink to="/" title="UK Pubs listing">UK Pubs</NuxtLink> - events listings for pubs and venues in the UK
       </div>
     </footer>
   </div>
@@ -121,78 +158,67 @@
 
 <script lang="ts" setup>
 import { useAuthStore } from "~/store/auth.js";
-import { useEventStore } from '~/store/event.js';
+const siteUrl = siteBaseUrl()
+const requestFetch = useRequestFetch()
+
+const { data: eventsTopTen } = await useAsyncData(
+  'events-top-ten',
+  () => requestFetch('/api/events/top-ten'),
+)
+
+const topVenues = computed(() => eventsTopTen.value?.limitedVenues ?? [])
+const topTowns = computed(() => eventsTopTen.value?.limitedTowns ?? [])
+const currentYear = new Date().getFullYear()
+
 useSeoMeta({
   title: 'Pubs and venues listings in the UK',
   description: 'Events listings website for pubs and venues in the UK',
-  og: {
-    title: 'Pubs, bars and venues in and around the UK',
-    description: 'Live music, comedy, gigs, quizzes and other events at your local pub',
-  },
+  ogTitle: 'Pubs, bars and venues in and around the UK',
+  ogDescription: 'Live music, comedy, gigs, quizzes and other events at your local pub',
+  ogImage: `${siteUrl}/ukpubs-logo.png`,
+  ogUrl: siteUrl,
+  ogLocale: 'en_GB',
+  twitterCard: 'summary_large_image',
 })
 
-// Use `useHead` for more control, such as custom meta tags or other head elements
 useHead({
-  title: 'UK Pubs',
+  titleTemplate: (title) => (title ? `${title} | UK Pubs` : 'UK Pubs'),
   meta: [
-    { name: 'description', content: 'UK Pub listings, events at venues and bars in the uk' },
-    { name: 'robots', content: 'index, follow' },
     { name: 'author', content: 'John Biddulph - UK Pubs' },
-    { property: 'og:image', content: '/favicon-96x96.png' },  // Example of custom meta tag
   ],
+  link: [{ rel: 'canonical', href: siteUrl }],
 })
-const eventStore = useEventStore();
 const authStore = useAuthStore();
 const config = useRuntimeConfig();
 const { user, isAdmin, isLoggedIn, initializeAuth } = useAuth();
 const loggedIn = ref(false);
-
-// Initialize global authentication state
-onMounted(async () => {
-  await initializeAuth();
-  loggedIn.value = isLoggedIn.value;
-});
-
-// Watch for login state changes
-watch(isLoggedIn, (newValue) => {
-  loggedIn.value = newValue;
-});
 const showMenu = ref(false);
-const eventsFetched = ref(false);
 
-// isAdmin is now provided by the useAuth composable
-const reversedVenues = computed(() => [...eventStore.venues].reverse());
-const townsWithSlug = computed(() => {
-  return eventStore.towns.map(town => {
-    const townslug = town.town.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and');
-    return { ...town, townslug };
-  }).reverse();
-});
 const checkUserAuthentication = async () => {
   if (localStorage.getItem("userToken")) {
-    // If user token exists, fetch user details
     await authStore.fetchUser();
   }
 }
 
 onMounted(async () => {
-  console.log('onMounted called');
-  checkUserAuthentication(); // Check user authentication on page load
-  if (eventStore.events.length === 0 && !eventsFetched.value) {
-    console.log('Fetching events');
-    eventsFetched.value = true; // Set the flag to true to prevent recursive updates
-    await eventStore.fetchAllEventsTopten();
-    console.log('Events fetched');
-  }
+  await initializeAuth();
+  loggedIn.value = isLoggedIn.value;
+  checkUserAuthentication();
+});
+
+watch(isLoggedIn, (newValue) => {
+  loggedIn.value = newValue;
 });
 
 const logout = async () => {
   const { $supabase } = useNuxtApp();
   
   // logout from Supabase/Google 
-  const { error } = await $supabase.auth.signOut()
-  if (error){
-    console.log("Error: ", error)
+  if ($supabase?.auth) {
+    const { error } = await $supabase.auth.signOut()
+    if (error){
+      console.log("Error: ", error)
+    }
   }
   
   //logout JWT
@@ -226,12 +252,12 @@ h1 {
   @apply text-primary-500 !important;
 }
 @media (min-width: 768px) {
-    :is(.dark .md\:dark\:text-white) {
-  }
-}
-@media (min-width: 768px) {
   :is(.dark .md\:dark\:text-white) {
     color: white !important;
   }
+}
+
+.footer-top-lists {
+  min-height: 12rem;
 }
 </style>

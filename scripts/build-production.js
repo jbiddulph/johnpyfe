@@ -13,6 +13,7 @@ if (!fs.existsSync('.env')) {
 # Minimal environment variables for build
 SUPABASE_URL=https://placeholder.supabase.co
 SUPABASE_KEY=placeholder_key
+NUXT_SITE_URL=https://ukpubs.co.uk
 BASE_URL=https://ukpubs.co.uk
 NUXT_PUBLIC_APP_URL=https://ukpubs.co.uk
 NUXT_PUBLIC_API_URL=https://ukpubs.co.uk
@@ -26,7 +27,7 @@ USER_NAME=John Biddulph
 
 try {
   console.log('🔧 Generating Prisma client...')
-  execSync('npx prisma generate', { stdio: 'inherit' })
+  execSync('npx prisma@6.0.1 generate', { stdio: 'inherit' })
   
   console.log('\n📦 Building Nuxt application...')
   execSync('npx nuxt build', { stdio: 'inherit' })

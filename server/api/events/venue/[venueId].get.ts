@@ -1,30 +1,17 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient()
-
+import { prisma } from '../../../utils/prisma'
+import { UPCOMING_EVENT_INCLUDE, UPCOMING_EVENT_ORDER, upcomingEventWhere } from '../../../utils/event-list'
 
 export default defineEventHandler(async (event) => {
-  const { venueId } = event.context.params;
-  const now = new Date();
-  
+  const { venueId } = event.context.params
+
   const events = await prisma.event.findMany({
     where: {
       listingId: parseInt(venueId),
-      event_start: {
-        gt: now // Only return events that start after now
-      }
+      ...upcomingEventWhere(),
     },
-    orderBy: {
-      event_start: 'asc' // Order by event start date, earliest first
-    }
+    include: UPCOMING_EVENT_INCLUDE,
+    orderBy: UPCOMING_EVENT_ORDER,
   })
-  
-  if(!events) {
-    throw createError({
-      statusCode: 404,
-      message: `Venue with venueID of ${venueId} does not exist`,
-    })
-  }
 
-  return events;
-});
+  return events
+})

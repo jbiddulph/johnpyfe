@@ -51,8 +51,11 @@ function createMap() {
   // Add popup to the marker
   popup.value = new mapboxgl.Popup({
     closeButton: false,
-    closeOnClick: false
-  }).setHTML(`<h3 class="text-3xl">${props.content.venuename}</h3><p>${props.content.address}, ${props.content.town}, ${props.content.county}, ${props.content.postcode}</p>`);
+    closeOnClick: false,
+    className: 'venue-map-popup',
+  }).setHTML(
+    `<div class="venue-map-popup__inner"><h3 class="text-xl font-semibold">${props.content.venuename}</h3><p>${props.content.address}, ${props.content.town}, ${props.content.county}, ${props.content.postcode}</p></div>`,
+  );
 
   marker.value.setPopup(popup.value);
 }
@@ -69,5 +72,22 @@ function createMap() {
 }
 #map {
   width: 800px;
+}
+</style>
+
+<style>
+.venue-map-popup.mapboxgl-popup {
+  z-index: 1000 !important;
+}
+
+.venue-map-popup .mapboxgl-popup-content {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
+
+.venue-map-popup .mapboxgl-popup-content .venue-map-popup__inner,
+.venue-map-popup .mapboxgl-popup-content .venue-map-popup__inner h3,
+.venue-map-popup .mapboxgl-popup-content .venue-map-popup__inner p {
+  color: #111827 !important;
 }
 </style>

@@ -1,29 +1,51 @@
+import { resolveSiteUrl } from './utils/site-url'
+
+const mapboxToken = process.env.NUXT_PUBLIC_MAPBOX_TOKEN || ''
+const siteUrl = resolveSiteUrl()
+const googleAnalyticsId = (process.env.NUXT_PUBLIC_GA_ID || 'G-LHT3Z80MSB').trim()
 
 export default defineNuxtConfig({
+  site: {
+    url: siteUrl,
+    name: 'UK Pubs',
+    description: 'Events listings for pubs and venues across the UK — live music, comedy, quizzes and more.',
+    defaultLocale: 'en-GB',
+  },
   css: [
-    'mapbox-gl/dist/mapbox-gl.css'
+    '~/assets/css/hub-cards.css',
+    '~/assets/css/spinner.css',
   ],
   runtimeConfig: {
+    googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY || '',
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+    stripePriceSolo: process.env.STRIPE_PRICE_SOLO || '',
+    stripePriceGroup: process.env.STRIPE_PRICE_GROUP || '',
+    stripePriceRegional: process.env.STRIPE_PRICE_REGIONAL || '',
+    stripePriceEnterprise: process.env.STRIPE_PRICE_ENTERPRISE || '',
+    stripeTestPayment: process.env.STRIPE_TEST_PAYMENT || '',
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     public: {
-      baseURL: process.env.BASE_URL,
-      appURL: process.env.NUXT_PUBLIC_APP_URL ?? "https://ukpubs.co.uk",
-      apiURL: process.env.NUXT_PUBLIC_API_URL ?? "https://ukpubs.co.uk",
+      stripePublishableKey: process.env.NUXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+      baseURL: (process.env.BASE_URL || process.env.NUXT_PUBLIC_APP_URL || siteUrl).replace(/\/$/, ''),
+      appURL: siteUrl,
+      apiURL: (process.env.NUXT_PUBLIC_API_URL || process.env.NUXT_PUBLIC_APP_URL || siteUrl).replace(/\/$/, ''),
       userName: process.env.USER_NAME,
       googleMaps: {
-        key: 'AIzaSyBWiPC71sMkSoaa0TNrioE8CP1Ll5HmpZ4'
+        key: process.env.NUXT_PUBLIC_GOOGLE_MAPS_KEY || '',
       },
       eventImgFolder: process.env.EVENT_IMG_FOLDER,
       venueImgFolder: process.env.VENUE_IMG_FOLDER,
       admin: process.env.ADMIN_EMAIL,
-      mapbox_token:
-            "pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA",
+      mapbox_token: mapboxToken,
+      googleAnalyticsId,
       supabase: {
         url: process.env.SUPABASE_URL,
         key: process.env.SUPABASE_KEY
       }
     }
   },
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NODE_ENV === 'development' },
   
   // Performance optimizations
   experimental: {
@@ -38,12 +60,50 @@ export default defineNuxtConfig({
   
   // Optimize rendering
   ssr: true,
+  routeRules: {
+    '/': { isr: 3600 },
+    '/town/**': { isr: 3600 },
+    '/county/**': { isr: 3600 },
+    '/counties': { isr: 3600 },
+    '/counties/**': { isr: 3600 },
+    '/search': { isr: 900 },
+    '/dashboard/**': { robots: false },
+    '/api/webhooks/**': { cors: false },
+    '/venues/**': { isr: 1800 },
+    '/api/venues/*/owner-profile': { cache: false },
+    '/events/**': { isr: 900 },
+    '/pubs-near-stadiums/**': { isr: 3600 },
+    '/admin/**': { robots: false },
+    '/login': { robots: false },
+    '/register': { robots: false },
+    '/auth/**': { robots: false },
+  },
   nitro: {
+    preset: 'netlify',
     compressPublicAssets: true,
     minify: true,
   },
   
   // Critical CSS inlining (commented out until critical.css file exists)
+  app: {
+    head: {
+      script: googleAnalyticsId
+        ? [
+            {
+              src: `https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`,
+              async: true,
+            },
+            {
+              type: 'text/javascript',
+              children: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${googleAnalyticsId}');`,
+            },
+          ]
+        : [],
+    },
+  },
   // app: {
   //   head: {
   //     link: [
@@ -68,7 +128,7 @@ export default defineNuxtConfig({
     "@nuxt/fonts",
     "@nuxtjs/robots",
     "@nuxtjs/sitemap",
-    // "@nuxt/image", // Temporarily disabled for testing
+    "@nuxt/image",
   ],
   // Image optimization
   image: {
@@ -115,35 +175,64 @@ export default defineNuxtConfig({
       }
     },
     // Allow external domains
-    domains: ['ukpubs.co.uk', 'localhost'],
-    // Provider configuration
-    providers: {
-      // Default provider settings
-      default: {
-        // Don't force format conversion for SVG
-        format: ['webp', 'avif', 'jpg', 'jpeg', 'png'],
-        // Preserve original format when possible
-        fallbackFormat: 'original'
-      }
-    }
+    domains: [
+      'ukpubs.co.uk',
+      'localhost',
+      '127.0.0.1',
+      'isprmebbahzjnrekkvxv.supabase.co',
+      'lh3.googleusercontent.com',
+    ],
   },
   
   fonts: {
+    defaults: {
+      weights: [100, 300, 400, 700],
+      styles: ['normal'],
+      subsets: ['latin'],
+    },
+    families: [
+      { name: 'Kanit', provider: 'google', global: true },
+    ],
     google: {
       families: {
-        Roboto: [300, 400, 500, 700], // Load only needed weights
-        'Open+Sans': [300, 400, 600, 700], // Load only needed weights
-        'Lato': [300, 400, 700], // Load only needed weights
+        Kanit: [100, 300, 400, 700],
       },
-      display: 'swap', // Improve font loading performance
-      download: true, // Download fonts for better performance
-      inject: true, // Automatically inject font styles
-    }
+      display: 'swap',
+      download: true,
+    },
+    experimental: {
+      disableLocalFallbacks: true,
+    },
+  },
+  robots: {
+    groups: [
+      {
+        userAgent: '*',
+        disallow: [
+          '/admin',
+          '/admin/',
+          '/login',
+          '/register',
+          '/auth',
+          '/auth/',
+        ],
+      },
+    ],
+    sitemap: ['/sitemap_index.xml'],
   },
   sitemap: {
-    sources: ['https://ukpubs.co.uk/api/venue-urls'],
+    // DB-backed URLs; split into chunks so Netlify can build XML without 500s
+    sitemaps: true,
+    defaultSitemapsChunkSize: 2500,
+    sitemapsPathPrefix: '/sitemaps/',
+    autoLastmod: false,
+    discoverImages: false,
+    excludeAppSources: ['pages', 'nuxt:prerender'],
+    sources: ['/api/sitemap-urls'],
+    exclude: ['/admin/**', '/login', '/register', '/auth/**', '/map/map'],
+    cacheMaxAgeSeconds: 600,
   },
   mapbox: {
-    accessToken: 'pk.eyJ1IjoiamJpZGR1bHBoIiwiYSI6ImNscDgzemt0ZzJjNW8ydnM0MXJvNG56NjEifQ.h0CNNEv-Yjgkp4WMjOK9mA'
+    accessToken: mapboxToken,
   },
 })

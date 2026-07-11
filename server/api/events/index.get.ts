@@ -1,42 +1,44 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient()
+import { prisma } from '../../utils/prisma'
+import {
+  UPCOMING_EVENT_INCLUDE,
+  UPCOMING_EVENT_ORDER,
+  upcomingEventWhere,
+} from '../../utils/event-list'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const skip = query.skip ? parseInt(query.skip as string) : 0;
-  const take = query.take ? parseInt(query.take as string) : 104;
-  
-  try {
-    const now = new Date();
-    
-    const paginatedEvents = await prisma.event.findMany({
-      skip: skip,
-      take: take,
-      where: {
-        event_start: {
-          gt: now // Only return events that start after now
-        }
-      },
-      include: {
-        city: true,
-        category: true,
-        listing: true,
-      },
-      orderBy: {
-        event_start: 'asc' // Order by event start date, earliest first
-      }
-    });
+  const skip = Math.max(0, Number.parseInt(String(query.skip ?? 0), 10) || 0)
+  const take = Math.min(
+    500,
+    Math.max(1, Number.parseInt(String(query.take ?? 104), 10) || 104),
+  )
 
-    return paginatedEvents;
+  try {
+    const where = upcomingEventWhere()
+
+    const [items, total] = await Promise.all([
+      prisma.event.findMany({
+        skip,
+        take,
+        where,
+        include: UPCOMING_EVENT_INCLUDE,
+        orderBy: UPCOMING_EVENT_ORDER,
+      }),
+      prisma.event.count({ where }),
+    ])
+
+    return {
+      items,
+      total,
+      page: Math.floor(skip / take) + 1,
+      pageSize: take,
+      totalPages: Math.max(1, Math.ceil(total / take)),
+    }
   } catch (error) {
-    console.error('Error fetching events:', error);
+    console.error('Error fetching events:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to fetch events'
-    });
+      statusMessage: 'Failed to fetch events',
+    })
   }
-});
-
-
- 
+})

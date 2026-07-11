@@ -1,22 +1,33 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../../../utils/prisma'
+import {
+  paginatedVenueResponse,
+  parseVenuePagination,
+  venueHubSelect,
+} from '../../../utils/venue-list'
 
-const prisma = new PrismaClient();
+export default defineEventHandler(async (event) => {
+  const query = getQuery(event)
+  const townName = String(query.town || '').trim()
+  if (!townName) {
+    throw createError({ statusCode: 400, statusMessage: 'town query required' })
+  }
 
-export default defineEventHandler((event) => {
-  setHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+  const { skip, take } = parseVenuePagination(query)
+  const where = {
+    town: { equals: townName, mode: 'insensitive' as const },
+    slug: { not: '' },
+  }
 
-  const { town } = getQuery(event);
+  const [items, total] = await Promise.all([
+    prisma.venue.findMany({
+      where,
+      select: venueHubSelect,
+      orderBy: { venuename: 'asc' },
+      skip,
+      take,
+    }),
+    prisma.venue.count({ where }),
+  ])
 
-  // Construct filters with case-insensitive town comparison
-  const filters = {
-    town: {
-      equals: town,
-      mode: 'insensitive'
-    },
-  };
-
-  // return filtered venues
-  return prisma.venue.findMany({
-    where: filters,
-  });
-});
+  return paginatedVenueResponse(items, total, skip, take)
+})

@@ -1,8 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient()
-
-
+import { prisma } from '../../../utils/prisma'
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
 

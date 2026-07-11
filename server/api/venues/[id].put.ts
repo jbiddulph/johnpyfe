@@ -1,83 +1,69 @@
-import Joi from "joi";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../../utils/prisma'
+import Joi from 'joi'
 
-const prisma = new PrismaClient();
+const optionalString = Joi.string().allow('', null).optional()
+
 const schema = Joi.object({
-  venuename: Joi.string(),
-  slug: Joi.string(),
-  venuetype: Joi.string(),
-  address: Joi.string(),
-  town: Joi.string(),
-  county: Joi.string(),
-  postcode: Joi.string(),
-  latitude: Joi.string(),
-  longitude: Joi.string(),
-  local_authority: Joi.string(),
-  website: Joi.string(),
-  photo: Joi.string(),
-  is_live: Joi.string(),
-  updated_at: Joi.string(),
-});
+  venuename: Joi.string().trim().min(1).required(),
+  slug: optionalString,
+  venuetype: optionalString,
+  address: optionalString,
+  address2: optionalString,
+  town: optionalString,
+  county: optionalString,
+  postcode: optionalString,
+  postalsearch: optionalString,
+  telephone: optionalString,
+  easting: optionalString,
+  northing: optionalString,
+  latitude: optionalString,
+  longitude: optionalString,
+  local_authority: optionalString,
+  website: optionalString,
+  photo: optionalString,
+  is_live: optionalString,
+  created_at: optionalString,
+  updated_at: optionalString,
+})
 
-export default defineEventHandler(async(event) => {
-    const { id } = event.context.params;
-    const body = await readBody(event); // Access the request body directly
-    const { error, value } = await schema.validate(body);
-    if (error) {
-      throw createError({
-        statusCode: 412,
-        statusMessage: error.message
-      });
-    }
-    const {
-      venuename,
-      slug,
-      venuetype,
-      address,
-      address2,
-      town,
-      county,
-      postcode,
-      northing,
-      postalsearch,
-      telephone,
-      easting,
-      latitude,
-      longitude,
-      local_authority,
-      website,
-      photo,
-      is_live,
-      created_at,
-      updated_at,
-    } = body;
+export default defineEventHandler(async (event) => {
+  const { id } = event.context.params
+  const body = await readBody(event)
+  const { error, value } = schema.validate(body, { abortEarly: false, stripUnknown: true })
+  if (error) {
+    throw createError({
+      statusCode: 412,
+      statusMessage: error.message,
+    })
+  }
+
   const venue = await prisma.venue.update({
     where: {
-      id: parseInt(id)
+      id: parseInt(id),
     },
     data: {
-      venuename,
-      slug,
-      venuetype,
-      address,
-      address2,
-      town,
-      county,
-      postcode,
-      postalsearch,
-      telephone,
-      easting,
-      northing,
-      latitude,
-      longitude,
-      local_authority,
-      website,
-      photo,
-      is_live,
-      created_at,
-      updated_at,
+      venuename: value.venuename,
+      slug: value.slug ?? '',
+      venuetype: value.venuetype ?? 'pub',
+      address: value.address ?? '',
+      address2: value.address2 ?? '',
+      town: value.town ?? '',
+      county: value.county ?? '',
+      postcode: value.postcode ?? '',
+      postalsearch: value.postalsearch ?? '',
+      telephone: value.telephone ?? '',
+      easting: value.easting ?? '',
+      northing: value.northing ?? '',
+      latitude: value.latitude ?? '',
+      longitude: value.longitude ?? '',
+      local_authority: value.local_authority ?? '',
+      website: value.website ?? '',
+      photo: value.photo ?? '',
+      is_live: value.is_live ?? '1',
+      created_at: value.created_at,
+      updated_at: value.updated_at,
     },
   })
-  
-  return venue;
-});
+
+  return venue
+})

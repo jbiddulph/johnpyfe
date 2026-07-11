@@ -32,12 +32,80 @@ model Venue {
   longitude           String
   local_authority     String
   website             String
+  features            String? @db.VarChar(5000)
+  description         String? @db.VarChar(5000)
   photo               String
   is_live             String
   created_at          String
   updated_at          String
   notes               Note[]
   events              Event[]
+  claim               VenueClaim?
+  profile             VenueProfile?
+}
+
+model Organisation {
+  id                   String   @id @default(uuid())
+  name                 String
+  stripeCustomerId     String?  @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?  @unique @map("stripe_subscription_id")
+  plan                 String   @default("none")
+  subscriptionStatus   String?  @map("subscription_status")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  members              OrganisationMember[]
+  claims               VenueClaim[]
+
+  @@map("organisations")
+}
+
+model OrganisationMember {
+  id             String       @id @default(uuid())
+  organisationId String       @map("organisation_id")
+  userId         String       @map("user_id")
+  role           String       @default("owner")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, userId])
+  @@index([userId])
+  @@map("organisation_members")
+}
+
+model VenueClaim {
+  id             String       @id @default(uuid())
+  venueId        Int          @unique @map("venue_id")
+  organisationId String       @map("organisation_id")
+  status         String       @default("pending")
+  requestedAt    DateTime     @default(now()) @map("requested_at")
+  verifiedAt     DateTime?    @map("verified_at")
+  verifiedBy     String?      @map("verified_by")
+  venue          Venue        @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([status])
+  @@map("venue_claims")
+}
+
+model VenueProfile {
+  venueId          Int     @id @map("venue_id")
+  logoUrl          String? @map("logo_url")
+  headerImageUrl   String? @map("header_image_url")
+  headerImageUrls  Json?   @map("header_image_urls")
+  showOriginalVenueImage Boolean @default(false) @map("show_original_venue_image")
+  menuFoodUrl      String? @map("menu_food_url")
+  menuDrinksUrl    String? @map("menu_drinks_url")
+  socialLinks      Json?   @map("social_links")
+  customDescription String? @map("custom_description") @db.VarChar(5000)
+  pageTitle        String? @map("page_title") @db.VarChar(100)
+  seoKeywords      String? @map("seo_keywords") @db.VarChar(500)
+  metaDescription  String? @map("meta_description") @db.VarChar(500)
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  venue            Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@map("venue_profiles")
 }
 
 model City {
@@ -80,4 +148,59 @@ model Note {
   user_id             String
   listingId           Int
   listing             Venue @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model Stadium {
+  id           BigInt    @id @default(autoincrement())
+  club         String    @db.VarChar(255)
+  stadium_name String    @map("stadium_name") @db.VarChar(255)
+  latitude     Decimal   @db.Decimal(10, 7)
+  longitude    Decimal   @db.Decimal(10, 7)
+  created_at   DateTime? @map("created_at")
+  updated_at   DateTime? @map("updated_at")
+
+  @@map("stadiums")
+}
+
+model AnalyticsEvent {
+  id        Int      @id @default(autoincrement())
+  eventType String   @map("event_type")
+  pageType  String   @map("page_type")
+  path      String
+  entityId  Int?     @map("entity_id")
+  label     String?
+  referrer  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([eventType, createdAt])
+  @@index([pageType, entityId])
+  @@index([path])
+  @@map("analytics_events")
+}
+
+model CountyImage {
+  slug        String   @id
+  photoUrl    String   @map("photo_url")
+  attribution String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("county_images")
+}
+
+model StadiumImage {
+  slug        String   @id
+  photoUrl    String   @map("photo_url")
+  attribution String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("stadium_images")
+}
+
+model TownImage {
+  slug        String   @id
+  photoUrl    String   @map("photo_url")
+  attribution String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("town_images")
 }

@@ -169,7 +169,7 @@ onMounted(async () => {
 // Redirect if not admin
 watchEffect(() => {
   if (!isAdmin.value && user.value !== null) {
-    navigateTo('/events');
+    navigateTo('/');
   }
 });
 
@@ -235,11 +235,12 @@ const fetchCities = async () => {
 // Fetch venues for filter
 const fetchVenues = async () => {
   try {
-    const response = await fetch(`${config.public.baseURL}/api/venues`);
+    const response = await fetch(`${config.public.baseURL}/api/venues?skip=0&take=5000&all=1`);
     if (response.ok) {
       const data = await response.json();
-      allVenues.value = data;
-      venues.value = data;
+      const list = Array.isArray(data) ? data : (data.items ?? []);
+      allVenues.value = list;
+      venues.value = list;
     }
   } catch (error) {
     console.error('Error fetching venues:', error);

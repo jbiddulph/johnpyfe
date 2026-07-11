@@ -6,6 +6,13 @@
   # Set Node.js version to 20.19.0 or higher
   NODE_VERSION = "20.19.0"
   NPM_VERSION = "10.8.2"
+  # Canonical URL for sitemap, robots, and OG tags (do not use localhost here)
+  NUXT_SITE_URL = "https://ukpubs.co.uk"
+  NUXT_PUBLIC_APP_URL = "https://ukpubs.co.uk"
+  NUXT_PUBLIC_API_URL = "https://ukpubs.co.uk"
+  # Set your Mapbox public token in Netlify UI (Site settings → Environment variables)
+  # NUXT_PUBLIC_MAPBOX_TOKEN = your Mapbox public token (pk.*)
+  # DATABASE_URL = Supabase Transaction pooler :6543/postgres?pgbouncer=true&connection_limit=1 (NOT :5432)
 
 # Headers for performance
 [[headers]]
@@ -32,13 +39,9 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Redirect rules
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Role = ["admin"], Country = ["US"]}
-
-# Functions configuration
+# Nuxt/Nitro serverless — allow time to build large sitemaps
 [functions]
-  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."*"]
+  timeout = 26

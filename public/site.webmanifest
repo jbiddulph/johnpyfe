@@ -1,6 +1,7 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "UK Pubs",
+  "short_name": "UK Pubs",
+  "description": "Events listings for pubs and venues across the UK",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -15,7 +16,7 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#ffffff",
+  "theme_color": "#f59e0b",
   "background_color": "#ffffff",
   "display": "standalone"
 }

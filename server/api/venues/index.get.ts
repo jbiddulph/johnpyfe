@@ -1,27 +1,84 @@
-import { PrismaClient } from "@prisma/client";
+import type { Prisma } from '@prisma/client'
+import { prisma } from '../../utils/prisma'
+import {
+  paginatedVenueResponse,
+  parseVenuePagination,
+} from '../../utils/venue-list'
 
-const prisma = new PrismaClient()
+function buildVenueListWhere(query: Record<string, unknown>): Prisma.VenueWhereInput {
+  const where: Prisma.VenueWhereInput = {}
+  const town = String(query.town || '').trim()
+  const county = String(query.county || '').trim()
+  const q = String(query.q || '').trim()
+
+  if (town) {
+    where.town = { equals: town, mode: 'insensitive' }
+  }
+  if (county) {
+    where.county = { equals: county, mode: 'insensitive' }
+  }
+  if (q.length > 0) {
+    where.OR = [
+      { venuename: { contains: q, mode: 'insensitive' } },
+      { town: { contains: q, mode: 'insensitive' } },
+      { county: { contains: q, mode: 'insensitive' } },
+    ]
+  }
+
+  return where
+}
 
 export default defineEventHandler(async (event) => {
-  setHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
-
   const query = getQuery(event)
-  const skip = query.skip ? parseInt(query.skip as string) : 0;
-  const take = query.take ? parseInt(query.take as string) : 104;
-  
-  try {
-    const paginatedVenues = await prisma.venue.findMany({
-      skip: skip,
-      take: take,
-    });
+  const { skip, take } = parseVenuePagination(query)
+  const where = buildVenueListWhere(query)
 
-    return paginatedVenues;
+  try {
+    const hasListFilters = Boolean(
+      String(query.town || '').trim()
+      || String(query.county || '').trim()
+      || String(query.q || '').trim(),
+    )
+
+    if (!hasListFilters) {
+      const idRows = await prisma.$queryRaw<Array<{ id: number }>>`
+        SELECT id FROM "Venue"
+        ORDER BY RANDOM()
+        LIMIT ${take}
+        OFFSET ${skip}
+      `
+      const ids = idRows.map((row) => row.id)
+      const [items, total] = await prisma.$transaction([
+        ids.length
+          ? prisma.venue.findMany({ where: { id: { in: ids } } })
+          : Promise.resolve([]),
+        prisma.venue.count({ where }),
+      ])
+
+      const byId = new Map(items.map((item) => [item.id, item]))
+      const orderedItems = ids.map((id) => byId.get(id)).filter((item): item is NonNullable<typeof item> => item != null)
+
+      return paginatedVenueResponse(orderedItems, total, skip, take)
+    }
+
+    const [items, total] = await prisma.$transaction([
+      prisma.venue.findMany({
+        where,
+        orderBy: { venuename: 'asc' },
+        skip,
+        take,
+      }),
+      prisma.venue.count({ where }),
+    ])
+
+    return paginatedVenueResponse(items, total, skip, take)
   } catch (error) {
-    console.error('Error fetching venues:', error);
+    console.error('[api/venues] list failed:', error)
+    const message = error instanceof Error ? error.message : 'Failed to fetch venues'
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to fetch venues'
-    });
+      statusMessage: 'Failed to fetch venues',
+      message,
+    })
   }
-});
-
+})

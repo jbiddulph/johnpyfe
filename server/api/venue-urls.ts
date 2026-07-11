@@ -1,20 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { getSitemapUrls } from '../utils/sitemap-urls'
 
-const prisma = new PrismaClient();
-
-export default defineEventHandler(async (event) => {
-  const venues = await prisma.venue.findMany({
-    select: {
-      id: true,
-      slug: true,
-    },
-    take: 40000 // Limit the number of venues to 100
-  });
-
-  const venueurls = venues.map(venue => ({
-    _path: `/venues/${venue.id}/${venue.slug}`,
-    modifiedAt: new Date()
-  }));
-
-  return venueurls.map((url) => ({ loc: url._path, lastmod: new Date() }));
-});
+/** @deprecated Use /api/sitemap-urls — kept for backwards compatibility */
+export default defineEventHandler(() => getSitemapUrls())

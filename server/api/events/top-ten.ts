@@ -1,70 +1,27 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../../utils/prisma'
+import { getEventsTopTen } from '../../utils/events-top-ten'
 
-const prisma = new PrismaClient();
+let cached: Awaited<ReturnType<typeof getEventsTopTen>> | null = null
+let cacheExpiresAt = 0
+const CACHE_MS = 15 * 60 * 1000
+const CACHE_VERSION = 2
+let cacheVersion = 0
 
+/** Top venues and towns by upcoming event count (cached 15 minutes). */
 export default defineEventHandler(async (event) => {
-  const now = new Date();
-  
-  const paginatedVenues = await prisma.event.findMany({
-    where: {
-      event_start: {
-        gt: now // Only return events that start after now
-      }
-    },
-    include: {
-      city: true,
-      category: true,
-      listing: true,
-    },
-    orderBy: {
-      event_start: 'asc' // Order by event start date, earliest first
-    }
-  });
+  setResponseHeader(event, 'Cache-Control', 'public, s-maxage=900, stale-while-revalidate=3600')
 
-  // Grouping events by venue and town
-  const groupedByVenue = paginatedVenues.reduce((acc, event) => {
-    const venueName = event.listing.venuename;
-    const venueId = event.listing.id;
-    const town = event.city.name;
-    const slug = event.listing.slug;
+  if (cached && cacheVersion === CACHE_VERSION && Date.now() < cacheExpiresAt) {
+    return cached
+  }
 
-    // Group by venue
-    if (acc.venues[venueName]) {
-      acc.venues[venueName].count += 1;
-    } else {
-      acc.venues[venueName] = {
-        venueName,
-        venueId,
-        town,
-        slug,
-        count: 1,
-      };
-    }
-
-    // Group by town
-    if (acc.towns[town]) {
-      acc.towns[town].eventCount += 1;
-    } else {
-      acc.towns[town] = {
-        town,
-        eventCount: 1,
-      };
-    }
-
-    return acc;
-  }, { venues: {}, towns: {} });
-
-  // Convert grouped data into arrays for both venue and town information
-  const venuesWithEventCounts = Object.values(groupedByVenue.venues);
-  const townsWithEventCounts = Object.values(groupedByVenue.towns);
-
-  // Sort by count in ascending order
-  const sortedVenues = venuesWithEventCounts.sort((a, b) => a.count - b.count);
-  const sortedTowns = townsWithEventCounts.sort((a, b) => a.eventCount - b.eventCount);
-
-  // Limit to the first 10 entries
-  const limitedVenues = sortedVenues.slice(0, 10);
-  const limitedTowns = sortedTowns.slice(0, 10);
-
-  return { limitedVenues, limitedTowns };
-});
+  try {
+    cached = await getEventsTopTen(prisma)
+    cacheVersion = CACHE_VERSION
+    cacheExpiresAt = Date.now() + CACHE_MS
+    return cached
+  } catch (error) {
+    console.error('[api/events/top-ten] failed:', error)
+    return { limitedVenues: [], limitedTowns: [] }
+  }
+})

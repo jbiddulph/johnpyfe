@@ -223,7 +223,7 @@ const { user, isAdmin, initializeAuth } = useAuth()
 onMounted(async () => {
   await initializeAuth()
   if (!isAdmin.value && user.value !== null) {
-    navigateTo('/events')
+    navigateTo('/')
   }
 })
 
@@ -434,8 +434,8 @@ const fetchInitialData = async () => {
     cities.value = citiesResponse || []
     
     // Fetch venues
-    const venuesResponse = await $fetch(`${config.public.baseURL}/api/venues`)
-    venues.value = venuesResponse?.data || []
+    const venuesResponse = await $fetch(`${config.public.baseURL}/api/venues?skip=0&take=5000&all=1`)
+    venues.value = Array.isArray(venuesResponse) ? venuesResponse : (venuesResponse?.items ?? [])
     
     // Fetch categories
     const categoriesResponse = await $fetch(`${config.public.baseURL}/api/categories`)
@@ -535,7 +535,7 @@ onMounted(async () => {
 // Redirect if not admin
 watchEffect(() => {
   if (!isAdmin.value && user.value !== null) {
-    navigateTo('/events')
+    navigateTo('/')
   }
 })
 </script>
