@@ -36,6 +36,45 @@
         <venue-eventList v-if="venueStore.venue?.id" class="h-full" :venue-id="venueStore.venue.id" @close="isOpenLeft.slideover = false" />
       </div>
     </USlideover>
+    <UModal v-model="isVenueModalOpen">
+      <UCard v-if="selectedVenue" :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
+        <template #header>
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                {{ selectedVenue.name }}
+              </h3>
+              <p v-if="selectedVenue.type" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ selectedVenue.type }}
+              </p>
+            </div>
+            <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="closeVenueModal" />
+          </div>
+        </template>
+        <div class="space-y-4">
+          <div class="space-y-1 text-sm text-gray-700 dark:text-gray-200">
+            <p v-for="line in selectedVenueAddressLines" :key="line">
+              {{ line }}
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <UButton
+              v-if="selectedVenue.id"
+              color="amber"
+              variant="solid"
+              :to="`/venues/${selectedVenue.id}`"
+              label="View venue"
+            />
+            <UButton
+              color="gray"
+              variant="soft"
+              label="Events"
+              @click="openSelectedVenueEvents"
+            />
+          </div>
+        </div>
+      </UCard>
+    </UModal>
   </div>
 </template>
 
@@ -82,11 +121,19 @@ const LAYER_CLUSTER_COUNT = 'venue-clusters-count'
 const LAYER_UNCLUSTERED = 'venue-unclustered-point'
 
 type MapVenuePoint = {
+  id: number
   fsaId: number
   name: string
+  type: string
+  address: string
+  town: string
+  county: string
+  postcode: string
   lat: number
   lng: number
 }
+
+type SelectedMapVenue = MapVenuePoint
 
 onMounted(async () => {
   void eventStore.fetchCities()
@@ -100,6 +147,25 @@ const venueNameSelected = (name: string) => {
 }
 
 const showVenueEvents = () => {
+  isOpenLeft.slideover = true
+}
+
+const isVenueModalOpen = ref(false)
+const selectedVenue = ref<SelectedMapVenue | null>(null)
+const selectedVenueAddressLines = computed(() => {
+  if (!selectedVenue.value) return []
+  return compactAddressLines(selectedVenue.value)
+})
+
+function closeVenueModal() {
+  isVenueModalOpen.value = false
+  selectedVenue.value = null
+}
+
+function openSelectedVenueEvents() {
+  if (!selectedVenue.value) return
+  venueStore.venue = { id: selectedVenue.value.id }
+  isVenueModalOpen.value = false
   isOpenLeft.slideover = true
 }
 
@@ -233,8 +299,16 @@ function buildVenueGeoJson(venues: MapVenuePoint[]) {
             coordinates: [lng, lat],
           },
           properties: {
+            id: venue.id,
             fsa_id: venue.fsaId,
             venuename: venue.name,
+            venuetype: venue.type,
+            address: venue.address,
+            town: venue.town,
+            county: venue.county,
+            postcode: venue.postcode,
+            lat,
+            lng,
           },
         }
       })
@@ -354,11 +428,16 @@ function bindClusterHandlers() {
 
     const coordinates = feature.geometry.coordinates.slice()
     const { venuename } = feature.properties
+    const address = formatAddress(feature.properties)
 
+    popup?.remove()
     popup = new mapboxgl.Popup({ closeButton: false })
       .setLngLat(coordinates)
       .setHTML(
-        `<div class="p-2"><h1 class="text-lg font-semibold">${escapeHtml(venuename)}</h1></div>`,
+        `<div class="p-2">
+          <h1 class="text-lg font-semibold">${escapeHtml(venuename)}</h1>
+          ${address ? `<p class="mt-1 text-sm leading-snug">${escapeHtml(address)}</p>` : ''}
+        </div>`,
       )
       .addTo(map.value)
   })
@@ -370,11 +449,13 @@ function bindClusterHandlers() {
     }, 500)
   })
 
-  map.value.on('click', LAYER_UNCLUSTERED, (e: { features: { properties: { fsa_id: unknown } }[] }) => {
+  map.value.on('click', LAYER_UNCLUSTERED, (e: { features: { properties: Record<string, unknown> }[] }) => {
     popup?.remove()
     popup = null
-    isOpenRight.slideover = true
-    isOpenRight.featureId = e.features[0].properties.fsa_id as string | number
+    const venue = mapFeatureToVenue(e.features[0]?.properties)
+    if (!venue) return
+    selectedVenue.value = venue
+    isVenueModalOpen.value = true
   })
 
   const setPointer = () => {
@@ -398,8 +479,46 @@ function escapeHtml(text: unknown) {
     .replace(/"/g, '&quot;')
 }
 
+function compactAddressLines(venue: Pick<MapVenuePoint, 'address' | 'town' | 'county' | 'postcode'>) {
+  return [
+    venue.address,
+    [venue.town, venue.county].filter(Boolean).join(', '),
+    venue.postcode,
+  ].filter((line): line is string => Boolean(String(line || '').trim()))
+}
+
+function formatAddress(properties: Record<string, unknown>) {
+  return compactAddressLines({
+    address: String(properties.address || ''),
+    town: String(properties.town || ''),
+    county: String(properties.county || ''),
+    postcode: String(properties.postcode || ''),
+  }).join(', ')
+}
+
+function mapFeatureToVenue(properties?: Record<string, unknown>): SelectedMapVenue | null {
+  if (!properties) return null
+  const lat = parseCoord(properties.lat as string | number | null | undefined)
+  const lng = parseCoord(properties.lng as string | number | null | undefined)
+  if (lat == null || lng == null) return null
+
+  return {
+    id: Number(properties.id || 0),
+    fsaId: Number(properties.fsa_id || 0),
+    name: String(properties.venuename || ''),
+    type: String(properties.venuetype || ''),
+    address: String(properties.address || ''),
+    town: String(properties.town || ''),
+    county: String(properties.county || ''),
+    postcode: String(properties.postcode || ''),
+    lat,
+    lng,
+  }
+}
+
 onBeforeUnmount(() => {
   if (popupTimeout) clearTimeout(popupTimeout)
+  popup?.remove()
   map.value?.remove()
   map.value = null
 })
