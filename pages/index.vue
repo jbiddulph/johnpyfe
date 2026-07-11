@@ -30,6 +30,7 @@
           description="Counties ranked by venue listings across England, Scotland, and Wales."
           :items="stats.topCounties"
           photo-cards
+          fallback-image-url="/assets/images/headers/brighton-and-hove.jpg"
         />
       </div>
 
@@ -46,6 +47,7 @@
           :description="`Live venue listings within ${stats.stadiumRadiusMiles} mile of each stadium (straight-line distance).`"
           :items="stadiumListItems"
           photo-cards
+          fallback-image-url="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg"
         />
       </section>
 

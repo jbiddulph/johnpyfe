@@ -19,7 +19,7 @@
           >
             <img
               v-if="hasUsableImage(item, index)"
-              :src="item.imageUrl || ''"
+              :src="imageSrc(item, index)"
               :alt="imageAlt(item)"
               class="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
@@ -80,10 +80,12 @@ const props = withDefaults(
     items: HomeRankedItem[]
     countLabel?: { singular: string; plural: string }
     photoCards?: boolean
+    fallbackImageUrl?: string
   }>(),
   {
     countLabel: () => ({ singular: 'pub', plural: 'pubs' }),
     photoCards: false,
+    fallbackImageUrl: '/assets/images/awaiting.jpg',
   },
 )
 
@@ -98,12 +100,20 @@ function imageKey(item: HomeRankedItem, index: number) {
 }
 
 function hasUsableImage(item: HomeRankedItem, index: number) {
-  return Boolean(item.imageUrl) && !failedImageKeys.value.has(imageKey(item, index))
+  const src = imageSrc(item, index)
+  return Boolean(src) && !failedImageKeys.value.has(src)
+}
+
+function imageSrc(item: HomeRankedItem, index: number) {
+  if (item.imageUrl && !failedImageKeys.value.has(imageKey(item, index))) {
+    return item.imageUrl
+  }
+  return props.fallbackImageUrl
 }
 
 function markImageFailed(item: HomeRankedItem, index: number) {
   const nextFailedImageKeys = new Set(failedImageKeys.value)
-  nextFailedImageKeys.add(imageKey(item, index))
+  nextFailedImageKeys.add(imageSrc(item, index))
   failedImageKeys.value = nextFailedImageKeys
 }
 
