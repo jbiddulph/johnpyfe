@@ -95,27 +95,27 @@ const siteUrl = siteBaseUrl()
 useSiteSeo({
   title: 'World Cup 2026 Pubs & Sports Bars UK — Watch England Live',
   description:
-    'Find pubs and sports bars showing FIFA World Cup 2026 across the UK. Watch Norway vs England live on Saturday 11 July at 10pm BST — discover World Cup pubs in London, Manchester, Birmingham, Leeds, Liverpool, Bristol, Brighton, Glasgow, Edinburgh, Newcastle, Sheffield, Nottingham and Cardiff. Browse sports bars with big screens, England quarter-final screenings, BBC One and ITV pub viewings, and bookable sports pubs near you.',
+    'Find pubs and sports bars showing FIFA World Cup 2026 across the UK. Watch England vs Argentina live on Wednesday 15 July at 8pm BST — discover World Cup pubs in London, Manchester, Birmingham, Leeds, Liverpool, Bristol, Brighton, Glasgow, Edinburgh, Newcastle, Sheffield, Nottingham and Cardiff. Browse sports bars with big screens, England semi-final screenings, BBC One and ITV pub viewings, and bookable sports pubs near you.',
   keywords:
-    'World Cup 2026 pubs, World Cup pubs UK, sports bars UK, pubs showing World Cup, England World Cup pubs, watch England World Cup pub, Norway vs England pub, World Cup sports bars, World Cup quarter-final pubs, FIFA World Cup venues UK, pubs showing football UK, sports pub finder, World Cup 2026 London pubs, World Cup pubs Manchester, World Cup pubs Birmingham, World Cup pubs Leeds, World Cup pubs Liverpool, World Cup pubs Bristol, World Cup pubs Brighton, World Cup pubs Newcastle, World Cup pubs Sheffield, World Cup pubs Nottingham, World Cup pubs Cardiff, World Cup pubs Glasgow, World Cup pubs Edinburgh, pubs with big screens, sports bars near me, England knockout pubs, Quarter-final World Cup pub, BBC One World Cup pub, watch World Cup in pub, UK sports venues, football pubs UK, World Cup screening pubs, book sports pub table, FANZO pubs, O\'Neills World Cup, Walkabout World Cup, BOX sports bar, sports TV pubs, England Norway pub screening, Hard Rock Stadium Miami',
+    'World Cup 2026 pubs, World Cup pubs UK, sports bars UK, pubs showing World Cup, England World Cup pubs, watch England World Cup pub, England vs Argentina pub, World Cup sports bars, World Cup semi-final pubs, FIFA World Cup venues UK, pubs showing football UK, sports pub finder, World Cup 2026 London pubs, World Cup pubs Manchester, World Cup pubs Birmingham, World Cup pubs Leeds, World Cup pubs Liverpool, World Cup pubs Bristol, World Cup pubs Brighton, World Cup pubs Newcastle, World Cup pubs Sheffield, World Cup pubs Nottingham, World Cup pubs Cardiff, World Cup pubs Glasgow, World Cup pubs Edinburgh, pubs with big screens, sports bars near me, England knockout pubs, Semi-final World Cup pub, BBC One World Cup pub, watch World Cup in pub, UK sports venues, football pubs UK, World Cup screening pubs, book sports pub table, FANZO pubs, O\'Neills World Cup, Walkabout World Cup, BOX sports bar, sports TV pubs, England Argentina pub screening, Mercedes-Benz Stadium Atlanta',
   path: '/',
   jsonLd: [
     {
       '@context': 'https://schema.org',
       '@type': 'SportsEvent',
-      name: 'Norway vs England — FIFA World Cup 2026 Quarter-final',
+      name: 'England vs Argentina — FIFA World Cup 2026 Semi-final',
       description:
-        'Watch Norway vs England in the FIFA World Cup 2026 Quarter-final at UK pubs and sports bars. Kick-off Saturday 11 July 2026 at 10:00pm BST, live on BBC One from Hard Rock Stadium, Miami.',
-      startDate: '2026-07-11T22:00:00+01:00',
+        'Watch England vs Argentina in the FIFA World Cup 2026 Semi-final at UK pubs and sports bars. Kick-off Wednesday 15 July 2026 at 8:00pm BST, live on BBC One from Mercedes-Benz Stadium, Atlanta.',
+      startDate: '2026-07-15T20:00:00+01:00',
       eventStatus: 'https://schema.org/EventScheduled',
       eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
       location: {
         '@type': 'Place',
-        name: 'Hard Rock Stadium',
+        name: 'Mercedes-Benz Stadium',
         address: {
           '@type': 'PostalAddress',
-          addressLocality: 'Miami',
-          addressRegion: 'FL',
+          addressLocality: 'Atlanta',
+          addressRegion: 'GA',
           addressCountry: 'US',
         },
       },
