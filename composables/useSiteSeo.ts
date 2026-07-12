@@ -12,21 +12,24 @@ type SiteSeoOptions = {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
 }
 
+type SiteSeoInput = SiteSeoOptions | (() => SiteSeoOptions)
+
 export function siteBaseUrl() {
   const config = useRuntimeConfig()
   return canonicalSiteUrl(String(config.public.appURL || ''))
 }
 
 export function venuePath(id: number | string, slug: string) {
-  return `/venues/${id}/${slug}`
+  const safeSlug = encodeURIComponent(String(slug ?? ''))
+  return `/venues/${id}/${safeSlug}`
 }
 
 export function townPath(slug: string) {
-  return `/town/${slug}`
+  return `/town/${encodeURIComponent(String(slug ?? ''))}`
 }
 
 export function countyPath(slug: string) {
-  return `/county/${slug}`
+  return `/county/${encodeURIComponent(String(slug ?? ''))}`
 }
 
 export function breadcrumbJsonLd(
@@ -45,48 +48,54 @@ export function breadcrumbJsonLd(
   }
 }
 
-export function useSiteSeo(options: SiteSeoOptions) {
+export function useSiteSeo(input: SiteSeoInput) {
   const route = useRoute()
   const siteUrl = siteBaseUrl()
-  const path = options.path ?? route.path
-  const canonical = `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`
-  const image = options.image?.startsWith('http')
-    ? options.image
-    : `${siteUrl}${options.image ?? '/ukpubs-logo.png'}`
-  const brandedTitle = siteSeoTitle(options.title)
+
+  const options = computed(() => (typeof input === 'function' ? input() : input))
+
+  const path = computed(() => options.value.path ?? route.path)
+  const canonical = computed(() => {
+    const p = path.value
+    return `${siteUrl}${p.startsWith('/') ? p : `/${p}`}`
+  })
+  const image = computed(() => {
+    const img = options.value.image
+    return img?.startsWith('http') ? img : `${siteUrl}${img ?? '/ukpubs-logo.png'}`
+  })
+  const brandedTitle = computed(() => siteSeoTitle(options.value.title))
 
   useSeoMeta({
-    title: options.title,
-    description: options.description,
+    title: computed(() => options.value.title),
+    description: computed(() => options.value.description),
     ogTitle: brandedTitle,
-    ogDescription: options.description,
+    ogDescription: computed(() => options.value.description),
     ogUrl: canonical,
     ogImage: image,
-    ogType: options.type ?? 'website',
+    ogType: computed(() => options.value.type ?? 'website'),
     ogLocale: 'en_GB',
     twitterCard: 'summary_large_image',
     twitterTitle: brandedTitle,
-    twitterDescription: options.description,
+    twitterDescription: computed(() => options.value.description),
     twitterImage: image,
   })
 
   useHead({
-    link: [{ rel: 'canonical', href: canonical }],
-    ...(options.keywords
-      ? { meta: [{ name: 'keywords', content: options.keywords }] }
-      : {}),
-    ...(options.jsonLd
-      ? {
-          script: [
-            {
-              type: 'application/ld+json',
-              innerHTML: JSON.stringify(
-                Array.isArray(options.jsonLd) ? options.jsonLd : options.jsonLd,
-              ),
-            },
-          ],
-        }
-      : {}),
+    link: computed(() => [{ rel: 'canonical', href: canonical.value }]),
+    meta: computed(() => {
+      const keywords = options.value.keywords
+      return keywords ? [{ name: 'keywords', content: keywords }] : []
+    }),
+    script: computed(() => {
+      const jsonLd = options.value.jsonLd
+      if (!jsonLd) return []
+      return [
+        {
+          type: 'application/ld+json',
+          innerHTML: JSON.stringify(Array.isArray(jsonLd) ? jsonLd : jsonLd),
+        },
+      ]
+    }),
   })
 }
 

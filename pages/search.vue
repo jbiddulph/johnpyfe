@@ -225,14 +225,12 @@ const seoTitle = computed(() => searchSeoHeadline(activeQuery.value))
 const seoDescription = computed(() => searchSeoDescription(activeQuery.value))
 const seoKeywords = computed(() => searchSeoKeywords(activeQuery.value))
 
-watchEffect(() => {
-  useSiteSeo({
-    title: seoTitle.value,
-    description: seoDescription.value,
-    keywords: seoKeywords.value,
-    path: '/search',
-  })
-})
+useSiteSeo(() => ({
+  title: seoTitle.value,
+  description: seoDescription.value,
+  keywords: seoKeywords.value,
+  path: '/search',
+}))
 </script>
 
 <style scoped>

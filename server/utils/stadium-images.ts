@@ -15,8 +15,20 @@ export function normalizeStadiumImageSlug(club: string): string {
   return slugifyPlace(club)
 }
 
-async function loadAllStadiumImages(prisma: PrismaClient): Promise<Map<string, StadiumImageRecord>> {
-  if (allImagesCache && Date.now() - allImagesCacheAt < ALL_IMAGES_CACHE_MS) {
+export function invalidateStadiumImageCache() {
+  allImagesCache = null
+  allImagesCacheAt = 0
+}
+
+async function loadAllStadiumImages(
+  prisma: PrismaClient,
+  options: { bypassCache?: boolean } = {},
+): Promise<Map<string, StadiumImageRecord>> {
+  if (
+    !options.bypassCache
+    && allImagesCache
+    && Date.now() - allImagesCacheAt < ALL_IMAGES_CACHE_MS
+  ) {
     return allImagesCache
   }
 
@@ -38,8 +50,9 @@ async function loadAllStadiumImages(prisma: PrismaClient): Promise<Map<string, S
 export async function getStadiumImageMap(
   prisma: PrismaClient,
   slugs: string[],
+  options: { bypassCache?: boolean } = {},
 ): Promise<Map<string, StadiumImageRecord>> {
-  const all = await loadAllStadiumImages(prisma)
+  const all = await loadAllStadiumImages(prisma, options)
   if (!slugs.length) return all
 
   const wanted = new Set(slugs.map(normalizeStadiumImageSlug))

@@ -101,13 +101,11 @@ const seoTitle = computed(() => countySeoHeadline(countyDisplayName.value))
 const seoDescription = computed(() => countySeoDescription(countyDisplayName.value))
 const seoKeywords = computed(() => countySeoKeywords(countyDisplayName.value))
 
-watchEffect(() => {
-  useSiteSeo({
-    title: seoTitle.value,
-    description: seoDescription.value,
-    keywords: seoKeywords.value,
-    path: canonicalPath,
-    jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
-  })
-})
+useSiteSeo(() => ({
+  title: seoTitle.value,
+  description: seoDescription.value,
+  keywords: seoKeywords.value,
+  path: canonicalPath,
+  jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
+}))
 </script>

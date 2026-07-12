@@ -225,6 +225,10 @@ import { sortEventsByStartAsc } from '@/utils/sort-events'
 
 const NEARBY_INITIAL = 9
 
+definePageMeta({
+  key: (route) => `venue-${route.params.id}`,
+})
+
 const route = useRoute()
 const config = useRuntimeConfig()
 const eventStore = useEventStore()
@@ -416,7 +420,9 @@ const breadcrumbItems = computed(() =>
 )
 
 const v = venue.value
-const canonicalPath = venuePath(v.id, v.slug)
+const canonicalPath = computed(() =>
+  venue.value ? venuePath(venue.value.id, venue.value.slug) : venuePath(v.id, v.slug),
+)
 const siteUrl = siteBaseUrl()
 
 const defaultSeoDescription = computed(() => {
@@ -444,19 +450,18 @@ const seoKeywords = computed(
   () => cleanDbString(ownerProfile.value?.seoKeywords) || defaultSeoKeywords.value,
 )
 
-watchEffect(() => {
-  if (!venue.value) return
-  useSiteSeo({
-    title: seoTitle.value,
-    description: seoDescription.value,
-    keywords: seoKeywords.value || undefined,
-    path: canonicalPath,
-    jsonLd: [
-      venueJsonLd(venue.value, `${siteUrl}${canonicalPath}`),
-      breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
-    ],
-  })
-})
+useSiteSeo(() => ({
+  title: seoTitle.value,
+  description: seoDescription.value,
+  keywords: seoKeywords.value || undefined,
+  path: canonicalPath.value,
+  jsonLd: venue.value
+    ? [
+        venueJsonLd(venue.value, `${siteUrl}${canonicalPath.value}`),
+        breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
+      ]
+    : undefined,
+}))
 
 onMounted(async () => {
   if (!venue.value) {

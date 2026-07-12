@@ -204,15 +204,13 @@ const seoKeywords = computed(() =>
   townSeoKeywords(townName.value, countyHub.value?.displayName),
 )
 
-watchEffect(() => {
-  useSiteSeo({
-    title: seoTitle.value,
-    description: seoDescription.value,
-    keywords: seoKeywords.value,
-    path: canonicalPath,
-    jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
-  })
-})
+useSiteSeo(() => ({
+  title: seoTitle.value,
+  description: seoDescription.value,
+  keywords: seoKeywords.value,
+  path: canonicalPath,
+  jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
+}))
 
 onMounted(() => {
   const eventStore = useEventStore()

@@ -61,7 +61,7 @@ export default defineNuxtConfig({
   // Optimize rendering
   ssr: true,
   routeRules: {
-    '/': { isr: 3600 },
+    '/': { isr: 300 },
     '/town/**': { isr: 3600 },
     '/county/**': { isr: 3600 },
     '/counties': { isr: 3600 },
@@ -71,6 +71,7 @@ export default defineNuxtConfig({
     '/api/webhooks/**': { cors: false },
     '/venues/**': { isr: 1800 },
     '/api/venues/*/owner-profile': { cache: false },
+    '/api/homepage/stats': { cache: false },
     '/events/**': { isr: 900 },
     '/pubs-near-stadiums/**': { isr: 3600 },
     '/admin/**': { robots: false },

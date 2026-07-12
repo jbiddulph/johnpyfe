@@ -232,24 +232,33 @@ export async function getHomepageStats(prisma: PrismaClient) {
   ])
 
   const [countyImages, townImages, stadiumImages] = await Promise.all([
-    getCountyImageMap(prisma, topCounties.map((row) => normalizeCountyImageSlug(row.slug))),
-    getTownImageMap(prisma, [
-      ...topCounties.map((row) => normalizeTownImageSlug(row.slug)),
-      ...topSeasideTowns.map((row) => normalizeTownImageSlug(row.slug)),
-    ]),
-    getStadiumImageMap(prisma, stadiumPubs.map((row) => normalizeStadiumImageSlug(row.slug))),
+    getCountyImageMap(prisma, topCounties.map((row) => normalizeCountyImageSlug(row.slug)), {
+      bypassCache: true,
+    }),
+    getTownImageMap(
+      prisma,
+      [
+        ...topCounties.map((row) => normalizeTownImageSlug(row.slug)),
+        ...topSeasideTowns.map((row) => normalizeTownImageSlug(row.slug)),
+      ],
+      { bypassCache: true },
+    ),
+    getStadiumImageMap(prisma, stadiumPubs.map((row) => normalizeStadiumImageSlug(row.slug)), {
+      bypassCache: true,
+    }),
   ])
 
   const countiesWithImages = topCounties.map((row) => {
-    const townImage = townImages.get(normalizeTownImageSlug(row.slug))
     const countyImage = countyImages.get(normalizeCountyImageSlug(row.slug))
-    const image = townImage ?? countyImage
+    const townImage = townImages.get(normalizeTownImageSlug(row.slug))
+    // Prefer county_images for the counties list; fall back to a same-slug town image.
+    const image = countyImage ?? townImage
     return {
       ...row,
       imageUrl: image?.photoUrl ?? null,
-      backupImageUrl: townImage ? countyImage?.photoUrl ?? null : null,
+      backupImageUrl: countyImage ? townImage?.photoUrl ?? null : null,
       imageAttribution: image?.attribution ?? null,
-      backupImageAttribution: townImage ? countyImage?.attribution ?? null : null,
+      backupImageAttribution: countyImage ? townImage?.attribution ?? null : null,
     }
   })
 

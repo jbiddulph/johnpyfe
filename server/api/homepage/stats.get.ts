@@ -3,14 +3,15 @@ import { getHomepageStats } from '../../utils/homepage-stats'
 
 let cached: Awaited<ReturnType<typeof getHomepageStats>> | null = null
 let cacheExpiresAt = 0
-const CACHE_MS = 60 * 60 * 1000
+/** Keep short so stadium/county photo_url edits show up without a long wait. */
+const CACHE_MS = 5 * 60 * 1000
 /** Bump when homepage aggregation logic changes (invalidates in-memory cache). */
-const CACHE_VERSION = 6
+const CACHE_VERSION = 7
 let cacheVersion = 0
 
-/** Aggregated homepage discovery lists (cached 1 hour). */
+/** Aggregated homepage discovery lists (cached 5 minutes). */
 export default defineEventHandler(async (event) => {
-  setResponseHeader(event, 'Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
+  setResponseHeader(event, 'Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600')
 
   if (cached && cacheVersion === CACHE_VERSION && Date.now() < cacheExpiresAt) {
     return cached

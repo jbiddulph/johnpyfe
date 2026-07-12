@@ -28,8 +28,20 @@ let allImagesCache: Map<string, CountyImageRecord> | null = null
 let allImagesCacheAt = 0
 const ALL_IMAGES_CACHE_MS = 5 * 60 * 1000
 
-async function loadAllCountyImages(prisma: PrismaClient): Promise<Map<string, CountyImageRecord>> {
-  if (allImagesCache && Date.now() - allImagesCacheAt < ALL_IMAGES_CACHE_MS) {
+export function invalidateCountyImageCache() {
+  allImagesCache = null
+  allImagesCacheAt = 0
+}
+
+async function loadAllCountyImages(
+  prisma: PrismaClient,
+  options: { bypassCache?: boolean } = {},
+): Promise<Map<string, CountyImageRecord>> {
+  if (
+    !options.bypassCache
+    && allImagesCache
+    && Date.now() - allImagesCacheAt < ALL_IMAGES_CACHE_MS
+  ) {
     return allImagesCache
   }
 
@@ -51,8 +63,9 @@ async function loadAllCountyImages(prisma: PrismaClient): Promise<Map<string, Co
 export async function getCountyImageMap(
   prisma: PrismaClient,
   slugs: string[],
+  options: { bypassCache?: boolean } = {},
 ): Promise<Map<string, CountyImageRecord>> {
-  const all = await loadAllCountyImages(prisma)
+  const all = await loadAllCountyImages(prisma, options)
   if (!slugs.length) return all
 
   const wanted = new Set(slugs.map(normalizeCountyImageSlug))

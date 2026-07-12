@@ -15,8 +15,20 @@ export function normalizeTownImageSlug(slug: string): string {
   return slugifyPlace(slug)
 }
 
-async function loadAllTownImages(prisma: PrismaClient): Promise<Map<string, TownImageRecord>> {
-  if (allImagesCache && Date.now() - allImagesCacheAt < ALL_IMAGES_CACHE_MS) {
+export function invalidateTownImageCache() {
+  allImagesCache = null
+  allImagesCacheAt = 0
+}
+
+async function loadAllTownImages(
+  prisma: PrismaClient,
+  options: { bypassCache?: boolean } = {},
+): Promise<Map<string, TownImageRecord>> {
+  if (
+    !options.bypassCache
+    && allImagesCache
+    && Date.now() - allImagesCacheAt < ALL_IMAGES_CACHE_MS
+  ) {
     return allImagesCache
   }
 
@@ -38,8 +50,9 @@ async function loadAllTownImages(prisma: PrismaClient): Promise<Map<string, Town
 export async function getTownImageMap(
   prisma: PrismaClient,
   slugs: string[],
+  options: { bypassCache?: boolean } = {},
 ): Promise<Map<string, TownImageRecord>> {
-  const all = await loadAllTownImages(prisma)
+  const all = await loadAllTownImages(prisma, options)
   if (!slugs.length) return all
 
   const wanted = new Set(slugs.map(normalizeTownImageSlug))

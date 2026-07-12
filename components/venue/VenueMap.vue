@@ -107,7 +107,17 @@ function createPopup(mapboxgl, html, offset) {
       if (other !== popup && other.isOpen()) other.remove()
     }
     const el = popup.getElement()
-    if (el) el.style.zIndex = '1000'
+    if (el) {
+      el.style.zIndex = '1000'
+      const link = el.querySelector('.venue-map-popup__link')
+      if (link) {
+        link.addEventListener('click', (e) => {
+          e.preventDefault()
+          const target = link.getAttribute('href')
+          if (target) navigateTo(target)
+        })
+      }
+    }
   })
 
   popupInstances.push(popup)
