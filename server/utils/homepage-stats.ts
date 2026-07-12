@@ -233,17 +233,23 @@ export async function getHomepageStats(prisma: PrismaClient) {
 
   const [countyImages, townImages, stadiumImages] = await Promise.all([
     getCountyImageMap(prisma, topCounties.map((row) => normalizeCountyImageSlug(row.slug))),
-    getTownImageMap(prisma, topSeasideTowns.map((row) => normalizeTownImageSlug(row.slug))),
+    getTownImageMap(prisma, [
+      ...topCounties.map((row) => normalizeTownImageSlug(row.slug)),
+      ...topSeasideTowns.map((row) => normalizeTownImageSlug(row.slug)),
+    ]),
     getStadiumImageMap(prisma, stadiumPubs.map((row) => normalizeStadiumImageSlug(row.slug))),
   ])
 
   const countiesWithImages = topCounties.map((row) => {
-    const key = normalizeCountyImageSlug(row.slug)
-    const image = countyImages.get(key)
+    const townImage = townImages.get(normalizeTownImageSlug(row.slug))
+    const countyImage = countyImages.get(normalizeCountyImageSlug(row.slug))
+    const image = townImage ?? countyImage
     return {
       ...row,
       imageUrl: image?.photoUrl ?? null,
+      backupImageUrl: townImage ? countyImage?.photoUrl ?? null : null,
       imageAttribution: image?.attribution ?? null,
+      backupImageAttribution: townImage ? countyImage?.attribution ?? null : null,
     }
   })
 
