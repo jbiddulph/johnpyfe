@@ -31,10 +31,10 @@
           <div class="flex flex-col items-center">
             <span class="text-2xl font-light text-white/60 md:text-3xl">vs</span>
             <time
-              datetime="2026-07-11T22:00:00+01:00"
+              datetime="2026-07-15T20:00:00+01:00"
               class="mt-1 text-sm font-medium text-amber-200 md:text-base"
             >
-              Sat 11 Jul · 10:00pm BST
+              Wed 15 Jul · 8:00pm BST
             </time>
           </div>
 
@@ -53,9 +53,9 @@
         </div>
 
         <p class="mx-auto mb-4 max-w-2xl text-sm text-white/80 md:text-base">
-          Live on <strong class="text-white">BBC One</strong> from Hard Rock Stadium, Miami.
+          Live on <strong class="text-white">BBC One</strong> from Mercedes-Benz Stadium, Atlanta.
           Find a <strong class="text-white">sports pub</strong> or <strong class="text-white">World Cup venue</strong> near you —
-          watch this 10pm semi-final at your local sports bar.
+          watch this 8pm semi-final at your local sports bar.
         </p>
 
         <p class="mx-auto mb-6 max-w-3xl text-xs leading-relaxed text-white/60 md:text-sm">
@@ -126,8 +126,8 @@
 </template>
 
 <script setup lang="ts">
-/** Banner hides at kick-off: Saturday 11 July 2026, 10:00pm BST */
-const MATCH_EXPIRY = new Date('2026-07-11T22:00:00+01:00')
+/** Banner hides at kick-off: Wednesday 15 July 2026, 8:00pm BST */
+const MATCH_EXPIRY = new Date('2026-07-15T20:00:00+01:00')
 
 const showBanner = computed(() => new Date() < MATCH_EXPIRY)
 
