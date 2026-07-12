@@ -37,8 +37,8 @@
                 {{ item.venueCount }}
                 {{ item.venueCount === 1 ? props.countLabel.singular : props.countLabel.plural }}
               </span>
-              <span v-if="item.imageAttribution" class="mt-2 text-[10px] text-white/70 line-clamp-1">
-                Photo: {{ item.imageAttribution }}
+              <span v-if="imageAttribution(item, index)" class="mt-2 text-[10px] text-white/70 line-clamp-1">
+                Photo: {{ imageAttribution(item, index) }}
               </span>
             </div>
           </div>
@@ -69,7 +69,9 @@ export type HomeRankedItem = {
   meta?: string
   slug?: string
   imageUrl?: string | null
+  backupImageUrl?: string | null
   imageAttribution?: string | null
+  backupImageAttribution?: string | null
   imageAlt?: string | null
 }
 
@@ -99,6 +101,10 @@ function imageKey(item: HomeRankedItem, index: number) {
   return item.imageUrl || itemKey(item, index)
 }
 
+function backupImageKey(item: HomeRankedItem, index: number) {
+  return item.backupImageUrl || `${itemKey(item, index)}-backup`
+}
+
 function hasUsableImage(item: HomeRankedItem, index: number) {
   const src = imageSrc(item, index)
   return Boolean(src) && !failedImageKeys.value.has(src)
@@ -108,17 +114,34 @@ function imageSrc(item: HomeRankedItem, index: number) {
   if (item.imageUrl && !failedImageKeys.value.has(imageKey(item, index))) {
     return item.imageUrl
   }
+  if (item.backupImageUrl && !failedImageKeys.value.has(backupImageKey(item, index))) {
+    return item.backupImageUrl
+  }
   return props.fallbackImageUrl
 }
 
 function markImageFailed(item: HomeRankedItem, index: number) {
   const nextFailedImageKeys = new Set(failedImageKeys.value)
-  nextFailedImageKeys.add(imageSrc(item, index))
+  const failedSrc = imageSrc(item, index)
+  if (failedSrc === item.imageUrl) {
+    nextFailedImageKeys.add(imageKey(item, index))
+  } else if (failedSrc === item.backupImageUrl) {
+    nextFailedImageKeys.add(backupImageKey(item, index))
+  } else {
+    nextFailedImageKeys.add(failedSrc)
+  }
   failedImageKeys.value = nextFailedImageKeys
 }
 
 function imageAlt(item: HomeRankedItem) {
   return item.imageAlt || (item.meta ? `${item.displayName} - ${item.meta}` : item.displayName)
+}
+
+function imageAttribution(item: HomeRankedItem, index: number) {
+  const src = imageSrc(item, index)
+  if (src === item.imageUrl) return item.imageAttribution || ''
+  if (src === item.backupImageUrl) return item.backupImageAttribution || ''
+  return ''
 }
 </script>
 
