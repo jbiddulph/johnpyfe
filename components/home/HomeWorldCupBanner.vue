@@ -2,42 +2,19 @@
   <section
     v-if="showBanner"
     class="world-cup-banner border-b border-amber-700/30 bg-gradient-to-r from-green-900 via-gray-900 to-red-900"
-    aria-label="England vs Argentina World Cup match"
+    aria-label="Argentina vs Spain World Cup Final"
   >
     <div class="container mx-auto px-4 py-8 md:py-10">
       <div class="text-center">
         <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
-          FIFA World Cup 2026 · Semi-final
+          FIFA World Cup 2026 · Final
         </p>
 
         <h2 class="sr-only">
-          England vs Argentina World Cup 2026 — pubs and sports bars showing the match across the UK
+          Argentina vs Spain World Cup 2026 Final — pubs and sports bars showing the match across the UK
         </h2>
 
-        <div class="mb-4 flex items-center justify-center gap-4 md:gap-8" role="group" aria-label="England vs Argentina">
-          <div class="flex flex-col items-center gap-2">
-            <img
-              src="https://flagcdn.com/w80/gb-eng.png"
-              srcset="https://flagcdn.com/w160/gb-eng.png 2x"
-              width="64"
-              height="43"
-              alt="England flag"
-              class="h-12 w-auto rounded shadow-md md:h-16"
-              loading="eager"
-            />
-            <span class="text-lg font-bold text-white md:text-xl">England</span>
-          </div>
-
-          <div class="flex flex-col items-center">
-            <span class="text-2xl font-light text-white/60 md:text-3xl">vs</span>
-            <time
-              datetime="2026-07-15T20:00:00+01:00"
-              class="mt-1 text-sm font-medium text-amber-200 md:text-base"
-            >
-              Wed 15 Jul · 8:00pm BST
-            </time>
-          </div>
-
+        <div class="mb-4 flex items-center justify-center gap-4 md:gap-8" role="group" aria-label="Argentina vs Spain">
           <div class="flex flex-col items-center gap-2">
             <img
               src="https://flagcdn.com/w80/ar.png"
@@ -50,20 +27,43 @@
             />
             <span class="text-lg font-bold text-white md:text-xl">Argentina</span>
           </div>
+
+          <div class="flex flex-col items-center">
+            <span class="text-2xl font-light text-white/60 md:text-3xl">vs</span>
+            <time
+              datetime="2026-07-20T20:00:00+01:00"
+              class="mt-1 text-sm font-medium text-amber-200 md:text-base"
+            >
+              Sun 20 Jul · 8:00pm BST
+            </time>
+          </div>
+
+          <div class="flex flex-col items-center gap-2">
+            <img
+              src="https://flagcdn.com/w80/es.png"
+              srcset="https://flagcdn.com/w160/es.png 2x"
+              width="64"
+              height="43"
+              alt="Spain flag"
+              class="h-12 w-auto rounded shadow-md md:h-16"
+              loading="eager"
+            />
+            <span class="text-lg font-bold text-white md:text-xl">Spain</span>
+          </div>
         </div>
 
         <p class="mx-auto mb-4 max-w-2xl text-sm text-white/80 md:text-base">
-          Live on <strong class="text-white">BBC One</strong> from Mercedes-Benz Stadium, Atlanta.
+          Live on <strong class="text-white">BBC One</strong> from MetLife Stadium, New York/New Jersey.
           Find a <strong class="text-white">sports pub</strong> or <strong class="text-white">World Cup venue</strong> near you —
-          watch this 8pm semi-final at your local sports bar.
+          watch this 8pm final at your local sports bar.
         </p>
 
         <p class="mx-auto mb-6 max-w-3xl text-xs leading-relaxed text-white/60 md:text-sm">
-          Looking for <strong class="font-medium text-white/75">pubs showing the World Cup 2026</strong>?
+          Looking for <strong class="font-medium text-white/75">pubs showing the World Cup 2026 Final</strong>?
           UK Pubs lists sports bars, football pubs and late-night venues across
           <strong class="font-medium text-white/75">London, Manchester, Birmingham, Leeds, Liverpool, Bristol, Brighton, Glasgow, Edinburgh, Newcastle, Sheffield, Nottingham and Cardiff</strong>.
           Whether you need a <strong class="font-medium text-white/75">sports bar with big screens</strong>,
-          an <strong class="font-medium text-white/75">England World Cup pub</strong> for knockout football,
+          a <strong class="font-medium text-white/75">World Cup Final pub</strong> for the biggest match in football,
           or a <strong class="font-medium text-white/75">venue showing BBC One live sport</strong> —
           search by town, county or sports bar name to find your match-day spot.
         </p>
@@ -95,7 +95,7 @@
         </h3>
         <p class="border-t border-white/10 px-4 pt-4 text-sm leading-relaxed text-white/70">
           These are among the best <strong class="text-white/90">UK sports pubs and World Cup venues</strong> likely
-          screening England vs Argentina — popular <strong class="text-white/90">football pubs</strong> with multiple
+          screening Argentina vs Spain — popular <strong class="text-white/90">football pubs</strong> with multiple
           screens, late opening hours and strong match-day atmosphere. Search UK Pubs for
           <strong class="text-white/90">sports bars near you</strong>, or browse by city for
           <strong class="text-white/90">World Cup 2026 pub listings</strong> in your area.
@@ -113,7 +113,7 @@
         </div>
         <p class="border-t border-white/10 px-4 py-3 text-xs leading-relaxed text-white/50">
           Confirm with venues before travelling — many sports pubs and bars will be screening this
-          <strong class="text-white/65">England World Cup semi-final</strong>.
+          <strong class="text-white/65">World Cup 2026 Final</strong>.
           Listings sourced from FANZO and major UK sports bar chains. Also search UK Pubs for
           <strong class="text-white/65">sports TV pubs</strong>,
           <strong class="text-white/65">football bars</strong>,
@@ -126,8 +126,8 @@
 </template>
 
 <script setup lang="ts">
-/** Banner hides at kick-off: Wednesday 15 July 2026, 8:00pm BST */
-const MATCH_EXPIRY = new Date('2026-07-15T20:00:00+01:00')
+/** Banner hides at kick-off: Sunday 20 July 2026, 8:00pm BST */
+const MATCH_EXPIRY = new Date('2026-07-20T20:00:00+01:00')
 
 const showBanner = computed(() => new Date() < MATCH_EXPIRY)
 
