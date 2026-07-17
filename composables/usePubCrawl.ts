@@ -346,6 +346,63 @@ export function usePubCrawl() {
     markDirty()
   }
 
+  function isVenueOnActiveCrawl(venueId: number | null | undefined) {
+    if (!venueId) return false
+    if (stops.value.some((s) => s.venueId === venueId)) return true
+    // Fallback while the active crawl's stops are still hydrating
+    return (activeCrawl.value?.stops || []).some((s) => s.venueId === venueId)
+  }
+
+  /** Remove a map venue from the active crawl and persist immediately. */
+  async function removeVenueStop(venueId: number) {
+    if (!activeCrawl.value) {
+      errorMessage.value = 'Open or create a crawl first.'
+      return false
+    }
+
+    if (!stops.value.length && (activeCrawl.value.stopCount || 0) > 0) {
+      await loadCrawl(activeCrawl.value.id)
+    }
+
+    const stop = stops.value.find((s) => s.venueId === venueId)
+    if (!stop) {
+      errorMessage.value = 'That pub is not on this crawl.'
+      return false
+    }
+
+    addingStop.value = true
+    errorMessage.value = ''
+    try {
+      await useAuthFetch(`/api/crawls/${activeCrawl.value.id}/stops/${stop.id}`, {
+        method: 'DELETE',
+      })
+
+      const nextStops = stops.value.filter((s) => s.id !== stop.id)
+      stops.value = nextStops
+      if (currentStopIndex.value >= nextStops.length) {
+        currentStopIndex.value = Math.max(0, nextStops.length - 1)
+      }
+
+      dirty.value = false
+      lastSavedAt.value = 'just now'
+      await loadCrawls()
+      if (activeCrawl.value) {
+        activeCrawl.value = {
+          ...activeCrawl.value,
+          stopCount: nextStops.length,
+          currentStopIndex: currentStopIndex.value,
+          stops: nextStops,
+        }
+      }
+      return true
+    } catch (err: any) {
+      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not remove pub from crawl'
+      return false
+    } finally {
+      addingStop.value = false
+    }
+  }
+
   function setProgress(index: number) {
     if (!ensureCanEdit()) return
     if (index < 0 || index >= stops.value.length) return
@@ -455,6 +512,8 @@ export function usePubCrawl() {
     addManualStop,
     addVenueStop,
     removeStopLocal,
+    isVenueOnActiveCrawl,
+    removeVenueStop,
     setProgress,
     setProgressAndSave,
     reorderStops,

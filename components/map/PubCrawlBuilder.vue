@@ -144,7 +144,7 @@
         <section v-if="canEditActiveCrawl" class="space-y-2">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Add a pub</h3>
           <p class="text-xs text-gray-500">
-            Click a pub on the map and use “Add to crawl”, or search by name below.
+            Click a pub on the map and use “Add to …” / “Remove from …”, or search by name below.
           </p>
           <div class="relative">
             <UInput
