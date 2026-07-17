@@ -77,15 +77,12 @@
         type="submit"
         color="amber"
         size="md"
-        class="shrink-0 px-3 sm:px-4"
+        class="shrink-0"
         :loading="sending"
         :disabled="!draft.trim()"
         icon="i-heroicons-paper-airplane-20-solid"
-        :trailing="false"
-        aria-label="Send message"
-      >
-        <span class="sr-only sm:not-sr-only sm:ml-1">Send</span>
-      </UButton>
+        label="Send"
+      />
     </form>
   </div>
 </template>
