@@ -101,9 +101,9 @@ export default defineEventHandler(async (event) => {
     await createNotification({
       userId: invitee.userId,
       type: 'crawl_invite',
-      title: `${inviterProfile.username} invited you to a pub crawl`,
-      body: `Join “${crawl.name}” on UK Pubs.`,
-      link: '/pub-crawls',
+      title: `${inviterProfile.displayName} invited you to a pub crawl`,
+      body: `Join “${crawl.name}” on UK Pubs. Invited by @${inviterProfile.username}.`,
+      link: `/pub-crawls?invite=${member.id}`,
       crawlId: crawl.id,
     })
 
