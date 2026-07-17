@@ -156,7 +156,12 @@ async function loadMessages(options?: { silent?: boolean }) {
     }
   } catch (err: any) {
     if (!options?.silent) {
-      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load chat'
+      const status = err?.statusCode || err?.status || err?.data?.statusCode
+      if (status === 401) {
+        errorMessage.value = 'Your session expired. Please sign out and sign back in, then open chat again.'
+      } else {
+        errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load chat'
+      }
     }
   } finally {
     loading.value = false
@@ -190,7 +195,12 @@ async function sendMessage() {
     appendMessage(created)
     await broadcastMessage(created)
   } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not send message'
+    const status = err?.statusCode || err?.status || err?.data?.statusCode
+    if (status === 401) {
+      errorMessage.value = 'Your session expired. Please sign out and sign back in, then try again.'
+    } else {
+      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not send message'
+    }
   } finally {
     sending.value = false
   }
