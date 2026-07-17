@@ -353,6 +353,36 @@ export function usePubCrawl() {
     markDirty()
   }
 
+  /** Persist progress immediately (manual Next / auto check-in). */
+  async function setProgressAndSave(index: number, options?: { fromArrival?: boolean }) {
+    if (!activeCrawl.value) return false
+    if (index < 0 || index >= stops.value.length) return false
+
+    // Only move forward on auto-arrival; allow manual jumps either way
+    if (options?.fromArrival && index <= currentStopIndex.value) return false
+
+    currentStopIndex.value = index
+    errorMessage.value = ''
+    try {
+      const crawl = await useAuthFetch<CrawlSummary>(`/api/crawls/${activeCrawl.value.id}`, {
+        method: 'PUT',
+        body: { currentStopIndex: index },
+      })
+      activeCrawl.value = {
+        ...activeCrawl.value,
+        currentStopIndex: crawl.currentStopIndex,
+      }
+      dirty.value = false
+      lastSavedAt.value = 'just now'
+      await loadCrawls()
+      return true
+    } catch (err: any) {
+      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not update progress'
+      markDirty()
+      return false
+    }
+  }
+
   function reorderStops(fromIndex: number, toIndex: number) {
     if (!ensureCanEdit()) return
     if (fromIndex === toIndex) return
@@ -384,7 +414,8 @@ export function usePubCrawl() {
       const remembered = readRememberedCrawlId()
       if (remembered && crawls.value.some((c) => c.id === remembered)) {
         await loadCrawl(remembered)
-      } else if (crawls.value.length === 1) {
+      } else if (crawls.value.length >= 1) {
+        // Always open the most recently updated list so the map has an active route
         await loadCrawl(crawls.value[0].id)
       }
     } else if (activeCrawl.value.id && !stops.value.length && activeCrawl.value.stopCount) {
@@ -425,6 +456,7 @@ export function usePubCrawl() {
     addVenueStop,
     removeStopLocal,
     setProgress,
+    setProgressAndSave,
     reorderStops,
     initialize,
   }

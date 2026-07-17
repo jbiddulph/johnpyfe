@@ -4,7 +4,7 @@
       <div>
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Pub crawl builder</h2>
         <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-          Pick pubs on the map, reorder the route, and track your progress.
+          Keep multiple crawl lists, plot the route on the map, and auto check-in within 50m.
         </p>
       </div>
       <UButton
@@ -28,17 +28,33 @@
 
       <section class="space-y-2">
         <div class="flex items-center justify-between gap-2">
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Your crawls</h3>
-          <UButton
-            size="xs"
-            color="gray"
-            variant="ghost"
-            icon="i-heroicons-arrow-path-20-solid"
-            :loading="loadingList"
-            aria-label="Refresh crawls"
-            @click="loadCrawls"
-          />
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Your crawl lists
+            <span v-if="crawls.length" class="font-normal normal-case tracking-normal">({{ crawls.length }})</span>
+          </h3>
+          <div class="flex items-center gap-1">
+            <UButton
+              size="xs"
+              color="amber"
+              variant="soft"
+              icon="i-heroicons-plus-20-solid"
+              label="New list"
+              @click="onStartFresh"
+            />
+            <UButton
+              size="xs"
+              color="gray"
+              variant="ghost"
+              icon="i-heroicons-arrow-path-20-solid"
+              :loading="loadingList"
+              aria-label="Refresh crawls"
+              @click="loadCrawls"
+            />
+          </div>
         </div>
+        <p class="text-xs text-gray-500">
+          You can keep as many crawl lists as you like. Tap one to open it on the map.
+        </p>
 
         <div v-if="loadingList && !crawls.length" class="text-sm text-gray-500">Loading…</div>
         <ul v-else-if="crawls.length" class="space-y-1">
@@ -61,6 +77,7 @@
                 <template v-if="crawl.stopCount">
                   · at #{{ Math.min(crawl.currentStopIndex + 1, crawl.stopCount) }}
                 </template>
+                <template v-if="crawl.id === activeCrawl?.id"> · active</template>
               </span>
             </button>
             <UButton
@@ -79,7 +96,7 @@
 
       <section class="space-y-2 rounded-md border border-gray-200 p-3 dark:border-gray-800">
         <label class="block text-sm font-medium text-gray-900 dark:text-white">
-          {{ activeCrawl ? 'Crawl name' : 'New crawl name' }}
+          {{ creatingNewList || !activeCrawl ? 'New crawl list name' : 'Rename active crawl' }}
         </label>
         <div class="flex gap-2">
           <UInput
@@ -87,10 +104,10 @@
             class="flex-1"
             placeholder="e.g. Friday night in Liverpool"
             maxlength="120"
-            @keydown.enter.prevent="activeCrawl ? onSaveMeta() : onCreateCrawl()"
+            @keydown.enter.prevent="creatingNewList || !activeCrawl ? onCreateCrawl() : onSaveMeta()"
           />
           <UButton
-            v-if="!activeCrawl"
+            v-if="creatingNewList || !activeCrawl"
             color="amber"
             :loading="saving"
             :disabled="!draftName.trim()"
@@ -108,12 +125,12 @@
           />
         </div>
         <UButton
-          v-if="activeCrawl"
+          v-if="creatingNewList && crawls.length"
           size="xs"
           color="gray"
           variant="link"
-          label="Start a new crawl"
-          @click="onStartFresh"
+          label="Cancel — back to lists"
+          @click="cancelNewList"
         />
       </section>
 
@@ -260,7 +277,7 @@
                       variant="ghost"
                       label="Here"
                       :disabled="index === currentStopIndex"
-                      @click="setProgress(index)"
+                      @click="setProgressAndSave(index)"
                     />
                     <UButton
                       size="xs"
@@ -285,7 +302,14 @@
           </ol>
         </section>
 
+<<<<<<< HEAD
         <section v-if="canEditActiveCrawl" class="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-800">
+=======
+        <section class="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-800">
+          <p class="text-xs text-gray-500">
+            On the map: dotted walking line + distance labels. Allow location to auto-mark arrival within 50m.
+          </p>
+>>>>>>> origin/master
           <div v-if="stops.length" class="space-y-1">
             <div class="flex justify-between text-xs text-gray-500">
               <span>Progress</span>
@@ -304,7 +328,7 @@
                 variant="soft"
                 label="Previous"
                 :disabled="currentStopIndex <= 0 || saving"
-                @click="setProgress(currentStopIndex - 1)"
+                @click="setProgressAndSave(currentStopIndex - 1)"
               />
               <UButton
                 size="xs"
@@ -312,7 +336,7 @@
                 variant="soft"
                 label="Next pub"
                 :disabled="currentStopIndex >= stops.length - 1 || saving"
-                @click="setProgress(currentStopIndex + 1)"
+                @click="setProgressAndSave(currentStopIndex + 1)"
               />
             </div>
           </div>
@@ -365,7 +389,7 @@ const {
   deleteCrawl,
   addVenueStop,
   removeStopLocal,
-  setProgress,
+  setProgressAndSave,
   reorderStops,
   canEditActiveCrawl,
   initialize,
@@ -385,6 +409,7 @@ const searchResults = ref<VenueSearchHit[]>([])
 const searchLoading = ref(false)
 const searchOpen = ref(false)
 const highlightIndex = ref(-1)
+const creatingNewList = ref(false)
 const dragIndex = ref<number | null>(null)
 const dropIndex = ref<number | null>(null)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -489,11 +514,13 @@ async function selectVenue(venue: VenueSearchHit) {
 }
 
 async function selectCrawl(id: string) {
+  creatingNewList.value = false
   await loadCrawl(id)
 }
 
 async function onCreateCrawl() {
-  await createCrawl()
+  const crawl = await createCrawl()
+  if (crawl) creatingNewList.value = false
 }
 
 async function onSaveMeta() {
@@ -510,8 +537,16 @@ async function onDeleteCrawl(id: string) {
 }
 
 function onStartFresh() {
+  creatingNewList.value = true
   clearActive()
   draftName.value = ''
+}
+
+async function cancelNewList() {
+  creatingNewList.value = false
+  if (crawls.value.length) {
+    await loadCrawl(crawls.value[0].id)
+  }
 }
 
 function onDragStart(index: number, event: DragEvent) {
