@@ -375,7 +375,6 @@ const {
   deleteCrawl,
   addVenueStop,
   removeStopLocal,
-  setProgress,
   setProgressAndSave,
   reorderStops,
   initialize,
