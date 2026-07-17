@@ -53,7 +53,7 @@
           </div>
         </div>
         <p class="text-xs text-gray-500">
-          You can keep as many crawl lists as you like. Tap one to open it on the map.
+          Tap a list to open it on the map. Invited lists are view-only — only the creator can edit or delete them.
         </p>
 
         <div v-if="loadingList && !crawls.length" class="text-sm text-gray-500">Loading…</div>
@@ -71,7 +71,17 @@
               class="min-w-0 flex-1 text-left"
               @click="selectCrawl(crawl.id)"
             >
-              <span class="block truncate font-medium text-gray-900 dark:text-white">{{ crawl.name }}</span>
+              <span class="block truncate font-medium text-gray-900 dark:text-white">
+                {{ crawl.name }}
+                <span
+                  v-if="isOwnedCrawl(crawl)"
+                  class="ml-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+                >Yours</span>
+                <span
+                  v-else
+                  class="ml-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
+                >Invited</span>
+              </span>
               <span class="text-xs text-gray-500">
                 {{ crawl.stopCount }} stop{{ crawl.stopCount === 1 ? '' : 's' }}
                 <template v-if="crawl.stopCount">
@@ -81,6 +91,7 @@
               </span>
             </button>
             <UButton
+              v-if="isOwnedCrawl(crawl)"
               size="xs"
               color="red"
               variant="ghost"
@@ -94,7 +105,10 @@
         <p v-else class="text-sm text-gray-500">No saved crawls yet. Create one below.</p>
       </section>
 
-      <section class="space-y-2 rounded-md border border-gray-200 p-3 dark:border-gray-800">
+      <section
+        v-if="creatingNewList || !activeCrawl || canEditActiveCrawl"
+        class="space-y-2 rounded-md border border-gray-200 p-3 dark:border-gray-800"
+      >
         <label class="block text-sm font-medium text-gray-900 dark:text-white">
           {{ creatingNewList || !activeCrawl ? 'New crawl list name' : 'Rename active crawl' }}
         </label>
@@ -133,6 +147,15 @@
           @click="cancelNewList"
         />
       </section>
+      <div
+        v-else-if="activeCrawl"
+        class="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm dark:border-sky-800 dark:bg-sky-950/30"
+      >
+        <p class="font-medium text-gray-900 dark:text-white">{{ activeCrawl.name }}</p>
+        <p class="text-xs text-sky-800 dark:text-sky-200">
+          Invited list — view only. You can’t rename, reorder, or delete this crawl.
+        </p>
+      </div>
 
       <template v-if="activeCrawl">
         <UAlert
@@ -557,8 +580,17 @@ async function onSaveCrawl() {
 }
 
 async function onDeleteCrawl(id: string) {
+  const crawl = crawls.value.find((c) => c.id === id)
+  if (!crawl || !isOwnedCrawl(crawl)) {
+    errorMessage.value = 'Only the crawl creator can delete this list.'
+    return
+  }
   if (!confirm('Delete this pub crawl? This cannot be undone.')) return
   await deleteCrawl(id)
+}
+
+function isOwnedCrawl(crawl: { canEdit?: boolean; role?: string | null }) {
+  return crawl.canEdit === true && crawl.role !== 'member'
 }
 
 function onStartFresh() {
