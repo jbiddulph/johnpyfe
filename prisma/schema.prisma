@@ -42,6 +42,7 @@ model Venue {
   events              Event[]
   claim               VenueClaim?
   profile             VenueProfile?
+  crawlStops          UkpubsCrawlStop[]
 }
 
 model Organisation {
@@ -203,4 +204,38 @@ model TownImage {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("town_images")
+}
+
+/// Saved pub crawl for a logged-in user (table: ukpubs_crawls)
+model UkpubsCrawl {
+  id               String            @id @default(uuid())
+  userId           String            @map("user_id")
+  name             String
+  currentStopIndex Int               @default(0) @map("current_stop_index")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  stops            UkpubsCrawlStop[]
+
+  @@index([userId])
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("ukpubs_crawls")
+}
+
+/// Ordered stop within a pub crawl (table: ukpubs_crawl_stops)
+model UkpubsCrawlStop {
+  id        String      @id @default(uuid())
+  crawlId   String      @map("crawl_id")
+  venueId   Int?        @map("venue_id")
+  venueName String      @map("venue_name")
+  latitude  Float?
+  longitude Float?
+  sortOrder Int         @default(0) @map("sort_order")
+  notes     String?
+  createdAt DateTime    @default(now()) @map("created_at")
+  crawl     UkpubsCrawl @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+  venue     Venue?      @relation(fields: [venueId], references: [id], onDelete: SetNull)
+
+  @@index([crawlId, sortOrder])
+  @@index([venueId])
+  @@map("ukpubs_crawl_stops")
 }
