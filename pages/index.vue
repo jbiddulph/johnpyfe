@@ -1,6 +1,7 @@
 <template>
   <HomeHeroSearch />
   <HomeWorldCupBanner />
+  <HomePubCrawlAnnouncementModal />
 
   <div class="container mx-auto px-4 py-10">
     <section class="mb-12 text-center max-w-3xl mx-auto">
