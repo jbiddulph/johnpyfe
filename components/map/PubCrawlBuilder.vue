@@ -141,6 +141,24 @@
           variant="soft"
           description="View only — you were invited to this crawl. Only the creator can edit or delete it."
         />
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            size="xs"
+            color="sky"
+            variant="soft"
+            icon="i-heroicons-chat-bubble-left-right-20-solid"
+            :label="chatOpen ? 'Hide chat' : 'Crawl chat'"
+            @click="chatOpen = !chatOpen"
+          />
+        </div>
+        <CrawlChat
+          v-if="chatOpen && chatUserId"
+          class="rounded-lg border border-gray-200 p-3 dark:border-gray-800"
+          :crawl-id="activeCrawl.id"
+          :crawl-name="activeCrawl.name"
+          :current-user-id="chatUserId"
+          :active="chatOpen"
+        />
         <section v-if="canEditActiveCrawl" class="space-y-2">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Add a pub</h3>
           <p class="text-xs text-gray-500">
@@ -390,6 +408,17 @@ const {
   canEditActiveCrawl,
   initialize,
 } = usePubCrawl()
+
+const { user } = useAuth()
+const chatOpen = ref(false)
+const chatUserId = computed(() => (user.value as { id?: string } | null)?.id || '')
+
+watch(
+  () => activeCrawl.value?.id,
+  () => {
+    chatOpen.value = false
+  },
+)
 
 type VenueSearchHit = {
   id: number

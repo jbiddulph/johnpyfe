@@ -34,6 +34,14 @@
         <div class="flex flex-wrap gap-2">
           <UButton size="xs" color="amber" variant="soft" to="/map" label="View on map" />
           <UButton
+            size="xs"
+            color="sky"
+            variant="soft"
+            icon="i-heroicons-chat-bubble-left-right-20-solid"
+            label="Chat"
+            @click="chatOpen = true"
+          />
+          <UButton
             v-if="isOwner"
             size="xs"
             color="gray"
@@ -90,6 +98,29 @@
         <p v-else class="text-xs text-gray-500">Just you so far.</p>
       </div>
     </div>
+
+    <USlideover v-model="chatOpen">
+      <div class="flex h-full flex-col p-4">
+        <div class="mb-2 flex justify-end">
+          <UButton
+            color="gray"
+            variant="ghost"
+            icon="i-heroicons-x-mark-20-solid"
+            aria-label="Close chat"
+            @click="chatOpen = false"
+          />
+        </div>
+        <CrawlChat
+          v-if="currentUserId"
+          class="min-h-0 flex-1"
+          :crawl-id="crawl.id"
+          :crawl-name="crawl.name"
+          :current-user-id="currentUserId"
+          :active="chatOpen"
+        />
+        <p v-else class="text-sm text-gray-500">Sign in to use crawl chat.</p>
+      </div>
+    </USlideover>
   </UCard>
 </template>
 
@@ -113,6 +144,7 @@ const props = defineProps<{
       role: string
     }>
   }
+  currentUserId?: string | null
   accent?: 'emerald' | 'gray'
 }>()
 
@@ -134,6 +166,7 @@ const invitedByLabel = computed(() => {
   return inviter.displayName || (inviter.username ? `@${inviter.username}` : '')
 })
 
+const chatOpen = ref(false)
 const deleting = ref(false)
 
 async function deleteCrawl() {

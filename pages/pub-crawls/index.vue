@@ -139,6 +139,7 @@
         <CrawlDashboardCard
           v-if="activeCrawl"
           :crawl="activeCrawl"
+          :current-user-id="profile?.userId"
           accent="emerald"
           @invite="openInvite(activeCrawl)"
           @complete="toggleComplete(activeCrawl, true)"
@@ -160,6 +161,7 @@
             v-for="crawl in otherCrawls"
             :key="crawl.id"
             :crawl="crawl"
+            :current-user-id="profile?.userId"
             @invite="openInvite(crawl)"
             @complete="toggleComplete(crawl, true)"
             @reopen="toggleComplete(crawl, false)"
@@ -177,6 +179,7 @@
             v-for="crawl in completedCrawls"
             :key="crawl.id"
             :crawl="crawl"
+            :current-user-id="profile?.userId"
             accent="gray"
             @invite="openInvite(crawl)"
             @complete="toggleComplete(crawl, true)"

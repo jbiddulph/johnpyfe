@@ -218,6 +218,7 @@ model UkpubsCrawl {
   stops            UkpubsCrawlStop[]
   members          UkpubsCrawlMember[]
   notifications    UkpubsNotification[]
+  messages         UkpubsCrawlMessage[]
 
   @@index([userId])
   @@index([userId, updatedAt(sort: Desc)])
@@ -286,4 +287,18 @@ model UkpubsNotification {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("ukpubs_notifications")
+}
+
+/// Chat messages within a pub crawl (table: ukpubs_crawl_messages)
+model UkpubsCrawlMessage {
+  id        String      @id @default(uuid())
+  crawlId   String      @map("crawl_id")
+  userId    String      @map("user_id")
+  body      String
+  createdAt DateTime    @default(now()) @map("created_at")
+  crawl     UkpubsCrawl @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+
+  @@index([crawlId, createdAt])
+  @@index([userId])
+  @@map("ukpubs_crawl_messages")
 }
