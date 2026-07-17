@@ -21,20 +21,6 @@ export type CrawlSummary = {
 
 const ACTIVE_CRAWL_KEY = 'ukpubs_active_crawl_id'
 
-const crawls = ref<CrawlSummary[]>([])
-const activeCrawl = ref<CrawlSummary | null>(null)
-const stops = ref<CrawlStop[]>([])
-const currentStopIndex = ref(0)
-const draftName = ref('')
-const loadingList = ref(false)
-const saving = ref(false)
-const addingStop = ref(false)
-const deletingId = ref<string | null>(null)
-const errorMessage = ref('')
-const dirty = ref(false)
-const lastSavedAt = ref('')
-const initialized = ref(false)
-
 function rememberActiveCrawlId(id: string | null) {
   if (!import.meta.client) return
   try {
@@ -64,6 +50,20 @@ function formatSavedTime(iso: string) {
 
 export function usePubCrawl() {
   const { isLoggedIn, initializeAuth } = useAuth()
+
+  const crawls = useState<CrawlSummary[]>('ukpubs-crawls', () => [])
+  const activeCrawl = useState<CrawlSummary | null>('ukpubs-active-crawl', () => null)
+  const stops = useState<CrawlStop[]>('ukpubs-crawl-stops', () => [])
+  const currentStopIndex = useState<number>('ukpubs-crawl-progress', () => 0)
+  const draftName = useState<string>('ukpubs-crawl-draft-name', () => '')
+  const loadingList = useState<boolean>('ukpubs-crawl-loading', () => false)
+  const saving = useState<boolean>('ukpubs-crawl-saving', () => false)
+  const addingStop = useState<boolean>('ukpubs-crawl-adding', () => false)
+  const deletingId = useState<string | null>('ukpubs-crawl-deleting', () => null)
+  const errorMessage = useState<string>('ukpubs-crawl-error', () => '')
+  const dirty = useState<boolean>('ukpubs-crawl-dirty', () => false)
+  const lastSavedAt = useState<string>('ukpubs-crawl-saved-at', () => '')
+  const initialized = useState<boolean>('ukpubs-crawl-initialized', () => false)
 
   const legs = computed(() => buildCrawlLegs(stops.value))
 
@@ -130,7 +130,12 @@ export function usePubCrawl() {
   }
 
   async function ensureActiveCrawl() {
-    if (activeCrawl.value?.id) return activeCrawl.value
+    if (activeCrawl.value?.id) {
+      if (!stops.value.length && (activeCrawl.value.stopCount || 0) > 0) {
+        await loadCrawl(activeCrawl.value.id)
+      }
+      return activeCrawl.value
+    }
 
     await loadCrawls()
 
@@ -139,12 +144,7 @@ export function usePubCrawl() {
       return loadCrawl(remembered)
     }
 
-    if (crawls.value.length === 1) {
-      return loadCrawl(crawls.value[0].id)
-    }
-
-    if (crawls.value.length > 1) {
-      // Most recently updated
+    if (crawls.value.length >= 1) {
       return loadCrawl(crawls.value[0].id)
     }
 
@@ -300,6 +300,10 @@ export function usePubCrawl() {
     const crawl = await ensureActiveCrawl()
     if (!crawl) return false
 
+    if (!stops.value.length && (crawl.stopCount || 0) > 0) {
+      await loadCrawl(crawl.id)
+    }
+
     if (venue.id && stops.value.some((s) => s.venueId === venue.id)) {
       errorMessage.value = 'That pub is already on this crawl.'
       return false
@@ -384,6 +388,8 @@ export function usePubCrawl() {
       } else if (crawls.value.length === 1) {
         await loadCrawl(crawls.value[0].id)
       }
+    } else if (activeCrawl.value.id && !stops.value.length && activeCrawl.value.stopCount) {
+      await loadCrawl(activeCrawl.value.id)
     }
     initialized.value = true
   }
