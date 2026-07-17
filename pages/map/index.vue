@@ -122,7 +122,51 @@
             variant="soft"
             :description="venueDetailsError"
           />
-          <template v-else>
+          <div
+            v-if="selectedVenueStaticMapUrl"
+            class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800"
+          >
+            <img
+              :src="selectedVenueStaticMapUrl"
+              :alt="`Map showing ${selectedVenue.name}`"
+              class="h-48 w-full object-cover sm:h-56"
+              loading="lazy"
+            >
+          </div>
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <UButton
+              v-if="selectedVenue.id"
+              color="amber"
+              variant="solid"
+              :to="selectedVenueUrl"
+              label="View venue"
+            />
+            <UButton
+              color="gray"
+              variant="soft"
+              label="Events"
+              @click="openSelectedVenueEvents"
+            />
+            <UButton
+              v-if="isLoggedIn"
+              :color="selectedVenueOnActiveCrawl ? 'red' : 'amber'"
+              variant="soft"
+              :icon="selectedVenueOnActiveCrawl ? 'i-heroicons-minus-20-solid' : 'i-heroicons-plus-20-solid'"
+              :label="crawlToggleLabel"
+              :loading="crawlAddPending"
+              @click="toggleSelectedVenueOnCrawl"
+            />
+          </div>
+          <p
+            v-if="crawlAddMessage"
+            class="text-center text-sm"
+            :class="crawlAddMessageIsError
+              ? 'text-red-600 dark:text-red-400'
+              : 'text-emerald-700 dark:text-emerald-400'"
+          >
+            {{ crawlAddMessage }}
+          </p>
+          <template v-if="!isVenueDetailsLoading && !venueDetailsError">
             <p
               v-if="selectedVenueAddressLines.length"
               class="text-sm leading-6 text-gray-700 dark:text-gray-200"
@@ -153,51 +197,7 @@
             >
               {{ selectedVenueDescription }}
             </p>
-            <div
-              v-if="selectedVenueStaticMapUrl"
-              class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800"
-            >
-              <img
-                :src="selectedVenueStaticMapUrl"
-                :alt="`Map showing ${selectedVenue.name}`"
-                class="h-48 w-full object-cover sm:h-56"
-                loading="lazy"
-              >
-            </div>
           </template>
-          <div class="flex flex-wrap gap-2">
-            <UButton
-              v-if="selectedVenue.id"
-              color="amber"
-              variant="solid"
-              :to="selectedVenueUrl"
-              label="View venue"
-            />
-            <UButton
-              color="gray"
-              variant="soft"
-              label="Events"
-              @click="openSelectedVenueEvents"
-            />
-            <UButton
-              v-if="isLoggedIn"
-              :color="selectedVenueOnActiveCrawl ? 'red' : 'amber'"
-              variant="soft"
-              :icon="selectedVenueOnActiveCrawl ? 'i-heroicons-minus-20-solid' : 'i-heroicons-plus-20-solid'"
-              :label="crawlToggleLabel"
-              :loading="crawlAddPending"
-              @click="toggleSelectedVenueOnCrawl"
-            />
-          </div>
-          <p
-            v-if="crawlAddMessage"
-            class="text-sm"
-            :class="crawlAddMessageIsError
-              ? 'text-red-600 dark:text-red-400'
-              : 'text-emerald-700 dark:text-emerald-400'"
-          >
-            {{ crawlAddMessage }}
-          </p>
         </div>
       </UCard>
     </UModal>
