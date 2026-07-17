@@ -39,14 +39,12 @@ export default defineEventHandler(async (event) => {
       data.currentStopIndex = Math.min(index, maxIndex)
     }
 
-    const crawl = await prisma.ukpubsCrawl.update({
+    await prisma.ukpubsCrawl.update({
       where: { id: crawlId },
       data,
-      include: {
-        stops: { orderBy: { sortOrder: 'asc' } },
-      },
     })
 
+    const crawl = await getCrawlForUser(crawlId, user.id)
     return serializeCrawl(crawl)
   }
 

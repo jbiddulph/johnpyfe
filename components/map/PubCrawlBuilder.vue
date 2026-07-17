@@ -434,6 +434,10 @@ function venueLocationLabel(venue: VenueSearchHit) {
   return [venue.town, venue.county].filter((part) => String(part || '').trim()).join(', ')
 }
 
+function stopLocationLabel(stop: { town?: string | null; county?: string | null }) {
+  return [stop.town, stop.county].filter((part) => String(part || '').trim()).join(', ')
+}
+
 function parseCoord(value: string | number | null | undefined) {
   const n = Number(value)
   return Number.isFinite(n) && n !== 0 ? n : null

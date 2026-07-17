@@ -5,6 +5,7 @@ import {
   parseOptionalCoord,
   serializeCrawl,
   serializeStop,
+  stopInclude,
 } from '../../../utils/crawls'
 
 type IncomingStop = {
@@ -30,6 +31,13 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const stop = await resolveStopInput(body)
 
+    if (!stop.venueId) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Select a pub from search results (venueId is required)',
+      })
+    }
+
     const created = await prisma.ukpubsCrawlStop.create({
       data: {
         crawlId,
@@ -40,6 +48,7 @@ export default defineEventHandler(async (event) => {
         notes: stop.notes,
         sortOrder: crawl.stops.length,
       },
+      include: stopInclude,
     })
 
     return serializeStop(created)
@@ -55,7 +64,7 @@ export default defineEventHandler(async (event) => {
 
     const resolved = await Promise.all(stopsInput.map((item) => resolveStopInput(item)))
 
-    const crawl = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       await tx.ukpubsCrawlStop.deleteMany({ where: { crawlId } })
 
       if (resolved.length) {
@@ -77,18 +86,16 @@ export default defineEventHandler(async (event) => {
         ? Math.max(0, Math.min(Number(body.currentStopIndex), Math.max(0, resolved.length - 1)))
         : 0
 
-      return tx.ukpubsCrawl.update({
+      await tx.ukpubsCrawl.update({
         where: { id: crawlId },
         data: {
           ...(body?.name != null ? { name: String(body.name).trim() || undefined } : {}),
           currentStopIndex: resolved.length === 0 ? 0 : currentStopIndex,
         },
-        include: {
-          stops: { orderBy: { sortOrder: 'asc' } },
-        },
       })
     })
 
+    const crawl = await getCrawlForUser(crawlId, user.id)
     return serializeCrawl(crawl)
   }
 
