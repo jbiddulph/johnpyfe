@@ -78,6 +78,12 @@
         </div>
       </div>
 
+      <CrawlRoutePreview
+        :crawl-name="crawl.name"
+        :stops="crawl.stops"
+        :stop-count="crawl.stopCount"
+      />
+
       <div>
         <h4 class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Who’s on this crawl</h4>
         <ul v-if="crawl.members?.length" class="flex flex-wrap gap-2">
@@ -145,6 +151,12 @@ const props = defineProps<{
     role?: 'owner' | 'member'
     invitedBy?: { userId: string; username: string; displayName: string } | null
     owner?: { userId: string; username: string; displayName: string } | null
+    stops?: Array<{
+      venueName?: string | null
+      latitude?: number | null
+      longitude?: number | null
+      sortOrder?: number
+    }>
     members?: Array<{
       userId: string
       username: string
