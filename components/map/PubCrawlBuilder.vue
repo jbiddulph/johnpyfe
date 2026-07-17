@@ -253,7 +253,7 @@
                       Not linked to a venue listing
                     </p>
                   </div>
-                  <div class="flex shrink-0 flex-col items-end gap-1">
+                  <div v-if="canEditActiveCrawl" class="flex shrink-0 flex-col items-end gap-1">
                     <UButton
                       size="xs"
                       color="gray"
@@ -285,7 +285,7 @@
           </ol>
         </section>
 
-        <section class="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-800">
+        <section v-if="canEditActiveCrawl" class="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-800">
           <div v-if="stops.length" class="space-y-1">
             <div class="flex justify-between text-xs text-gray-500">
               <span>Progress</span>
