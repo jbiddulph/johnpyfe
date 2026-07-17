@@ -7,11 +7,11 @@
             <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ crawl.name }}</h3>
             <span
               class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-              :class="crawl.canEdit
+              :class="isOwner
                 ? 'bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100'
                 : 'bg-sky-100 text-sky-900 dark:bg-sky-900 dark:text-sky-100'"
             >
-              {{ crawl.canEdit ? 'Creator' : 'View only' }}
+              {{ isOwner ? 'Creator' : (crawl.role === 'member' ? 'Invited' : 'View only') }}
             </span>
             <span
               v-if="crawl.completedAt"
@@ -21,6 +21,10 @@
             </span>
           </div>
           <p class="mt-1 text-sm text-gray-500">
+            <template v-if="!isOwner && invitedByLabel">
+              Invited by {{ invitedByLabel }}
+              ·
+            </template>
             {{ crawl.stopCount }} stop{{ crawl.stopCount === 1 ? '' : 's' }}
             <template v-if="crawl.stopCount">
               · progress {{ Math.min(crawl.currentStopIndex + 1, crawl.stopCount) }}/{{ crawl.stopCount }}
@@ -30,7 +34,15 @@
         <div class="flex flex-wrap gap-2">
           <UButton size="xs" color="amber" variant="soft" to="/map" label="View on map" />
           <UButton
-            v-if="crawl.canEdit"
+            size="xs"
+            color="sky"
+            variant="soft"
+            icon="i-heroicons-chat-bubble-left-right-20-solid"
+            label="Chat"
+            @click="chatOpen = true"
+          />
+          <UButton
+            v-if="isOwner"
             size="xs"
             color="gray"
             variant="soft"
@@ -38,7 +50,7 @@
             @click="$emit('invite')"
           />
           <UButton
-            v-if="crawl.canEdit && !crawl.completedAt"
+            v-if="isOwner && !crawl.completedAt"
             size="xs"
             color="emerald"
             variant="soft"
@@ -46,7 +58,7 @@
             @click="$emit('complete')"
           />
           <UButton
-            v-if="crawl.canEdit && crawl.completedAt"
+            v-if="isOwner && crawl.completedAt"
             size="xs"
             color="gray"
             variant="soft"
@@ -54,7 +66,7 @@
             @click="$emit('reopen')"
           />
           <UButton
-            v-if="crawl.canEdit"
+            v-if="isOwner"
             size="xs"
             color="red"
             variant="ghost"
@@ -86,6 +98,29 @@
         <p v-else class="text-xs text-gray-500">Just you so far.</p>
       </div>
     </div>
+
+    <USlideover v-model="chatOpen">
+      <div class="flex h-full flex-col p-4">
+        <div class="mb-2 flex justify-end">
+          <UButton
+            color="gray"
+            variant="ghost"
+            icon="i-heroicons-x-mark-20-solid"
+            aria-label="Close chat"
+            @click="chatOpen = false"
+          />
+        </div>
+        <CrawlChat
+          v-if="currentUserId"
+          class="min-h-0 flex-1"
+          :crawl-id="crawl.id"
+          :crawl-name="crawl.name"
+          :current-user-id="currentUserId"
+          :active="chatOpen"
+        />
+        <p v-else class="text-sm text-gray-500">Sign in to use crawl chat.</p>
+      </div>
+    </USlideover>
   </UCard>
 </template>
 
@@ -98,6 +133,9 @@ const props = defineProps<{
     currentStopIndex: number
     completedAt: string | null
     canEdit: boolean
+    role?: 'owner' | 'member'
+    invitedBy?: { userId: string; username: string; displayName: string } | null
+    owner?: { userId: string; username: string; displayName: string } | null
     members?: Array<{
       userId: string
       username: string
@@ -106,6 +144,7 @@ const props = defineProps<{
       role: string
     }>
   }
+  currentUserId?: string | null
   accent?: 'emerald' | 'gray'
 }>()
 
@@ -116,10 +155,24 @@ const emit = defineEmits<{
   deleted: []
 }>()
 
+const isOwner = computed(() =>
+  props.crawl.canEdit === true && (props.crawl.role == null || props.crawl.role === 'owner'),
+)
+
+const invitedByLabel = computed(() => {
+  const inviter = props.crawl.invitedBy || props.crawl.owner
+  if (!inviter) return ''
+  if (inviter.displayName && inviter.username) {
+    return `${inviter.displayName} (@${inviter.username})`
+  }
+  return inviter.displayName || (inviter.username ? `@${inviter.username}` : '')
+})
+
+const chatOpen = ref(false)
 const deleting = ref(false)
 
 async function deleteCrawl() {
-  if (!props.crawl.canEdit) return
+  if (!isOwner.value) return
   if (!confirm(`Delete “${props.crawl.name}”? This cannot be undone.`)) return
   deleting.value = true
   try {
