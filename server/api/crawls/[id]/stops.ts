@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
     })
 
     const crawl = await getCrawlForUser(crawlId, user.id)
-    return serializeCrawl(crawl)
+    return serializeCrawl(crawl, { canEdit: true, role: 'owner' })
   }
 
   throw createError({ statusCode: 405, statusMessage: 'Method not allowed' })
