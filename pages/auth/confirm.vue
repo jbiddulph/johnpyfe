@@ -62,6 +62,7 @@ async function confirmEmail() {
     })
     if (verifyError) throw verifyError
 
+    await ensureUkpubsProfileClient()
     success.value = true
     setTimeout(() => {
       router.push(redirectPath())
