@@ -1,22 +1,20 @@
 -- UK Pubs: pub crawl builder tables
 -- =============================================================================
--- Run this manually in the Supabase SQL editor (or any Postgres client).
--- Do NOT rely on Prisma migrate for these tables unless you choose to later.
+-- Run this in the Supabase SQL editor (full script in one go).
 --
 -- Tables (prefixed ukpubs_):
---   ukpubs_crawls       — one row per saved crawl (user_id = Supabase Auth UUID)
---   ukpubs_crawl_stops  — ordered stops (venue_id = "Venue".id, nullable for manual entries)
---
--- After running, redeploy / restart the app so Prisma can read the new tables.
+--   ukpubs_crawls       — user_id = Supabase Auth UUID
+--   ukpubs_crawl_stops  — venue_id = Venue.id (nullable for manual entries)
 -- =============================================================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE IF NOT EXISTS ukpubs_crawls (
+-- 1) Parent crawl table
+CREATE TABLE IF NOT EXISTS public.ukpubs_crawls (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    -- 0-based index of the stop the user is currently at (progress through the crawl)
+    -- 0-based index of the stop the user is currently at
     current_stop_index INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -26,16 +24,18 @@ CREATE TABLE IF NOT EXISTS ukpubs_crawls (
 );
 
 CREATE INDEX IF NOT EXISTS ukpubs_crawls_user_id_idx
-    ON ukpubs_crawls (user_id);
+    ON public.ukpubs_crawls (user_id);
 
 CREATE INDEX IF NOT EXISTS ukpubs_crawls_user_updated_idx
-    ON ukpubs_crawls (user_id, updated_at DESC);
+    ON public.ukpubs_crawls (user_id, updated_at DESC);
 
-CREATE TABLE IF NOT EXISTS ukpubs_crawl_stops (
+-- 2) Stops table
+-- venue_id is intentionally NOT a DB foreign key so this still works if the
+-- Venue table name/schema differs; the app still stores Venue.id here.
+CREATE TABLE IF NOT EXISTS public.ukpubs_crawl_stops (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    crawl_id UUID NOT NULL REFERENCES ukpubs_crawls (id) ON DELETE CASCADE,
-    -- Null when the stop was typed in manually (not picked from the map / Venue table)
-    venue_id INTEGER NULL REFERENCES "Venue" (id) ON DELETE SET NULL,
+    crawl_id UUID NOT NULL,
+    venue_id INTEGER NULL,
     venue_name TEXT NOT NULL,
     latitude DOUBLE PRECISION NULL,
     longitude DOUBLE PRECISION NULL,
@@ -47,18 +47,30 @@ CREATE TABLE IF NOT EXISTS ukpubs_crawl_stops (
     CONSTRAINT ukpubs_crawl_stops_sort_nonneg CHECK (sort_order >= 0)
 );
 
+-- Add crawl FK only if missing (safe to re-run)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'ukpubs_crawl_stops_crawl_id_fkey'
+    ) THEN
+        ALTER TABLE public.ukpubs_crawl_stops
+            ADD CONSTRAINT ukpubs_crawl_stops_crawl_id_fkey
+            FOREIGN KEY (crawl_id)
+            REFERENCES public.ukpubs_crawls (id)
+            ON DELETE CASCADE;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS ukpubs_crawl_stops_crawl_id_idx
-    ON ukpubs_crawl_stops (crawl_id, sort_order);
+    ON public.ukpubs_crawl_stops (crawl_id, sort_order);
 
 CREATE INDEX IF NOT EXISTS ukpubs_crawl_stops_venue_id_idx
-    ON ukpubs_crawl_stops (venue_id);
+    ON public.ukpubs_crawl_stops (venue_id);
 
-CREATE INDEX IF NOT EXISTS ukpubs_crawl_stops_user_venue_idx
-    ON ukpubs_crawl_stops (venue_id)
-    WHERE venue_id IS NOT NULL;
-
--- Keep updated_at fresh on crawl row changes
-CREATE OR REPLACE FUNCTION ukpubs_crawls_set_updated_at()
+-- 3) updated_at trigger on crawls
+CREATE OR REPLACE FUNCTION public.ukpubs_crawls_set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -66,25 +78,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS ukpubs_crawls_updated_at ON ukpubs_crawls;
+DROP TRIGGER IF EXISTS ukpubs_crawls_updated_at ON public.ukpubs_crawls;
 CREATE TRIGGER ukpubs_crawls_updated_at
-    BEFORE UPDATE ON ukpubs_crawls
+    BEFORE UPDATE ON public.ukpubs_crawls
     FOR EACH ROW
-    EXECUTE PROCEDURE ukpubs_crawls_set_updated_at();
+    EXECUTE PROCEDURE public.ukpubs_crawls_set_updated_at();
 
--- Optional: bump parent crawl.updated_at when stops change
-CREATE OR REPLACE FUNCTION ukpubs_crawl_stops_touch_parent()
+-- 4) Touch parent crawl.updated_at when stops change
+CREATE OR REPLACE FUNCTION public.ukpubs_crawl_stops_touch_parent()
 RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE ukpubs_crawls
+    UPDATE public.ukpubs_crawls
     SET updated_at = NOW()
     WHERE id = COALESCE(NEW.crawl_id, OLD.crawl_id);
     RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS ukpubs_crawl_stops_touch_parent ON ukpubs_crawl_stops;
+DROP TRIGGER IF EXISTS ukpubs_crawl_stops_touch_parent ON public.ukpubs_crawl_stops;
 CREATE TRIGGER ukpubs_crawl_stops_touch_parent
-    AFTER INSERT OR UPDATE OR DELETE ON ukpubs_crawl_stops
+    AFTER INSERT OR UPDATE OR DELETE ON public.ukpubs_crawl_stops
     FOR EACH ROW
-    EXECUTE PROCEDURE ukpubs_crawl_stops_touch_parent();
+    EXECUTE PROCEDURE public.ukpubs_crawl_stops_touch_parent();
