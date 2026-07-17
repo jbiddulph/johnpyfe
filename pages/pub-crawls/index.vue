@@ -5,7 +5,11 @@
         <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Pub Crawls</h1>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Your active crawl, invites, and shared lists.
-          <span v-if="profile">Signed in as <strong>@{{ profile.username }}</strong></span>
+          <span v-if="profile">
+            Signed in as
+            <strong>{{ profile.displayName }}</strong>
+            <span class="text-gray-500 dark:text-gray-400"> (@{{ profile.username }})</span>
+          </span>
         </p>
       </div>
       <div class="flex flex-wrap gap-2">

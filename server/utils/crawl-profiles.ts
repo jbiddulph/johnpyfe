@@ -16,19 +16,43 @@ export function displayNameFromUser(user: User) {
 }
 
 export async function ensureUkpubsProfile(user: User) {
+  const displayName = displayNameFromUser(user)
   const existing = await prisma.ukpubsProfile.findUnique({ where: { userId: user.id } })
   if (existing) {
-    const displayName = displayNameFromUser(user)
+    const expectedBase = slugifyUsername(displayName || user.email?.split('@')[0] || 'user') || 'user'
+    const usernameLooksCorrect =
+      existing.username === expectedBase
+      || new RegExp(`^${expectedBase}\\d+$`).test(existing.username)
+      || existing.username.startsWith('user_')
+
+    const data: { displayName?: string; username?: string } = {}
     if (displayName && displayName !== existing.displayName) {
+      data.displayName = displayName
+    }
+
+    // Repair usernames created by the old SQL bug that stripped capitals
+    if (!usernameLooksCorrect) {
+      let nextUsername = expectedBase.length >= 3 ? expectedBase : `${expectedBase}user`
+      for (let i = 0; i < 20; i++) {
+        const candidate = i === 0 ? nextUsername : `${nextUsername.slice(0, 20)}${i + 1}`
+        const clash = await prisma.ukpubsProfile.findUnique({ where: { username: candidate } })
+        if (!clash || clash.userId === user.id) {
+          data.username = candidate
+          break
+        }
+      }
+    }
+
+    if (Object.keys(data).length) {
       return prisma.ukpubsProfile.update({
         where: { userId: user.id },
-        data: { displayName },
+        data,
       })
     }
     return existing
   }
 
-  const base = slugifyUsername(displayNameFromUser(user) || user.email?.split('@')[0] || 'user') || 'user'
+  const base = slugifyUsername(displayName || user.email?.split('@')[0] || 'user') || 'user'
   let username = base.length >= 3 ? base : `${base}user`
   for (let i = 0; i < 20; i++) {
     const candidate = i === 0 ? username : `${username.slice(0, 20)}${i + 1}`
@@ -38,7 +62,7 @@ export async function ensureUkpubsProfile(user: User) {
         data: {
           userId: user.id,
           username: candidate,
-          displayName: displayNameFromUser(user),
+          displayName,
         },
       })
     }
@@ -49,7 +73,7 @@ export async function ensureUkpubsProfile(user: User) {
     data: {
       userId: user.id,
       username: fallback,
-      displayName: displayNameFromUser(user),
+      displayName,
     },
   })
 }
