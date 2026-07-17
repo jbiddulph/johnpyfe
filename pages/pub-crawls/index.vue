@@ -245,6 +245,7 @@ definePageMeta({})
 
 const route = useRoute()
 const { isLoggedIn, initializeAuth } = useAuth()
+const { openSharedCrawl } = usePubCrawl()
 
 useSiteSeo({
   title: 'Pub Crawls',
@@ -362,7 +363,12 @@ async function loadDashboard() {
       // Keep invite highlighted via section at top; no extra action needed
     }
   } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load pub crawls'
+    const status = err?.statusCode || err?.status || err?.data?.statusCode
+    if (status === 401) {
+      errorMessage.value = 'Your session expired. Please sign out and sign back in, then refresh this page.'
+    } else {
+      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load pub crawls'
+    }
   } finally {
     loading.value = false
   }
@@ -373,10 +379,25 @@ async function respondInvite(memberId: string, action: 'accept' | 'decline') {
   respondingId.value = memberId
   errorMessage.value = ''
   try {
-    await useAuthFetch(`/api/crawls/invites/${memberId}/${action}`, { method: 'POST' })
+    const result = await useAuthFetch<{
+      ok: boolean
+      status: string
+      crawl: { id: string; name: string }
+    }>(`/api/crawls/invites/${memberId}/${action}`, { method: 'POST' })
+
+    if (action === 'accept' && result?.crawl?.id) {
+      // Make this the invitee's active crawl so map/chat work after refresh
+      await openSharedCrawl(result.crawl.id)
+    }
+
     await loadDashboard()
   } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not respond to invite'
+    const status = err?.statusCode || err?.status || err?.data?.statusCode
+    if (status === 401) {
+      errorMessage.value = 'Your session expired. Please sign out and sign back in, then try again.'
+    } else {
+      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not respond to invite'
+    }
   } finally {
     respondingId.value = null
   }

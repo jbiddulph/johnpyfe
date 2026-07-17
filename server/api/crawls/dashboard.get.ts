@@ -145,10 +145,12 @@ export default defineEventHandler(async (event) => {
 
   const activeOwned = ownedDtos.find((c) => !isCrawlCompleted(c))
   const activeShared = sharedDtos.find((c) => !isCrawlCompleted(c))
+  // Prefer a shared (invited) crawl when the user has no owned incomplete crawl
   const activeCrawl = activeOwned || activeShared || null
 
+  // Sort shared crawls ahead of owned completed ones in "other" for invitees
   const completedCrawls = [...ownedDtos, ...sharedDtos].filter((c) => isCrawlCompleted(c))
-  const otherCrawls = [...ownedDtos, ...sharedDtos].filter((c) => {
+  const otherCrawls = [...sharedDtos, ...ownedDtos].filter((c) => {
     if (activeCrawl && c.id === activeCrawl.id) return false
     if (isCrawlCompleted(c)) return false
     return true
