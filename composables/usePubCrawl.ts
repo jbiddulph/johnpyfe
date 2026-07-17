@@ -1,4 +1,5 @@
 import { buildCrawlLegs, formatWalkingDistance } from '@/utils/crawl-distance'
+import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/crawl-schedule'
 
 export type CrawlStop = {
   id?: string
@@ -18,6 +19,8 @@ export type CrawlSummary = {
   currentStopIndex: number
   stopCount: number
   updatedAt: string
+  startsAt?: string | null
+  inviteeNotes?: string | null
   completedAt?: string | null
   canEdit?: boolean
   role?: 'owner' | 'member' | 'none'
@@ -77,6 +80,8 @@ export function usePubCrawl() {
   const stops = useState<CrawlStop[]>('ukpubs-crawl-stops', () => [])
   const currentStopIndex = useState<number>('ukpubs-crawl-progress', () => 0)
   const draftName = useState<string>('ukpubs-crawl-draft-name', () => '')
+  const draftStartsAt = useState<string>('ukpubs-crawl-draft-starts-at', () => '')
+  const draftInviteeNotes = useState<string>('ukpubs-crawl-draft-invitee-notes', () => '')
   const loadingList = useState<boolean>('ukpubs-crawl-loading', () => false)
   const saving = useState<boolean>('ukpubs-crawl-saving', () => false)
   const addingStop = useState<boolean>('ukpubs-crawl-adding', () => false)
@@ -95,6 +100,8 @@ export function usePubCrawl() {
     stops.value = []
     currentStopIndex.value = 0
     draftName.value = ''
+    draftStartsAt.value = ''
+    draftInviteeNotes.value = ''
     dirty.value = false
     lastSavedAt.value = ''
     errorMessage.value = ''
@@ -159,6 +166,8 @@ export function usePubCrawl() {
     stops.value = []
     currentStopIndex.value = 0
     draftName.value = ''
+    draftStartsAt.value = ''
+    draftInviteeNotes.value = ''
     dirty.value = false
     lastSavedAt.value = ''
     rememberActiveCrawlId(null, currentUserId.value)
@@ -183,6 +192,8 @@ export function usePubCrawl() {
       const crawl = await useAuthFetch<CrawlSummary & { stops: CrawlStop[] }>(`/api/crawls/${id}`)
       activeCrawl.value = crawl
       draftName.value = crawl.name
+      draftStartsAt.value = toDatetimeLocalValue(crawl.startsAt)
+      draftInviteeNotes.value = crawl.inviteeNotes || ''
       stops.value = (crawl.stops || []).map((s) => ({ ...s }))
       currentStopIndex.value = crawl.currentStopIndex || 0
       dirty.value = false
@@ -200,6 +211,8 @@ export function usePubCrawl() {
           stops.value = []
           currentStopIndex.value = 0
           draftName.value = ''
+          draftStartsAt.value = ''
+          draftInviteeNotes.value = ''
         }
       }
       return null
@@ -246,10 +259,16 @@ export function usePubCrawl() {
     try {
       const crawl = await useAuthFetch<CrawlSummary>('/api/crawls', {
         method: 'POST',
-        body: { name },
+        body: {
+          name,
+          startsAt: fromDatetimeLocalValue(draftStartsAt.value),
+          inviteeNotes: draftInviteeNotes.value.trim() || null,
+        },
       })
       activeCrawl.value = crawl
       draftName.value = crawl.name
+      draftStartsAt.value = toDatetimeLocalValue(crawl.startsAt)
+      draftInviteeNotes.value = crawl.inviteeNotes || ''
       stops.value = []
       currentStopIndex.value = 0
       dirty.value = false
@@ -274,14 +293,28 @@ export function usePubCrawl() {
     try {
       const crawl = await useAuthFetch<CrawlSummary>(`/api/crawls/${activeCrawl.value.id}`, {
         method: 'PUT',
-        body: { name },
+        body: {
+          name,
+          startsAt: fromDatetimeLocalValue(draftStartsAt.value),
+          inviteeNotes: draftInviteeNotes.value.trim() || null,
+        },
       })
-      activeCrawl.value = { ...activeCrawl.value, name: crawl.name, canEdit: true, role: 'owner' }
+      activeCrawl.value = {
+        ...activeCrawl.value,
+        name: crawl.name,
+        startsAt: crawl.startsAt ?? null,
+        inviteeNotes: crawl.inviteeNotes ?? null,
+        canEdit: true,
+        role: 'owner',
+      }
+      draftName.value = crawl.name
+      draftStartsAt.value = toDatetimeLocalValue(crawl.startsAt)
+      draftInviteeNotes.value = crawl.inviteeNotes || ''
       rememberActiveCrawlId(crawl.id, currentUserId.value)
       await loadCrawls()
       return crawl
     } catch (err: any) {
-      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not rename crawl'
+      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not save crawl details'
       return null
     } finally {
       saving.value = false
@@ -310,7 +343,13 @@ export function usePubCrawl() {
           },
         },
       )
-      activeCrawl.value = { ...crawl, canEdit: true, role: 'owner' }
+      activeCrawl.value = {
+        ...crawl,
+        canEdit: true,
+        role: 'owner',
+        startsAt: crawl.startsAt ?? activeCrawl.value.startsAt ?? null,
+        inviteeNotes: crawl.inviteeNotes ?? activeCrawl.value.inviteeNotes ?? null,
+      }
       draftName.value = crawl.name
       stops.value = (crawl.stops || []).map((s) => ({ ...s }))
       currentStopIndex.value = crawl.currentStopIndex || 0
@@ -581,6 +620,8 @@ export function usePubCrawl() {
     stops,
     currentStopIndex,
     draftName,
+    draftStartsAt,
+    draftInviteeNotes,
     loadingList,
     saving,
     addingStop,

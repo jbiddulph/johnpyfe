@@ -87,6 +87,9 @@
                 <template v-if="crawl.stopCount">
                   · at #{{ Math.min(crawl.currentStopIndex + 1, crawl.stopCount) }}
                 </template>
+                <template v-if="crawl.startsAt">
+                  · {{ formatCrawlStartsAt(crawl.startsAt) }}
+                </template>
                 <template v-if="crawl.id === activeCrawl?.id"> · active</template>
               </span>
             </button>
@@ -107,19 +110,47 @@
 
       <section
         v-if="creatingNewList || !activeCrawl || canEditActiveCrawl"
-        class="space-y-2 rounded-md border border-gray-200 p-3 dark:border-gray-800"
+        class="space-y-3 rounded-md border border-gray-200 p-3 dark:border-gray-800"
       >
-        <label class="block text-sm font-medium text-gray-900 dark:text-white">
-          {{ creatingNewList || !activeCrawl ? 'New crawl list name' : 'Rename active crawl' }}
-        </label>
-        <div class="flex gap-2">
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-900 dark:text-white">
+            {{ creatingNewList || !activeCrawl ? 'New crawl list name' : 'Crawl name' }}
+          </label>
           <UInput
             v-model="draftName"
-            class="flex-1"
+            class="w-full"
             placeholder="e.g. Friday night in Liverpool"
             maxlength="120"
             @keydown.enter.prevent="creatingNewList || !activeCrawl ? onCreateCrawl() : onSaveMeta()"
           />
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-900 dark:text-white">
+            Start date &amp; time
+          </label>
+          <input
+            v-model="draftStartsAt"
+            type="datetime-local"
+            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          />
+          <p class="text-xs text-gray-500">Shown to everyone you invite.</p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-900 dark:text-white">
+            Notes for invitees
+          </label>
+          <UTextarea
+            v-model="draftInviteeNotes"
+            :rows="3"
+            maxlength="2000"
+            placeholder="e.g. Smart casual dress. Meet outside The Crown at 7pm. Bring ID."
+          />
+          <p class="text-xs text-gray-500">Dress code, meet-up tip, or anything else they should know.</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
           <UButton
             v-if="creatingNewList || !activeCrawl"
             color="amber"
@@ -133,8 +164,8 @@
             color="amber"
             variant="soft"
             :loading="saving"
-            :disabled="!draftName.trim() || draftName.trim() === activeCrawl.name"
-            label="Rename"
+            :disabled="!draftName.trim() || !metaDirty"
+            label="Save details"
             @click="onSaveMeta"
           />
         </div>
@@ -149,11 +180,17 @@
       </section>
       <div
         v-else-if="activeCrawl"
-        class="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm dark:border-sky-800 dark:bg-sky-950/30"
+        class="space-y-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm dark:border-sky-800 dark:bg-sky-950/30"
       >
         <p class="font-medium text-gray-900 dark:text-white">{{ activeCrawl.name }}</p>
         <p class="text-xs text-sky-800 dark:text-sky-200">
           Invited list — view only. You can’t rename, reorder, or delete this crawl.
+        </p>
+        <p v-if="activeCrawl.startsAt" class="text-sm text-gray-800 dark:text-gray-100">
+          <span class="font-medium">Starts:</span> {{ formatCrawlStartsAt(activeCrawl.startsAt) }}
+        </p>
+        <p v-if="activeCrawl.inviteeNotes" class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-100">
+          {{ activeCrawl.inviteeNotes }}
         </p>
       </div>
 
@@ -444,6 +481,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatCrawlStartsAt, toDatetimeLocalValue } from '@/utils/crawl-schedule'
+
 const emit = defineEmits<{
   close: []
   'crawl-updated': [crawl: { id: string; name: string } | null]
@@ -455,6 +494,8 @@ const {
   stops,
   currentStopIndex,
   draftName,
+  draftStartsAt,
+  draftInviteeNotes,
   loadingList,
   saving,
   addingStop,
@@ -479,6 +520,17 @@ const {
   canEditActiveCrawl,
   initialize,
 } = usePubCrawl()
+
+const metaDirty = computed(() => {
+  if (!activeCrawl.value) return Boolean(draftName.value.trim())
+  const savedStarts = toDatetimeLocalValue(activeCrawl.value.startsAt)
+  const savedNotes = (activeCrawl.value.inviteeNotes || '').trim()
+  return (
+    draftName.value.trim() !== activeCrawl.value.name
+    || draftStartsAt.value !== savedStarts
+    || draftInviteeNotes.value.trim() !== savedNotes
+  )
+})
 
 const { user } = useAuth()
 const chatOpen = ref(false)
@@ -713,6 +765,8 @@ function onStartFresh() {
   creatingNewList.value = true
   clearActive()
   draftName.value = ''
+  draftStartsAt.value = ''
+  draftInviteeNotes.value = ''
 }
 
 async function cancelNewList() {

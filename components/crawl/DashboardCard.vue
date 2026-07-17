@@ -30,6 +30,15 @@
               · progress {{ Math.min(crawl.currentStopIndex + 1, crawl.stopCount) }}/{{ crawl.stopCount }}
             </template>
           </p>
+          <p v-if="startsAtLabel" class="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
+            Starts {{ startsAtLabel }}
+          </p>
+          <p
+            v-if="crawl.inviteeNotes"
+            class="mt-1 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300"
+          >
+            {{ crawl.inviteeNotes }}
+          </p>
         </div>
         <div class="flex flex-wrap gap-2">
           <UButton size="xs" color="amber" variant="soft" to="/map" label="View on map" />
@@ -140,12 +149,16 @@
 </template>
 
 <script setup lang="ts">
+import { formatCrawlStartsAt } from '@/utils/crawl-schedule'
+
 const props = defineProps<{
   crawl: {
     id: string
     name: string
     stopCount: number
     currentStopIndex: number
+    startsAt?: string | null
+    inviteeNotes?: string | null
     completedAt: string | null
     canEdit: boolean
     role?: 'owner' | 'member'
@@ -177,6 +190,8 @@ const emit = defineEmits<{
 }>()
 
 const isOwner = computed(() => props.crawl.role === 'owner' && props.crawl.canEdit === true)
+
+const startsAtLabel = computed(() => formatCrawlStartsAt(props.crawl.startsAt))
 
 const invitedByLabel = computed(() => {
   const inviter = props.crawl.invitedBy || props.crawl.owner

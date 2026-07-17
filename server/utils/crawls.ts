@@ -24,6 +24,8 @@ export type CrawlDto = {
   userId: string
   name: string
   currentStopIndex: number
+  startsAt: string | null
+  inviteeNotes: string | null
   completedAt: string | null
   createdAt: string
   updatedAt: string
@@ -66,6 +68,8 @@ export function serializeCrawl(
     userId: crawl.userId,
     name: crawl.name,
     currentStopIndex: crawl.currentStopIndex,
+    startsAt: crawl.startsAt?.toISOString() || null,
+    inviteeNotes: crawl.inviteeNotes?.trim() || null,
     completedAt: crawl.completedAt?.toISOString() || null,
     createdAt: crawl.createdAt.toISOString(),
     updatedAt: crawl.updatedAt.toISOString(),
@@ -136,6 +140,29 @@ export function parseOptionalCoord(value: unknown): number | null {
   const n = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(n) || n === 0) return null
   return n
+}
+
+/** Parse optional crawl start; empty/null clears. Throws 400 on invalid values. */
+export function parseOptionalStartsAt(value: unknown): Date | null | undefined {
+  if (value === undefined) return undefined
+  if (value === null || value === '') return null
+  const d = value instanceof Date ? value : new Date(String(value))
+  if (Number.isNaN(d.getTime())) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid start date/time' })
+  }
+  return d
+}
+
+/** Parse optional invitee notes; empty clears. Max 2000 chars. */
+export function parseOptionalInviteeNotes(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined
+  if (value === null) return null
+  const notes = String(value).trim()
+  if (!notes) return null
+  if (notes.length > 2000) {
+    throw createError({ statusCode: 400, statusMessage: 'Notes must be 2000 characters or fewer' })
+  }
+  return notes
 }
 
 export function isCrawlCompleted(crawl: { completedAt?: Date | string | null }) {
