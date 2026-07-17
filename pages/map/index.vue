@@ -3,15 +3,25 @@
     <div class="flex justify-between w-full text-xl items-center container mx-auto py-3 gap-3 flex-wrap">
       <span>{{ venueName }}</span>
       <div class="flex items-center gap-2 flex-wrap">
-        <UButton
-          v-if="isLoggedIn"
-          size="sm"
-          color="amber"
-          variant="soft"
-          icon="i-heroicons-map-20-solid"
-          :label="crawlPanelLabel"
-          @click="openCrawlBuilder"
-        />
+        <template v-if="isLoggedIn">
+          <USelect
+            v-if="crawlSelectOptions.length"
+            v-model="selectedCrawlId"
+            size="sm"
+            color="white"
+            class="min-w-[12rem]"
+            :options="crawlSelectOptions"
+            placeholder="Select crawl list…"
+          />
+          <UButton
+            size="sm"
+            color="amber"
+            variant="soft"
+            icon="i-heroicons-map-20-solid"
+            :label="crawlButtonLabel"
+            @click="openCrawlBuilder"
+          />
+        </template>
         <USelect
           class="content-center"
           icon="i-heroicons-map-pin-20-solid"
@@ -23,6 +33,12 @@
           @change="searchCity(selectedCity)"
         />
       </div>
+    </div>
+    <div
+      v-if="arrivalMessage"
+      class="bg-emerald-50 border-b border-emerald-200 px-4 py-2 text-center text-sm text-emerald-900"
+    >
+      {{ arrivalMessage }}
     </div>
     <div class="bg-gray-100 border-t">
       <venue-namesList class="h-full" :venuenames="venueStore.names" @venue-name="venueNameSelected" />
@@ -184,10 +200,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useVenueStore } from '@/store/venue.js'
 import { useEventStore } from '@/store/event.js'
 import { resolveVenueDisplayPhotoUrl } from '@/utils/format-venue'
+import {
+  CRAWL_ARRIVAL_RADIUS_METERS,
+  findNearestStopIndex,
+} from '@/utils/crawl-distance'
 
 useSiteSeo({
   title: 'Map of UK pubs and venues',
@@ -201,8 +221,14 @@ const mapboxToken = useMapboxToken()
 const config = useRuntimeConfig()
 const { isLoggedIn, initializeAuth } = useAuth()
 const {
+  crawls,
   activeCrawl,
+  stops,
+  legs,
+  currentStopIndex,
   addVenueStop,
+  loadCrawl,
+  setProgressAndSave,
   initialize: initializePubCrawl,
   errorMessage: crawlErrorMessage,
 } = usePubCrawl()
@@ -213,14 +239,57 @@ const cityNames = computed(() => eventStore.cities.map((city) => city.name))
 const isCrawlBuilderOpen = ref(false)
 const crawlAddMessage = ref('')
 const crawlAddPending = ref(false)
+const arrivalMessage = ref('')
+const selectedCrawlId = ref('')
 let crawlAddMessageTimeout: ReturnType<typeof setTimeout> | null = null
+let arrivalMessageTimeout: ReturnType<typeof setTimeout> | null = null
+let geoWatchId: number | null = null
+let lastArrivalIndex: number | null = null
 
-const crawlButtonLabel = computed(() =>
-  activeCrawl.value?.name ? `Pub crawl · ${activeCrawl.value.name}` : 'Pub crawl',
+const crawlSelectOptions = computed(() =>
+  crawls.value.map((crawl) => ({
+    label: `${crawl.name} (${crawl.stopCount})`,
+    value: crawl.id,
+  })),
 )
+
+const crawlButtonLabel = computed(() => {
+  if (!activeCrawl.value?.name) return 'Manage crawls'
+  return crawls.value.length > 1
+    ? `Manage · ${crawls.value.length} lists`
+    : `Manage · ${activeCrawl.value.name}`
+})
 const addToCrawlLabel = computed(() =>
   activeCrawl.value?.name ? `Add to ${activeCrawl.value.name}` : 'Add to crawl',
 )
+
+watch(
+  () => activeCrawl.value?.id,
+  (id) => {
+    selectedCrawlId.value = id || ''
+  },
+  { immediate: true },
+)
+
+watch(selectedCrawlId, async (id, prev) => {
+  if (!id || id === activeCrawl.value?.id || id === prev) return
+  await loadCrawl(id)
+  updateCrawlRouteOnMap()
+  fitMapToCrawlStops()
+})
+
+watch(
+  [stops, currentStopIndex, () => activeCrawl.value?.id],
+  () => {
+    updateCrawlRouteOnMap()
+  },
+  { deep: true },
+)
+
+watch(isLoggedIn, (loggedIn) => {
+  if (loggedIn) startCrawlGeolocation()
+  else stopCrawlGeolocation()
+})
 
 function openCrawlBuilder() {
   isCrawlBuilderOpen.value = true
@@ -228,7 +297,16 @@ function openCrawlBuilder() {
 }
 
 function onCrawlUpdated(_crawl: { id: string; name: string } | null) {
-  // activeCrawl is shared via usePubCrawl(); label updates from that ref
+  selectedCrawlId.value = activeCrawl.value?.id || ''
+  updateCrawlRouteOnMap()
+}
+
+async function onCrawlSelectChange(value: string | number | boolean) {
+  const id = String(value || '')
+  if (!id || id === activeCrawl.value?.id) return
+  await loadCrawl(id)
+  updateCrawlRouteOnMap()
+  fitMapToCrawlStops()
 }
 
 async function addSelectedVenueToCrawl() {
@@ -288,6 +366,14 @@ const SOURCE_ID = 'venue-clusters'
 const LAYER_CLUSTERS = 'venue-clusters-circle'
 const LAYER_CLUSTER_COUNT = 'venue-clusters-count'
 const LAYER_UNCLUSTERED = 'venue-unclustered-point'
+
+const CRAWL_ROUTE_SOURCE = 'crawl-route'
+const CRAWL_STOPS_SOURCE = 'crawl-stops'
+const CRAWL_LABELS_SOURCE = 'crawl-distance-labels'
+const CRAWL_ROUTE_LAYER = 'crawl-route-line'
+const CRAWL_STOPS_CIRCLE = 'crawl-stops-circle'
+const CRAWL_STOPS_NUMBER = 'crawl-stops-number'
+const CRAWL_DISTANCE_LAYER = 'crawl-distance-label'
 
 type MapVenuePoint = {
   id: number
@@ -478,13 +564,24 @@ async function createMap() {
     })
 
     map.value.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
+    map.value.addControl(
+      new mapboxgl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: true,
+        showUserHeading: true,
+      }),
+      'bottom-right',
+    )
 
     map.value.on('load', () => {
       map.value.resize()
       ensureClusterLayers()
+      ensureCrawlRouteLayers()
       bindClusterHandlers()
       updateMapLayer(venueName.value)
       void loadVenueClusters()
+      updateCrawlRouteOnMap()
+      if (isLoggedIn.value) startCrawlGeolocation()
     })
   } catch (err) {
     console.error('Failed to create map:', err)
@@ -854,9 +951,259 @@ function updateDesktopViewport() {
   isDesktopViewport.value = desktopMediaQuery?.matches ?? true
 }
 
+function emptyFeatureCollection() {
+  return { type: 'FeatureCollection' as const, features: [] as any[] }
+}
+
+function ensureCrawlRouteLayers() {
+  if (!map.value) return
+
+  if (!map.value.getSource(CRAWL_ROUTE_SOURCE)) {
+    map.value.addSource(CRAWL_ROUTE_SOURCE, {
+      type: 'geojson',
+      data: emptyFeatureCollection(),
+    })
+  }
+  if (!map.value.getSource(CRAWL_STOPS_SOURCE)) {
+    map.value.addSource(CRAWL_STOPS_SOURCE, {
+      type: 'geojson',
+      data: emptyFeatureCollection(),
+    })
+  }
+  if (!map.value.getSource(CRAWL_LABELS_SOURCE)) {
+    map.value.addSource(CRAWL_LABELS_SOURCE, {
+      type: 'geojson',
+      data: emptyFeatureCollection(),
+    })
+  }
+
+  if (!map.value.getLayer(CRAWL_ROUTE_LAYER)) {
+    map.value.addLayer({
+      id: CRAWL_ROUTE_LAYER,
+      type: 'line',
+      source: CRAWL_ROUTE_SOURCE,
+      layout: {
+        'line-cap': 'round',
+        'line-join': 'round',
+      },
+      paint: {
+        'line-color': '#b45309',
+        'line-width': 3,
+        'line-dasharray': [1, 2],
+        'line-opacity': 0.9,
+      },
+    })
+  }
+
+  if (!map.value.getLayer(CRAWL_STOPS_CIRCLE)) {
+    map.value.addLayer({
+      id: CRAWL_STOPS_CIRCLE,
+      type: 'circle',
+      source: CRAWL_STOPS_SOURCE,
+      paint: {
+        'circle-radius': [
+          'case',
+          ['==', ['get', 'isCurrent'], 1],
+          11,
+          8,
+        ],
+        'circle-color': [
+          'case',
+          ['==', ['get', 'isCurrent'], 1],
+          '#059669',
+          '#d97706',
+        ],
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+      },
+    })
+  }
+
+  if (!map.value.getLayer(CRAWL_STOPS_NUMBER)) {
+    map.value.addLayer({
+      id: CRAWL_STOPS_NUMBER,
+      type: 'symbol',
+      source: CRAWL_STOPS_SOURCE,
+      layout: {
+        'text-field': ['get', 'stopNumber'],
+        'text-size': 11,
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-allow-overlap': true,
+      },
+      paint: {
+        'text-color': '#ffffff',
+      },
+    })
+  }
+
+  if (!map.value.getLayer(CRAWL_DISTANCE_LAYER)) {
+    map.value.addLayer({
+      id: CRAWL_DISTANCE_LAYER,
+      type: 'symbol',
+      source: CRAWL_LABELS_SOURCE,
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-size': 12,
+        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+        'text-offset': [0, -0.6],
+        'text-allow-overlap': true,
+      },
+      paint: {
+        'text-color': '#78350f',
+        'text-halo-color': '#fffbeb',
+        'text-halo-width': 1.5,
+      },
+    })
+  }
+}
+
+function updateCrawlRouteOnMap() {
+  if (!map.value?.getSource) return
+  if (!map.value.isStyleLoaded?.() && !map.value.loaded?.()) return
+
+  try {
+    ensureCrawlRouteLayers()
+  } catch {
+    return
+  }
+
+  const routeSource = map.value.getSource(CRAWL_ROUTE_SOURCE)
+  const stopsSource = map.value.getSource(CRAWL_STOPS_SOURCE)
+  const labelsSource = map.value.getSource(CRAWL_LABELS_SOURCE)
+  if (!routeSource || !stopsSource || !labelsSource) return
+
+  const coords = stops.value
+    .map((stop) => {
+      const lat = Number(stop.latitude)
+      const lng = Number(stop.longitude)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0 || lng === 0) return null
+      return [lng, lat] as [number, number]
+    })
+    .filter(Boolean) as [number, number][]
+
+  const stopFeatures = stops.value.flatMap((stop, index) => {
+    const lat = Number(stop.latitude)
+    const lng = Number(stop.longitude)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0 || lng === 0) return []
+    return [{
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [lng, lat] },
+      properties: {
+        stopNumber: String(index + 1),
+        name: stop.venueName,
+        isCurrent: index === currentStopIndex.value ? 1 : 0,
+      },
+    }]
+  })
+
+  const labelFeatures = legs.value.flatMap((leg) => {
+    if (leg.midLat == null || leg.midLng == null || !leg.shortLabel || leg.shortLabel === '?') return []
+    return [{
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [leg.midLng, leg.midLat],
+      },
+      properties: {
+        label: leg.shortLabel,
+      },
+    }]
+  })
+
+  routeSource.setData({
+    type: 'FeatureCollection',
+    features: coords.length >= 2
+      ? [{
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: coords,
+          },
+          properties: {},
+        }]
+      : [],
+  })
+  stopsSource.setData({ type: 'FeatureCollection', features: stopFeatures })
+  labelsSource.setData({ type: 'FeatureCollection', features: labelFeatures })
+}
+
+function fitMapToCrawlStops() {
+  if (!map.value || !mapboxgl) return
+  const points = stops.value
+    .map((stop) => {
+      const lat = Number(stop.latitude)
+      const lng = Number(stop.longitude)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0 || lng === 0) return null
+      return [lng, lat] as [number, number]
+    })
+    .filter(Boolean) as [number, number][]
+
+  if (!points.length) return
+  if (points.length === 1) {
+    map.value.flyTo({ center: points[0], zoom: 14 })
+    return
+  }
+
+  const bounds = points.reduce(
+    (b, coord) => b.extend(coord),
+    new mapboxgl.LngLatBounds(points[0], points[0]),
+  )
+  map.value.fitBounds(bounds, { padding: 64, maxZoom: 15, duration: 800 })
+}
+
+function startCrawlGeolocation() {
+  if (!import.meta.client || !navigator.geolocation) return
+  if (geoWatchId != null) return
+
+  geoWatchId = navigator.geolocation.watchPosition(
+    (position) => {
+      void handleCrawlGeolocation(position.coords.latitude, position.coords.longitude)
+    },
+    (err) => {
+      console.warn('Crawl geolocation unavailable:', err.message)
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 20000,
+    },
+  )
+}
+
+function stopCrawlGeolocation() {
+  if (geoWatchId != null && navigator.geolocation) {
+    navigator.geolocation.clearWatch(geoWatchId)
+  }
+  geoWatchId = null
+  lastArrivalIndex = null
+}
+
+async function handleCrawlGeolocation(lat: number, lng: number) {
+  if (!activeCrawl.value || stops.value.length < 1) return
+
+  const nearest = findNearestStopIndex(lat, lng, stops.value, CRAWL_ARRIVAL_RADIUS_METERS)
+  if (!nearest) return
+  if (nearest.index === currentStopIndex.value) return
+  if (lastArrivalIndex === nearest.index) return
+
+  // Prefer arriving at the next stop in order, but also allow catching up if they skip
+  const ok = await setProgressAndSave(nearest.index, { fromArrival: true })
+  if (!ok) return
+
+  lastArrivalIndex = nearest.index
+  const stop = stops.value[nearest.index]
+  arrivalMessage.value = `You've arrived at stop ${nearest.index + 1}: ${stop?.venueName || 'pub'} (within ${CRAWL_ARRIVAL_RADIUS_METERS}m)`
+  if (arrivalMessageTimeout) clearTimeout(arrivalMessageTimeout)
+  arrivalMessageTimeout = setTimeout(() => {
+    arrivalMessage.value = ''
+  }, 6000)
+}
+
 onBeforeUnmount(() => {
   if (popupTimeout) clearTimeout(popupTimeout)
   if (crawlAddMessageTimeout) clearTimeout(crawlAddMessageTimeout)
+  if (arrivalMessageTimeout) clearTimeout(arrivalMessageTimeout)
+  stopCrawlGeolocation()
   desktopMediaQuery?.removeEventListener('change', updateDesktopViewport)
   popup?.remove()
   map.value?.remove()
