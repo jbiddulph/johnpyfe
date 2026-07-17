@@ -1,5 +1,6 @@
--- UK Pubs: pub crawl profiles, members (invites), and notifications
--- Safe to re-run. Fixes partial creates where ukpubs_profiles existed without username.
+-- UK Pubs: repair broken ukpubs_profiles + create members/notifications
+-- Use this if you hit: column "username" / "user_id" does not exist
+-- Safe when profiles table is empty / unused (app recreates usernames on next visit).
 -- =============================================================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -7,90 +8,30 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 ALTER TABLE public.ukpubs_crawls
     ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ NULL;
 
--- ---------------------------------------------------------------------------
--- Profiles (create skeleton, then add columns — avoids IF NOT EXISTS skipping
--- a broken older table shape)
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.ukpubs_profiles (
-    user_id TEXT PRIMARY KEY
+-- Drop broken/partial profiles table and recreate cleanly
+DROP TABLE IF EXISTS public.ukpubs_profiles CASCADE;
+
+CREATE TABLE public.ukpubs_profiles (
+    user_id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT ukpubs_profiles_username_len
+        CHECK (char_length(username) >= 3 AND char_length(username) <= 32),
+    CONSTRAINT ukpubs_profiles_username_format
+        CHECK (username ~ '^[a-z0-9_]+$'),
+    CONSTRAINT ukpubs_profiles_display_not_blank
+        CHECK (char_length(trim(display_name)) > 0)
 );
 
-ALTER TABLE public.ukpubs_profiles
-    ADD COLUMN IF NOT EXISTS username TEXT,
-    ADD COLUMN IF NOT EXISTS display_name TEXT,
-    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
-
--- Defaults for any existing empty rows
-UPDATE public.ukpubs_profiles
-SET
-    username = COALESCE(
-        NULLIF(username, ''),
-        'user_' || substr(replace(user_id, '-', ''), 1, 12)
-    ),
-    display_name = COALESCE(NULLIF(display_name, ''), 'User'),
-    created_at = COALESCE(created_at, NOW()),
-    updated_at = COALESCE(updated_at, NOW())
-WHERE username IS NULL
-   OR display_name IS NULL
-   OR created_at IS NULL
-   OR updated_at IS NULL;
-
-ALTER TABLE public.ukpubs_profiles
-    ALTER COLUMN username SET NOT NULL,
-    ALTER COLUMN display_name SET NOT NULL,
-    ALTER COLUMN created_at SET DEFAULT NOW(),
-    ALTER COLUMN updated_at SET DEFAULT NOW();
-
-UPDATE public.ukpubs_profiles
-SET created_at = NOW()
-WHERE created_at IS NULL;
-
-UPDATE public.ukpubs_profiles
-SET updated_at = NOW()
-WHERE updated_at IS NULL;
-
-ALTER TABLE public.ukpubs_profiles
-    ALTER COLUMN created_at SET NOT NULL,
-    ALTER COLUMN updated_at SET NOT NULL;
-
--- Constraints (add only if missing)
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'ukpubs_profiles_username_len'
-    ) THEN
-        ALTER TABLE public.ukpubs_profiles
-            ADD CONSTRAINT ukpubs_profiles_username_len
-            CHECK (char_length(username) >= 3 AND char_length(username) <= 32);
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'ukpubs_profiles_username_format'
-    ) THEN
-        ALTER TABLE public.ukpubs_profiles
-            ADD CONSTRAINT ukpubs_profiles_username_format
-            CHECK (username ~ '^[a-z0-9_]+$');
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'ukpubs_profiles_display_not_blank'
-    ) THEN
-        ALTER TABLE public.ukpubs_profiles
-            ADD CONSTRAINT ukpubs_profiles_display_not_blank
-            CHECK (char_length(trim(display_name)) > 0);
-    END IF;
-END $$;
-
-CREATE UNIQUE INDEX IF NOT EXISTS ukpubs_profiles_username_uidx
+CREATE UNIQUE INDEX ukpubs_profiles_username_uidx
     ON public.ukpubs_profiles (username);
 
-CREATE INDEX IF NOT EXISTS ukpubs_profiles_username_idx
+CREATE INDEX ukpubs_profiles_username_idx
     ON public.ukpubs_profiles (username);
 
--- ---------------------------------------------------------------------------
--- Crawl members (invites)
--- ---------------------------------------------------------------------------
+-- Members (invites)
 CREATE TABLE IF NOT EXISTS public.ukpubs_crawl_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     crawl_id UUID NOT NULL,
@@ -129,9 +70,7 @@ CREATE INDEX IF NOT EXISTS ukpubs_crawl_members_user_status_idx
 CREATE INDEX IF NOT EXISTS ukpubs_crawl_members_crawl_status_idx
     ON public.ukpubs_crawl_members (crawl_id, status);
 
--- ---------------------------------------------------------------------------
 -- Notifications
--- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.ukpubs_notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id TEXT NOT NULL,
