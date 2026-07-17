@@ -4,7 +4,7 @@
       <div>
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Pub crawl builder</h2>
         <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-          Pick pubs on the map, reorder the route, and track your progress.
+          Keep multiple crawl lists, plot the route on the map, and auto check-in within 50m.
         </p>
       </div>
       <UButton
@@ -296,6 +296,9 @@
         </section>
 
         <section class="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-800">
+          <p class="text-xs text-gray-500">
+            On the map: dotted walking line + distance labels. Allow location to auto-mark arrival within 50m.
+          </p>
           <div v-if="stops.length" class="space-y-1">
             <div class="flex justify-between text-xs text-gray-500">
               <span>Progress</span>

@@ -390,7 +390,8 @@ export function usePubCrawl() {
       const remembered = readRememberedCrawlId()
       if (remembered && crawls.value.some((c) => c.id === remembered)) {
         await loadCrawl(remembered)
-      } else if (crawls.value.length === 1) {
+      } else if (crawls.value.length >= 1) {
+        // Always open the most recently updated list so the map has an active route
         await loadCrawl(crawls.value[0].id)
       }
     } else if (activeCrawl.value.id && !stops.value.length && activeCrawl.value.stopCount) {

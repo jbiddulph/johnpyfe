@@ -11,6 +11,8 @@
             color="white"
             class="min-w-[12rem]"
             :options="crawlSelectOptions"
+            option-attribute="label"
+            value-attribute="value"
             placeholder="Select crawl list…"
           />
           <UButton
@@ -284,6 +286,15 @@ watch(
     updateCrawlRouteOnMap()
   },
   { deep: true },
+)
+
+watch(
+  () => stops.value.map((s) => `${s.id}:${s.latitude}:${s.longitude}`).join('|'),
+  (next, prev) => {
+    if (!next || next === prev) return
+    // Fit when the active route's stop set changes (load / add / reorder coords)
+    fitMapToCrawlStops()
+  },
 )
 
 watch(isLoggedIn, (loggedIn) => {
@@ -1049,6 +1060,8 @@ function ensureCrawlRouteLayers() {
   }
 }
 
+let crawlRouteRequestId = 0
+
 function updateCrawlRouteOnMap() {
   if (!map.value?.getSource) return
   if (!map.value.isStyleLoaded?.() && !map.value.loaded?.()) return
@@ -1102,6 +1115,7 @@ function updateCrawlRouteOnMap() {
     }]
   })
 
+  // Straight dotted fallback immediately, then upgrade to walking directions when available
   routeSource.setData({
     type: 'FeatureCollection',
     features: coords.length >= 2
@@ -1117,6 +1131,46 @@ function updateCrawlRouteOnMap() {
   })
   stopsSource.setData({ type: 'FeatureCollection', features: stopFeatures })
   labelsSource.setData({ type: 'FeatureCollection', features: labelFeatures })
+
+  if (coords.length >= 2 && mapboxToken.value) {
+    const requestId = ++crawlRouteRequestId
+    void fetchWalkingRouteGeometry(coords).then((walkingCoords) => {
+      if (requestId !== crawlRouteRequestId) return
+      if (!walkingCoords?.length || !map.value?.getSource(CRAWL_ROUTE_SOURCE)) return
+      map.value.getSource(CRAWL_ROUTE_SOURCE).setData({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: walkingCoords,
+          },
+          properties: {},
+        }],
+      })
+    })
+  }
+}
+
+async function fetchWalkingRouteGeometry(coords: [number, number][]) {
+  if (!mapboxToken.value || coords.length < 2) return null
+  // Mapbox Directions allows up to 25 coordinates per request
+  const limited = coords.slice(0, 25)
+  const path = limited.map(([lng, lat]) => `${lng},${lat}`).join(';')
+  const url =
+    `https://api.mapbox.com/directions/v5/mapbox/walking/${path}`
+    + `?geometries=geojson&overview=full&access_token=${encodeURIComponent(mapboxToken.value)}`
+
+  try {
+    const data = await $fetch<{
+      routes?: Array<{ geometry?: { coordinates?: [number, number][] } }>
+    }>(url)
+    const geometry = data.routes?.[0]?.geometry?.coordinates
+    return geometry?.length ? geometry : null
+  } catch (err) {
+    console.warn('Walking directions unavailable, using straight crawl line:', err)
+    return null
+  }
 }
 
 function fitMapToCrawlStops() {
