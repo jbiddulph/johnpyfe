@@ -113,15 +113,6 @@
           </div>
         </template>
         <div class="space-y-5">
-          <div v-if="isVenueDetailsLoading" class="text-sm text-gray-500 dark:text-gray-400">
-            Loading venue details...
-          </div>
-          <UAlert
-            v-else-if="venueDetailsError"
-            color="red"
-            variant="soft"
-            :description="venueDetailsError"
-          />
           <div
             v-if="selectedVenueStaticMapUrl"
             class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800"
@@ -166,7 +157,16 @@
           >
             {{ crawlAddMessage }}
           </p>
-          <template v-if="!isVenueDetailsLoading && !venueDetailsError">
+          <div v-if="isVenueDetailsLoading" class="text-sm text-gray-500 dark:text-gray-400">
+            Loading venue details...
+          </div>
+          <UAlert
+            v-else-if="venueDetailsError"
+            color="red"
+            variant="soft"
+            :description="venueDetailsError"
+          />
+          <template v-else>
             <p
               v-if="selectedVenueAddressLines.length"
               class="text-sm leading-6 text-gray-700 dark:text-gray-200"
