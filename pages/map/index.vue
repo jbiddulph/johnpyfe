@@ -17,9 +17,9 @@
           />
           <UButton
             size="sm"
-            color="amber"
+            :color="canEditActiveCrawl ? 'amber' : 'sky'"
             variant="soft"
-            icon="i-heroicons-map-20-solid"
+            :icon="canEditActiveCrawl ? 'i-heroicons-map-20-solid' : 'i-heroicons-eye-20-solid'"
             :label="crawlButtonLabel"
             @click="openCrawlBuilder"
           />
@@ -139,7 +139,7 @@
               @click="openSelectedVenueEvents"
             />
             <UButton
-              v-if="isLoggedIn"
+              v-if="showCrawlToggleButton"
               :color="selectedVenueOnActiveCrawl ? 'red' : 'amber'"
               variant="soft"
               :icon="selectedVenueOnActiveCrawl ? 'i-heroicons-minus-20-solid' : 'i-heroicons-plus-20-solid'"
@@ -237,6 +237,7 @@ const {
   setProgressAndSave,
   initialize: initializePubCrawl,
   errorMessage: crawlErrorMessage,
+  canEditActiveCrawl,
 } = usePubCrawl()
 
 const selectedCity = ref('')
@@ -255,16 +256,23 @@ let lastArrivalIndex: number | null = null
 
 const crawlSelectOptions = computed(() =>
   crawls.value.map((crawl) => ({
-    label: `${crawl.name} (${crawl.stopCount})`,
+    label: `${crawl.name} (${crawl.stopCount})${crawl.role === 'member' ? ' · invited' : ''}`,
     value: crawl.id,
   })),
 )
 
 const crawlButtonLabel = computed(() => {
-  if (!activeCrawl.value?.name) return 'Manage crawls'
+  const name = activeCrawl.value?.name
+  if (!canEditActiveCrawl.value) {
+    if (!name) return 'View crawls'
+    return crawls.value.length > 1
+      ? `View · ${crawls.value.length} lists`
+      : `View · ${name}`
+  }
+  if (!name) return 'Manage crawls'
   return crawls.value.length > 1
     ? `Manage · ${crawls.value.length} lists`
-    : `Manage · ${activeCrawl.value.name}`
+    : `Manage · ${name}`
 })
 
 const selectedVenueOnActiveCrawl = computed(() =>
@@ -278,6 +286,10 @@ const crawlToggleLabel = computed(() => {
   }
   return name ? `Add to ${name}` : 'Add to crawl'
 })
+
+const showCrawlToggleButton = computed(() =>
+  isLoggedIn.value && canEditActiveCrawl.value,
+)
 
 watch(
   () => activeCrawl.value?.id,
@@ -339,6 +351,10 @@ function showCrawlToggleMessage(message: string, isError = false) {
 
 async function toggleSelectedVenueOnCrawl() {
   if (!selectedVenue.value || crawlAddPending.value) return
+  if (!canEditActiveCrawl.value) {
+    showCrawlToggleMessage('Only the crawl creator can add or remove pubs.', true)
+    return
+  }
   crawlAddMessage.value = ''
   crawlAddMessageIsError.value = false
   crawlAddPending.value = true
@@ -1257,6 +1273,8 @@ function stopCrawlGeolocation() {
 
 async function handleCrawlGeolocation(lat: number, lng: number) {
   if (!activeCrawl.value || stops.value.length < 1) return
+  // Only the crawl creator can advance progress (including auto check-in)
+  if (!canEditActiveCrawl.value) return
 
   const nearest = findNearestStopIndex(lat, lng, stops.value, CRAWL_ARRIVAL_RADIUS_METERS)
   if (!nearest) return
