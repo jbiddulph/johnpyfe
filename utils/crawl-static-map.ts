@@ -20,9 +20,73 @@ export function crawlStopCoordinates(stops: CrawlMapStop[] | null | undefined): 
   return out
 }
 
+/** ~degrees for a minimum framing span so nearby pubs still fill the card. */
+const MIN_SPAN_DEG = 0.0018 // ~200m
+/** Extra margin around the route (fraction of span). */
+const EDGE_PAD = 0.18
+
+function routeViewport(points: [number, number][]) {
+  let minLng = Infinity
+  let maxLng = -Infinity
+  let minLat = Infinity
+  let maxLat = -Infinity
+  for (const [lng, lat] of points) {
+    minLng = Math.min(minLng, lng)
+    maxLng = Math.max(maxLng, lng)
+    minLat = Math.min(minLat, lat)
+    maxLat = Math.max(maxLat, lat)
+  }
+
+  const centerLng = (minLng + maxLng) / 2
+  const centerLat = (minLat + maxLat) / 2
+  const halfLng = Math.max((maxLng - minLng) / 2, MIN_SPAN_DEG / 2) * (1 + EDGE_PAD)
+  const halfLat = Math.max((maxLat - minLat) / 2, MIN_SPAN_DEG / 2) * (1 + EDGE_PAD)
+
+  return {
+    centerLng,
+    centerLat,
+    west: centerLng - halfLng,
+    south: centerLat - halfLat,
+    east: centerLng + halfLng,
+    north: centerLat + halfLat,
+  }
+}
+
 /**
- * Mapbox Static Images URL zoomed to the crawl route (path + numbered pins).
- * Uses `auto` framing so the camera fits all venues.
+ * Web-mercator zoom that fits a lon/lat span into the image size.
+ * Biased toward street-level for pub-crawl distances.
+ */
+function zoomForSpan(
+  west: number,
+  south: number,
+  east: number,
+  north: number,
+  width: number,
+  height: number,
+): number {
+  const WORLD = 256
+  const MAX_ZOOM = 16.5
+  const MIN_ZOOM = 11
+
+  const latRad = (lat: number) => {
+    const sin = Math.sin((lat * Math.PI) / 180)
+    const radX2 = Math.log((1 + sin) / (1 - sin)) / 2
+    return Math.max(Math.min(radX2, Math.PI), -Math.PI) / 2
+  }
+
+  const latFraction = Math.max((latRad(north) - latRad(south)) / Math.PI, 1e-9)
+  const lngDiff = east - west
+  const lngFraction = Math.max(((lngDiff < 0 ? lngDiff + 360 : lngDiff) / 360), 1e-9)
+
+  const zoom = (mapPx: number, fraction: number) =>
+    Math.log2(mapPx / WORLD / fraction)
+
+  const z = Math.min(zoom(width, lngFraction), zoom(height, latFraction), MAX_ZOOM)
+  return Math.max(Math.round(z * 100) / 100, MIN_ZOOM)
+}
+
+/**
+ * Mapbox Static Images URL zoomed tightly onto the crawl route (path + numbered pins).
  */
 export function crawlStaticMapUrl(
   stops: CrawlMapStop[] | null | undefined,
@@ -45,14 +109,21 @@ export function crawlStaticMapUrl(
   let overlay = pins
   if (points.length >= 2) {
     const pathCoords = points.map(([lng, lat]) => `${lng},${lat}`).join(';')
-    overlay = `path-4+b45309-0.9(${pathCoords}),${pins}`
+    overlay = `path-5+b45309-0.95(${pathCoords}),${pins}`
   }
 
-  const size = `${Math.round(width)}x${Math.round(height)}@2x`
+  const w = Math.round(width)
+  const h = Math.round(height)
+  const size = `${w}x${h}@2x`
+
   if (points.length === 1) {
     const [lng, lat] = points[0]
-    return `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${overlay}/${lng},${lat},14,0/${size}?access_token=${encodeURIComponent(token)}`
+    return `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${overlay}/${lng},${lat},16,0/${size}?access_token=${encodeURIComponent(token)}`
   }
 
-  return `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${overlay}/auto/${size}?padding=56&access_token=${encodeURIComponent(token)}`
+  const { centerLng, centerLat, west, south, east, north } = routeViewport(points)
+  const zoom = zoomForSpan(west, south, east, north, w, h)
+
+  // Explicit center+zoom (tighter and more reliable than auto/bbox for short pub routes)
+  return `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${overlay}/${centerLng},${centerLat},${zoom},0/${size}?access_token=${encodeURIComponent(token)}`
 }
