@@ -233,6 +233,54 @@
           <p v-if="addingStop" class="text-xs text-gray-500">Adding to crawl…</p>
         </section>
 
+        <section v-if="canEditActiveCrawl && activeCrawl" class="space-y-2">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+            Invite to {{ activeCrawl.name }}
+          </h3>
+          <p class="text-xs text-gray-500">
+            Search by username (3+ characters). Only the creator can invite.
+          </p>
+          <div class="relative">
+            <UInput
+              v-model="inviteQuery"
+              icon="i-heroicons-magnifying-glass-20-solid"
+              placeholder="Type a username…"
+              autocomplete="off"
+              :loading="inviteSearching"
+            />
+            <ul
+              v-if="inviteQuery.trim().length >= 3"
+              class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+            >
+              <li v-if="inviteSearching" class="px-3 py-2 text-sm text-gray-500">Searching…</li>
+              <template v-else-if="inviteResults.length">
+                <li
+                  v-for="person in inviteResults"
+                  :key="person.userId"
+                  class="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                >
+                  <div class="min-w-0">
+                    <p class="truncate font-medium text-gray-900 dark:text-white">@{{ person.username }}</p>
+                    <p class="truncate text-xs text-gray-500">{{ person.displayName }}</p>
+                  </div>
+                  <UButton
+                    size="xs"
+                    color="amber"
+                    :loading="invitingUserId === person.userId"
+                    label="Invite"
+                    @click="sendInvite(person)"
+                  />
+                </li>
+              </template>
+              <li v-else class="px-3 py-2 text-sm text-gray-500">
+                No users found. They may need to open Pub Crawls once to create a username.
+              </li>
+            </ul>
+          </div>
+          <p v-if="inviteMessage" class="text-xs text-emerald-700 dark:text-emerald-400">{{ inviteMessage }}</p>
+          <p v-if="inviteError" class="text-xs text-red-600 dark:text-red-400">{{ inviteError }}</p>
+        </section>
+
         <section class="space-y-2">
           <div class="flex items-center justify-between gap-2">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -436,12 +484,78 @@ const { user } = useAuth()
 const chatOpen = ref(false)
 const chatUserId = computed(() => (user.value as { id?: string } | null)?.id || '')
 
+type InviteProfile = { userId: string; username: string; displayName: string }
+
+const inviteQuery = ref('')
+const inviteResults = ref<InviteProfile[]>([])
+const inviteSearching = ref(false)
+const invitingUserId = ref<string | null>(null)
+const inviteMessage = ref('')
+const inviteError = ref('')
+let inviteTimer: ReturnType<typeof setTimeout> | null = null
+
+function resetInviteState() {
+  inviteQuery.value = ''
+  inviteResults.value = []
+  inviteSearching.value = false
+  invitingUserId.value = null
+  inviteMessage.value = ''
+  inviteError.value = ''
+  if (inviteTimer) {
+    clearTimeout(inviteTimer)
+    inviteTimer = null
+  }
+}
+
 watch(
   () => activeCrawl.value?.id,
   () => {
     chatOpen.value = false
+    resetInviteState()
   },
 )
+
+watch(inviteQuery, (value) => {
+  if (inviteTimer) clearTimeout(inviteTimer)
+  inviteMessage.value = ''
+  inviteError.value = ''
+  const q = value.trim()
+  if (q.length < 3) {
+    inviteResults.value = []
+    inviteSearching.value = false
+    return
+  }
+  inviteSearching.value = true
+  inviteTimer = setTimeout(async () => {
+    try {
+      inviteResults.value = await useAuthFetch<InviteProfile[]>('/api/users/search', { params: { q } })
+    } catch {
+      inviteResults.value = []
+    } finally {
+      inviteSearching.value = false
+    }
+  }, 250)
+})
+
+async function sendInvite(person: InviteProfile) {
+  if (!activeCrawl.value?.id || !canEditActiveCrawl.value) return
+  invitingUserId.value = person.userId
+  inviteMessage.value = ''
+  inviteError.value = ''
+  try {
+    await useAuthFetch(`/api/crawls/${activeCrawl.value.id}/members`, {
+      method: 'POST',
+      body: { userId: person.userId, username: person.username },
+    })
+    inviteMessage.value = `Invited @${person.username}`
+    inviteQuery.value = ''
+    inviteResults.value = []
+  } catch (err: any) {
+    inviteError.value = err?.data?.statusMessage || err?.message || 'Could not send invite'
+  } finally {
+    invitingUserId.value = null
+  }
+}
 
 type VenueSearchHit = {
   id: number
