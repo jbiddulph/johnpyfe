@@ -572,10 +572,12 @@ async function onCreateCrawl() {
 }
 
 async function onSaveMeta() {
+  if (!canEditActiveCrawl.value) return
   await saveMeta()
 }
 
 async function onSaveCrawl() {
+  if (!canEditActiveCrawl.value) return
   await saveCrawl()
 }
 
