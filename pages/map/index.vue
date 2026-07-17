@@ -301,14 +301,6 @@ function onCrawlUpdated(_crawl: { id: string; name: string } | null) {
   updateCrawlRouteOnMap()
 }
 
-async function onCrawlSelectChange(value: string | number | boolean) {
-  const id = String(value || '')
-  if (!id || id === activeCrawl.value?.id) return
-  await loadCrawl(id)
-  updateCrawlRouteOnMap()
-  fitMapToCrawlStops()
-}
-
 async function addSelectedVenueToCrawl() {
   if (!selectedVenue.value || crawlAddPending.value) return
   crawlAddMessage.value = ''
