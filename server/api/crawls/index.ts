@@ -1,6 +1,11 @@
 import { prisma } from '../../utils/prisma'
 import { requireAuth } from '../../utils/require-auth'
-import { serializeCrawl, stopInclude } from '../../utils/crawls'
+import {
+  parseOptionalInviteeNotes,
+  parseOptionalStartsAt,
+  serializeCrawl,
+  stopInclude,
+} from '../../utils/crawls'
 import { ensureUkpubsProfile } from '../../utils/crawl-profiles'
 
 export default defineEventHandler(async (event) => {
@@ -45,11 +50,16 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Crawl name is required' })
     }
 
+    const startsAt = parseOptionalStartsAt(body?.startsAt)
+    const inviteeNotes = parseOptionalInviteeNotes(body?.inviteeNotes)
+
     const crawl = await prisma.ukpubsCrawl.create({
       data: {
         userId: user.id,
         name,
         currentStopIndex: 0,
+        ...(startsAt !== undefined ? { startsAt } : {}),
+        ...(inviteeNotes !== undefined ? { inviteeNotes } : {}),
       },
       include: {
         stops: { orderBy: { sortOrder: 'asc' }, include: stopInclude },

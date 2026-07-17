@@ -98,11 +98,30 @@ export default defineEventHandler(async (event) => {
         })
 
     const inviterProfile = await ensureUkpubsProfile(user)
+    const startLabel = crawl.startsAt
+      ? new Date(crawl.startsAt).toLocaleString(undefined, {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : ''
+    const notesPreview = crawl.inviteeNotes?.trim()
+      ? crawl.inviteeNotes.trim().slice(0, 160) + (crawl.inviteeNotes.trim().length > 160 ? '…' : '')
+      : ''
+    const detailParts = [
+      `Join “${crawl.name}” on UK Pubs`,
+      startLabel ? `Starts ${startLabel}` : '',
+      notesPreview ? notesPreview : '',
+      `Invited by @${inviterProfile.username}`,
+    ].filter(Boolean)
+
     await createNotification({
       userId: invitee.userId,
       type: 'crawl_invite',
       title: `${inviterProfile.displayName} invited you to a pub crawl`,
-      body: `Join “${crawl.name}” on UK Pubs. Invited by @${inviterProfile.username}.`,
+      body: detailParts.join('. ') + '.',
       link: `/pub-crawls?invite=${member.id}`,
       crawlId: crawl.id,
     })

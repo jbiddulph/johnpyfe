@@ -212,6 +212,10 @@ model UkpubsCrawl {
   userId           String               @map("user_id")
   name             String
   currentStopIndex Int                  @default(0) @map("current_stop_index")
+  /// Planned start date/time shown to invitees
+  startsAt         DateTime?            @map("starts_at")
+  /// Notes for invitees (dress code, meet-up tip, etc.)
+  inviteeNotes     String?              @map("invitee_notes")
   completedAt      DateTime?            @map("completed_at")
   createdAt        DateTime             @default(now()) @map("created_at")
   updatedAt        DateTime             @updatedAt @map("updated_at")

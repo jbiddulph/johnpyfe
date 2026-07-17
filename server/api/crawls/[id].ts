@@ -3,6 +3,8 @@ import { requireAuth } from '../../utils/require-auth'
 import {
   getCrawlAccess,
   getCrawlOwnedByUser,
+  parseOptionalInviteeNotes,
+  parseOptionalStartsAt,
   serializeCrawl,
 } from '../../utils/crawls'
 import { ensureUkpubsProfile } from '../../utils/crawl-profiles'
@@ -29,6 +31,8 @@ export default defineEventHandler(async (event) => {
       name?: string
       currentStopIndex?: number
       completedAt?: Date | null
+      startsAt?: Date | null
+      inviteeNotes?: string | null
     } = {}
 
     if (body?.name != null) {
@@ -52,6 +56,16 @@ export default defineEventHandler(async (event) => {
       data.completedAt = new Date()
     } else if (body?.completed === false) {
       data.completedAt = null
+    }
+
+    if ('startsAt' in (body || {})) {
+      const startsAt = parseOptionalStartsAt(body.startsAt)
+      if (startsAt !== undefined) data.startsAt = startsAt
+    }
+
+    if ('inviteeNotes' in (body || {})) {
+      const inviteeNotes = parseOptionalInviteeNotes(body.inviteeNotes)
+      if (inviteeNotes !== undefined) data.inviteeNotes = inviteeNotes
     }
 
     await prisma.ukpubsCrawl.update({

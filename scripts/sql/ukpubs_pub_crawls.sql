@@ -16,12 +16,22 @@ CREATE TABLE IF NOT EXISTS public.ukpubs_crawls (
     name TEXT NOT NULL,
     -- 0-based index of the stop the user is currently at
     current_stop_index INTEGER NOT NULL DEFAULT 0,
+    -- Planned start (invitees see this)
+    starts_at TIMESTAMPTZ NULL,
+    -- Notes for invitees (dress code, meet-up tip, etc.)
+    invitee_notes TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT ukpubs_crawls_name_not_blank CHECK (char_length(trim(name)) > 0),
     CONSTRAINT ukpubs_crawls_current_stop_nonneg CHECK (current_stop_index >= 0)
 );
+
+-- Upgrades for DBs created before starts_at / invitee_notes existed
+ALTER TABLE public.ukpubs_crawls
+    ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ NULL;
+ALTER TABLE public.ukpubs_crawls
+    ADD COLUMN IF NOT EXISTS invitee_notes TEXT NULL;
 
 CREATE INDEX IF NOT EXISTS ukpubs_crawls_user_id_idx
     ON public.ukpubs_crawls (user_id);

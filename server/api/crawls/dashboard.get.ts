@@ -44,6 +44,8 @@ export default defineEventHandler(async (event) => {
             name: true,
             userId: true,
             updatedAt: true,
+            startsAt: true,
+            inviteeNotes: true,
             _count: { select: { stops: true } },
           },
         },
@@ -173,6 +175,8 @@ export default defineEventHandler(async (event) => {
         crawlId: invite.crawlId,
         crawlName: invite.crawl.name,
         stopCount: invite.crawl._count.stops,
+        startsAt: invite.crawl.startsAt?.toISOString() || null,
+        inviteeNotes: invite.crawl.inviteeNotes?.trim() || null,
         invitedBy: {
           userId: invite.invitedBy,
           username: inviter?.username || owner?.username || 'user',

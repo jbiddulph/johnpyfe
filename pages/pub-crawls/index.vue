@@ -48,13 +48,22 @@
           :ui="{ body: { padding: 'p-4' }, ring: 'ring-1 ring-amber-300 dark:ring-amber-800' }"
         >
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
+            <div class="min-w-0 space-y-1">
               <p class="font-medium text-gray-900 dark:text-white">{{ invite.crawlName }}</p>
               <p class="text-sm text-gray-600 dark:text-gray-400">
                 Invited by
                 <strong>{{ invite.invitedBy.displayName }}</strong>
                 (@{{ invite.invitedBy.username }})
                 · {{ invite.stopCount }} stop{{ invite.stopCount === 1 ? '' : 's' }}
+              </p>
+              <p v-if="invite.startsAt" class="text-sm font-medium text-amber-950 dark:text-amber-100">
+                Starts {{ formatCrawlStartsAt(invite.startsAt) }}
+              </p>
+              <p
+                v-if="invite.inviteeNotes"
+                class="whitespace-pre-wrap text-sm text-amber-900/90 dark:text-amber-100/90"
+              >
+                {{ invite.inviteeNotes }}
               </p>
             </div>
             <div class="flex gap-2">
@@ -241,6 +250,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatCrawlStartsAt } from '@/utils/crawl-schedule'
+
 definePageMeta({})
 
 const route = useRoute()
@@ -267,6 +278,8 @@ type CrawlCard = {
   name: string
   stopCount: number
   currentStopIndex: number
+  startsAt?: string | null
+  inviteeNotes?: string | null
   completedAt: string | null
   canEdit: boolean
   role: 'owner' | 'member'
@@ -286,6 +299,8 @@ type PendingInvite = {
   crawlId: string
   crawlName: string
   stopCount: number
+  startsAt?: string | null
+  inviteeNotes?: string | null
   invitedBy: Profile
   createdAt: string
 }
