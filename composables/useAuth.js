@@ -1,10 +1,28 @@
 // Global authentication state composable
+import { ensureUkpubsProfileClient } from './useEnsureUkpubsProfile'
+
 const user = ref(null);
 const isInitialized = ref(false);
+let profileSyncInFlight = null;
 
 export const useAuth = () => {
   const { $supabase } = useNuxtApp();
   const config = useRuntimeConfig();
+
+  const syncUkpubsProfile = async () => {
+    if (!import.meta.client || !user.value) return;
+    if (profileSyncInFlight) return profileSyncInFlight;
+
+    profileSyncInFlight = (async () => {
+      try {
+        await ensureUkpubsProfileClient();
+      } finally {
+        profileSyncInFlight = null;
+      }
+    })();
+
+    return profileSyncInFlight;
+  };
 
   // Initialize authentication state (only once)
   const initializeAuth = async () => {
@@ -23,6 +41,7 @@ export const useAuth = () => {
     
     if (session?.user) {
       user.value = session.user;
+      void syncUkpubsProfile();
     }
 
     // Listen for auth changes
@@ -30,6 +49,9 @@ export const useAuth = () => {
       console.log('Global auth state change:', event, session?.user?.email);
       if (session?.user) {
         user.value = session.user;
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          void syncUkpubsProfile();
+        }
       } else {
         user.value = null;
       }
@@ -58,6 +80,7 @@ export const useAuth = () => {
     user: readonly(user),
     isAdmin,
     isLoggedIn,
-    initializeAuth
+    initializeAuth,
+    syncUkpubsProfile,
   };
 };

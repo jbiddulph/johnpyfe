@@ -120,6 +120,7 @@ async function submit() {
       if (error) throw error
 
       if (data.session) {
+        await ensureUkpubsProfileClient()
         await router.push(redirectPath())
         return
       }
@@ -135,6 +136,7 @@ async function submit() {
 
     if (error) throw error
 
+    await ensureUkpubsProfileClient()
     await router.push(redirectPath())
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Authentication failed'
