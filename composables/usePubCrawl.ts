@@ -24,22 +24,38 @@ export type CrawlSummary = {
   stops?: CrawlStop[]
 }
 
-const ACTIVE_CRAWL_KEY = 'ukpubs_active_crawl_id'
+const ACTIVE_CRAWL_KEY_PREFIX = 'ukpubs_active_crawl_id:'
+const LEGACY_ACTIVE_CRAWL_KEY = 'ukpubs_active_crawl_id'
 
-function rememberActiveCrawlId(id: string | null) {
+function storageKeyForUser(userId: string | null | undefined) {
+  if (!userId) return null
+  return `${ACTIVE_CRAWL_KEY_PREFIX}${userId}`
+}
+
+function rememberActiveCrawlId(id: string | null, userId?: string | null) {
   if (!import.meta.client) return
   try {
-    if (id) localStorage.setItem(ACTIVE_CRAWL_KEY, id)
-    else localStorage.removeItem(ACTIVE_CRAWL_KEY)
+    const key = storageKeyForUser(userId)
+    // Always clear the legacy global key so account-switching cannot leak crawls
+    localStorage.removeItem(LEGACY_ACTIVE_CRAWL_KEY)
+    if (!key) return
+    if (id) localStorage.setItem(key, id)
+    else localStorage.removeItem(key)
   } catch {
     /* ignore */
   }
 }
 
-function readRememberedCrawlId() {
+function readRememberedCrawlId(userId?: string | null) {
   if (!import.meta.client) return null
   try {
-    return localStorage.getItem(ACTIVE_CRAWL_KEY)
+    const key = storageKeyForUser(userId)
+    if (key) {
+      const scoped = localStorage.getItem(key)
+      if (scoped) return scoped
+    }
+    // One-time legacy fallback (pre user-scoped keys)
+    return localStorage.getItem(LEGACY_ACTIVE_CRAWL_KEY)
   } catch {
     return null
   }
@@ -54,7 +70,7 @@ function formatSavedTime(iso: string) {
 }
 
 export function usePubCrawl() {
-  const { isLoggedIn, initializeAuth } = useAuth()
+  const { isLoggedIn, initializeAuth, user } = useAuth()
 
   const crawls = useState<CrawlSummary[]>('ukpubs-crawls', () => [])
   const activeCrawl = useState<CrawlSummary | null>('ukpubs-active-crawl', () => null)
@@ -69,6 +85,38 @@ export function usePubCrawl() {
   const dirty = useState<boolean>('ukpubs-crawl-dirty', () => false)
   const lastSavedAt = useState<string>('ukpubs-crawl-saved-at', () => '')
   const initialized = useState<boolean>('ukpubs-crawl-initialized', () => false)
+  const boundUserId = useState<string | null>('ukpubs-crawl-bound-user', () => null)
+
+  const currentUserId = computed(() => (user.value as { id?: string } | null)?.id || null)
+
+  function resetCrawlState(options?: { clearRemembered?: boolean }) {
+    crawls.value = []
+    activeCrawl.value = null
+    stops.value = []
+    currentStopIndex.value = 0
+    draftName.value = ''
+    dirty.value = false
+    lastSavedAt.value = ''
+    errorMessage.value = ''
+    initialized.value = false
+    if (options?.clearRemembered) {
+      rememberActiveCrawlId(null, boundUserId.value || currentUserId.value)
+    }
+  }
+
+  // When switching accounts in the same browser, drop the previous user's crawl state
+  watch(
+    currentUserId,
+    (next, prev) => {
+      if (next === prev) return
+      if (prev && next !== prev) {
+        rememberActiveCrawlId(null, prev)
+        resetCrawlState()
+      }
+      boundUserId.value = next
+    },
+    { immediate: true },
+  )
 
   const legs = computed(() => buildCrawlLegs(stops.value))
 
@@ -113,7 +161,7 @@ export function usePubCrawl() {
     draftName.value = ''
     dirty.value = false
     lastSavedAt.value = ''
-    rememberActiveCrawlId(null)
+    rememberActiveCrawlId(null, currentUserId.value)
   }
 
   async function loadCrawls() {
@@ -139,27 +187,47 @@ export function usePubCrawl() {
       currentStopIndex.value = crawl.currentStopIndex || 0
       dirty.value = false
       lastSavedAt.value = formatSavedTime(crawl.updatedAt)
-      rememberActiveCrawlId(crawl.id)
+      rememberActiveCrawlId(crawl.id, currentUserId.value)
       return crawl
     } catch (err: any) {
+      const status = err?.statusCode || err?.status || err?.data?.statusCode
       errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load crawl'
+      // Drop a remembered crawl this account cannot access (common after switching users)
+      if (status === 401 || status === 403 || status === 404) {
+        rememberActiveCrawlId(null, currentUserId.value)
+        if (activeCrawl.value?.id === id) {
+          activeCrawl.value = null
+          stops.value = []
+          currentStopIndex.value = 0
+          draftName.value = ''
+        }
+      }
       return null
     }
   }
 
   async function ensureActiveCrawl() {
     if (activeCrawl.value?.id) {
-      if (!stops.value.length && (activeCrawl.value.stopCount || 0) > 0) {
-        await loadCrawl(activeCrawl.value.id)
+      // Guard against stale in-memory crawl from another account
+      if (crawls.value.length && !crawls.value.some((c) => c.id === activeCrawl.value?.id)) {
+        clearActive()
+      } else {
+        if (!stops.value.length && (activeCrawl.value.stopCount || 0) > 0) {
+          await loadCrawl(activeCrawl.value.id)
+        }
+        return activeCrawl.value
       }
-      return activeCrawl.value
     }
 
     await loadCrawls()
 
-    const remembered = readRememberedCrawlId()
+    const remembered = readRememberedCrawlId(currentUserId.value)
     if (remembered && crawls.value.some((c) => c.id === remembered)) {
       return loadCrawl(remembered)
+    }
+    // Clear legacy/global remembered ids that this user cannot access
+    if (remembered && !crawls.value.some((c) => c.id === remembered)) {
+      rememberActiveCrawlId(null, currentUserId.value)
     }
 
     if (crawls.value.length >= 1) {
@@ -186,7 +254,7 @@ export function usePubCrawl() {
       currentStopIndex.value = 0
       dirty.value = false
       lastSavedAt.value = 'just now'
-      rememberActiveCrawlId(crawl.id)
+      rememberActiveCrawlId(crawl.id, currentUserId.value)
       await loadCrawls()
       return crawl
     } catch (err: any) {
@@ -209,7 +277,7 @@ export function usePubCrawl() {
         body: { name },
       })
       activeCrawl.value = { ...activeCrawl.value, name: crawl.name, canEdit: true, role: 'owner' }
-      rememberActiveCrawlId(crawl.id)
+      rememberActiveCrawlId(crawl.id, currentUserId.value)
       await loadCrawls()
       return crawl
     } catch (err: any) {
@@ -248,7 +316,7 @@ export function usePubCrawl() {
       currentStopIndex.value = crawl.currentStopIndex || 0
       dirty.value = false
       lastSavedAt.value = 'just now'
-      rememberActiveCrawlId(crawl.id)
+      rememberActiveCrawlId(crawl.id, currentUserId.value)
       await loadCrawls()
       return crawl
     } catch (err: any) {
@@ -464,25 +532,44 @@ export function usePubCrawl() {
 
   async function initialize() {
     await initializeAuth()
-    if (!isLoggedIn.value) {
-      crawls.value = []
+    if (!isLoggedIn.value || !currentUserId.value) {
+      resetCrawlState({ clearRemembered: false })
       clearActive()
       initialized.value = true
       return
     }
+
+    boundUserId.value = currentUserId.value
     await loadCrawls()
+
+    // Drop in-memory active crawl if it is not in this user's accessible list
+    if (activeCrawl.value && !crawls.value.some((c) => c.id === activeCrawl.value?.id)) {
+      clearActive()
+    }
+
     if (!activeCrawl.value) {
-      const remembered = readRememberedCrawlId()
+      const remembered = readRememberedCrawlId(currentUserId.value)
       if (remembered && crawls.value.some((c) => c.id === remembered)) {
         await loadCrawl(remembered)
-      } else if (crawls.value.length >= 1) {
-        // Always open the most recently updated list so the map has an active route
-        await loadCrawl(crawls.value[0].id)
+      } else {
+        if (remembered) rememberActiveCrawlId(null, currentUserId.value)
+        if (crawls.value.length >= 1) {
+          // Prefer first accessible crawl (owned + accepted shared)
+          await loadCrawl(crawls.value[0].id)
+        }
       }
     } else if (activeCrawl.value.id && !stops.value.length && activeCrawl.value.stopCount) {
       await loadCrawl(activeCrawl.value.id)
     }
     initialized.value = true
+  }
+
+  /** Remember + load a crawl after accepting an invite. */
+  async function openSharedCrawl(id: string) {
+    if (!id) return null
+    rememberActiveCrawlId(id, currentUserId.value)
+    await loadCrawls()
+    return loadCrawl(id)
   }
 
   return {
@@ -521,6 +608,7 @@ export function usePubCrawl() {
     setProgress,
     setProgressAndSave,
     reorderStops,
+    openSharedCrawl,
     initialize,
   }
 }

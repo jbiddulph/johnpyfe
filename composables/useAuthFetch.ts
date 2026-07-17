@@ -14,7 +14,15 @@ export async function useAuthFetch<T>(
       const { data, error } = await $supabase.auth.refreshSession()
       const token = data.session?.access_token
       if (error || !token) {
-        throw createError({ statusCode: 401, statusMessage: 'You must be logged in' })
+        try {
+          await $supabase.auth.signOut()
+        } catch {
+          /* ignore */
+        }
+        throw createError({
+          statusCode: 401,
+          statusMessage: 'Your session expired. Please sign in again.',
+        })
       }
       return token
     }
@@ -32,6 +40,18 @@ export async function useAuthFetch<T>(
       const { data: refreshed, error } = await $supabase.auth.refreshSession()
       if (!error && refreshed.session?.access_token) {
         return refreshed.session.access_token
+      }
+      // If refresh failed with an invalid refresh token, force re-login
+      if (error) {
+        try {
+          await $supabase.auth.signOut()
+        } catch {
+          /* ignore */
+        }
+        throw createError({
+          statusCode: 401,
+          statusMessage: 'Your session expired. Please sign in again.',
+        })
       }
     }
 
