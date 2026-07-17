@@ -26,7 +26,6 @@
         @close="errorMessage = ''"
       />
 
-      <!-- Saved crawls -->
       <section class="space-y-2">
         <div class="flex items-center justify-between gap-2">
           <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Your crawls</h3>
@@ -54,7 +53,7 @@
             <button
               type="button"
               class="min-w-0 flex-1 text-left"
-              @click="loadCrawl(crawl.id)"
+              @click="selectCrawl(crawl.id)"
             >
               <span class="block truncate font-medium text-gray-900 dark:text-white">{{ crawl.name }}</span>
               <span class="text-xs text-gray-500">
@@ -71,14 +70,13 @@
               icon="i-heroicons-trash-20-solid"
               aria-label="Delete crawl"
               :loading="deletingId === crawl.id"
-              @click="deleteCrawl(crawl.id)"
+              @click="onDeleteCrawl(crawl.id)"
             />
           </li>
         </ul>
         <p v-else class="text-sm text-gray-500">No saved crawls yet. Create one below.</p>
       </section>
 
-      <!-- Create / rename -->
       <section class="space-y-2 rounded-md border border-gray-200 p-3 dark:border-gray-800">
         <label class="block text-sm font-medium text-gray-900 dark:text-white">
           {{ activeCrawl ? 'Crawl name' : 'New crawl name' }}
@@ -89,7 +87,7 @@
             class="flex-1"
             placeholder="e.g. Friday night in Liverpool"
             maxlength="120"
-            @keydown.enter.prevent="activeCrawl ? saveMeta() : createCrawl()"
+            @keydown.enter.prevent="activeCrawl ? onSaveMeta() : onCreateCrawl()"
           />
           <UButton
             v-if="!activeCrawl"
@@ -97,7 +95,7 @@
             :loading="saving"
             :disabled="!draftName.trim()"
             label="Create"
-            @click="createCrawl"
+            @click="onCreateCrawl"
           />
           <UButton
             v-else
@@ -106,7 +104,7 @@
             :loading="saving"
             :disabled="!draftName.trim() || draftName.trim() === activeCrawl.name"
             label="Rename"
-            @click="saveMeta"
+            @click="onSaveMeta"
           />
         </div>
         <UButton
@@ -115,37 +113,62 @@
           color="gray"
           variant="link"
           label="Start a new crawl"
-          @click="startFresh"
+          @click="onStartFresh"
         />
       </section>
 
       <template v-if="activeCrawl">
-        <!-- Manual add -->
         <section class="space-y-2">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Add a pub</h3>
           <p class="text-xs text-gray-500">
-            Click a pub on the map and use “Add to crawl”, or type a name here.
+            Click a pub on the map and use “Add to crawl”, or search by name below.
           </p>
-          <div class="flex gap-2">
+          <div class="relative">
             <UInput
-              v-model="manualName"
-              class="flex-1"
-              placeholder="Type a pub name…"
+              v-model="venueQuery"
+              icon="i-heroicons-magnifying-glass-20-solid"
+              placeholder="Search pubs by name, town, or county…"
               maxlength="200"
-              @keydown.enter.prevent="addManualStop"
+              autocomplete="off"
+              :loading="searchLoading"
+              @keydown.down.prevent="highlightNext"
+              @keydown.up.prevent="highlightPrev"
+              @keydown.enter.prevent="selectHighlighted"
+              @keydown.esc="closeSearch"
             />
-            <UButton
-              color="gray"
-              variant="soft"
-              :disabled="!manualName.trim() || addingStop"
-              :loading="addingStop"
-              label="Add"
-              @click="addManualStop"
-            />
+            <ul
+              v-if="showSearchResults"
+              class="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+              role="listbox"
+            >
+              <li v-if="searchLoading" class="px-3 py-2 text-sm text-gray-500">Searching…</li>
+              <li
+                v-else-if="!searchResults.length"
+                class="px-3 py-2 text-sm text-gray-500"
+              >
+                No pubs found. Try another name or town.
+              </li>
+              <li
+                v-for="(venue, index) in searchResults"
+                :key="venue.id"
+                role="option"
+                class="cursor-pointer px-3 py-2 text-sm"
+                :class="index === highlightIndex
+                  ? 'bg-amber-50 text-amber-950 dark:bg-amber-950/50 dark:text-amber-50'
+                  : 'text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-800'"
+                @mousedown.prevent="selectVenue(venue)"
+                @mouseenter="highlightIndex = index"
+              >
+                <span class="block font-medium truncate">{{ venue.venuename }}</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {{ venueLocationLabel(venue) }}
+                </span>
+              </li>
+            </ul>
           </div>
+          <p v-if="addingStop" class="text-xs text-gray-500">Adding to crawl…</p>
         </section>
 
-        <!-- Ordered stops -->
         <section class="space-y-2">
           <div class="flex items-center justify-between gap-2">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -216,7 +239,12 @@
                     <p class="mt-1 truncate font-medium text-gray-900 dark:text-white">
                       {{ stop.venueName }}
                     </p>
-                    <p v-if="!stop.venueId" class="text-xs text-gray-500">Added manually</p>
+                    <p v-if="stopLocationLabel(stop)" class="text-xs text-gray-500 truncate">
+                      {{ stopLocationLabel(stop) }}
+                    </p>
+                    <p v-else-if="!stop.venueId" class="text-xs text-amber-700 dark:text-amber-400">
+                      Not linked to a venue listing
+                    </p>
                   </div>
                   <div class="flex shrink-0 flex-col items-end gap-1">
                     <UButton
@@ -233,7 +261,7 @@
                       variant="ghost"
                       icon="i-heroicons-x-mark-20-solid"
                       aria-label="Remove stop"
-                      @click="removeStop(index)"
+                      @click="removeStopLocal(index)"
                     />
                   </div>
                 </div>
@@ -250,7 +278,6 @@
           </ol>
         </section>
 
-        <!-- Progress + save -->
         <section class="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-800">
           <div v-if="stops.length" class="space-y-1">
             <div class="flex justify-between text-xs text-gray-500">
@@ -288,8 +315,8 @@
             color="amber"
             :loading="saving"
             :disabled="!dirty"
-            label="Save crawl"
-            @click="saveCrawl"
+            label="Save order & progress"
+            @click="onSaveCrawl"
           />
           <p v-if="lastSavedAt" class="text-center text-xs text-gray-500">
             Saved {{ lastSavedAt }}
@@ -301,257 +328,182 @@
 </template>
 
 <script setup lang="ts">
-import { buildCrawlLegs, formatWalkingDistance } from '@/utils/crawl-distance'
-
-export type CrawlStop = {
-  id?: string
-  venueId: number | null
-  venueName: string
-  latitude: number | null
-  longitude: number | null
-  notes?: string | null
-  sortOrder?: number
-}
-
-export type CrawlSummary = {
-  id: string
-  name: string
-  currentStopIndex: number
-  stopCount: number
-  updatedAt: string
-  stops?: CrawlStop[]
-}
-
 const emit = defineEmits<{
   close: []
-  'crawl-updated': [crawl: CrawlSummary | null]
+  'crawl-updated': [crawl: { id: string; name: string } | null]
 }>()
 
-const { isLoggedIn, initializeAuth } = useAuth()
+const {
+  crawls,
+  activeCrawl,
+  stops,
+  currentStopIndex,
+  draftName,
+  loadingList,
+  saving,
+  addingStop,
+  deletingId,
+  errorMessage,
+  dirty,
+  lastSavedAt,
+  totalWalkLabel,
+  progressPercent,
+  legLabel,
+  clearActive,
+  loadCrawls,
+  loadCrawl,
+  createCrawl,
+  saveMeta,
+  saveCrawl,
+  deleteCrawl,
+  addVenueStop,
+  removeStopLocal,
+  setProgress,
+  reorderStops,
+  initialize,
+} = usePubCrawl()
 
-const crawls = ref<CrawlSummary[]>([])
-const activeCrawl = ref<CrawlSummary | null>(null)
-const stops = ref<CrawlStop[]>([])
-const currentStopIndex = ref(0)
-const draftName = ref('')
-const manualName = ref('')
-const loadingList = ref(false)
-const saving = ref(false)
-const addingStop = ref(false)
-const deletingId = ref<string | null>(null)
-const errorMessage = ref('')
-const dirty = ref(false)
-const lastSavedAt = ref('')
+type VenueSearchHit = {
+  id: number
+  venuename: string
+  town: string
+  county: string
+  latitude?: string | null
+  longitude?: string | null
+}
+
+const venueQuery = ref('')
+const searchResults = ref<VenueSearchHit[]>([])
+const searchLoading = ref(false)
+const searchOpen = ref(false)
+const highlightIndex = ref(-1)
 const dragIndex = ref<number | null>(null)
 const dropIndex = ref<number | null>(null)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+let searchRequestId = 0
 
-const legs = computed(() => buildCrawlLegs(stops.value))
+const showSearchResults = computed(() =>
+  searchOpen.value && venueQuery.value.trim().length >= 2,
+)
 
-const totalWalkLabel = computed(() => {
-  const miles = legs.value.reduce((sum, leg) => sum + (leg.miles ?? 0), 0)
-  if (!miles) return ''
-  return `Total ~${formatWalkingDistance(miles).replace(/^~/, '')}`
+watch(
+  activeCrawl,
+  (crawl) => {
+    emit('crawl-updated', crawl ? { id: crawl.id, name: crawl.name } : null)
+  },
+  { immediate: true },
+)
+
+watch(venueQuery, (value) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  const q = value.trim()
+  if (q.length < 2) {
+    searchResults.value = []
+    searchOpen.value = false
+    highlightIndex.value = -1
+    searchLoading.value = false
+    return
+  }
+  searchOpen.value = true
+  searchLoading.value = true
+  searchTimer = setTimeout(() => {
+    void runVenueSearch(q)
+  }, 250)
 })
 
-const progressPercent = computed(() => {
-  if (!stops.value.length) return 0
-  return Math.round(((currentStopIndex.value + 1) / stops.value.length) * 100)
-})
-
-function legLabel(fromIndex: number) {
-  return legs.value[fromIndex]?.label || 'Distance unknown'
-}
-
-function markDirty() {
-  dirty.value = true
-}
-
-function startFresh() {
-  activeCrawl.value = null
-  stops.value = []
-  currentStopIndex.value = 0
-  draftName.value = ''
-  dirty.value = false
-  lastSavedAt.value = ''
-  emit('crawl-updated', null)
-}
-
-async function loadCrawls() {
-  if (!isLoggedIn.value) return
-  loadingList.value = true
-  errorMessage.value = ''
+async function runVenueSearch(q: string) {
+  const requestId = ++searchRequestId
   try {
-    crawls.value = await useAuthFetch<CrawlSummary[]>('/api/crawls')
-  } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load crawls'
-  } finally {
-    loadingList.value = false
-  }
-}
-
-async function createCrawl() {
-  const name = draftName.value.trim()
-  if (!name) return
-  saving.value = true
-  errorMessage.value = ''
-  try {
-    const crawl = await useAuthFetch<CrawlSummary>('/api/crawls', {
-      method: 'POST',
-      body: { name },
+    const results = await $fetch<VenueSearchHit[]>('/api/venues/search', {
+      params: { q, limit: 12 },
     })
-    activeCrawl.value = crawl
-    stops.value = []
-    currentStopIndex.value = 0
-    dirty.value = false
-    lastSavedAt.value = 'just now'
-    await loadCrawls()
-    emit('crawl-updated', crawl)
-  } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not create crawl'
+    if (requestId !== searchRequestId) return
+    searchResults.value = results
+    highlightIndex.value = results.length ? 0 : -1
+  } catch (err) {
+    if (requestId !== searchRequestId) return
+    console.error('Venue search failed:', err)
+    searchResults.value = []
+    highlightIndex.value = -1
   } finally {
-    saving.value = false
+    if (requestId === searchRequestId) searchLoading.value = false
   }
 }
 
-async function loadCrawl(id: string) {
-  errorMessage.value = ''
-  try {
-    const crawl = await useAuthFetch<CrawlSummary & { stops: CrawlStop[] }>(`/api/crawls/${id}`)
-    activeCrawl.value = crawl
-    draftName.value = crawl.name
-    stops.value = (crawl.stops || []).map((s) => ({ ...s }))
-    currentStopIndex.value = crawl.currentStopIndex || 0
-    dirty.value = false
-    lastSavedAt.value = formatSavedTime(crawl.updatedAt)
-    emit('crawl-updated', crawl)
-  } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load crawl'
-  }
+function venueLocationLabel(venue: VenueSearchHit) {
+  return [venue.town, venue.county].filter((part) => String(part || '').trim()).join(', ')
 }
 
-async function saveMeta() {
-  if (!activeCrawl.value) return
-  const name = draftName.value.trim()
-  if (!name) return
-  saving.value = true
-  errorMessage.value = ''
-  try {
-    const crawl = await useAuthFetch<CrawlSummary>(`/api/crawls/${activeCrawl.value.id}`, {
-      method: 'PUT',
-      body: { name },
-    })
-    activeCrawl.value = { ...activeCrawl.value, name: crawl.name }
-    await loadCrawls()
-  } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not rename crawl'
-  } finally {
-    saving.value = false
-  }
+function stopLocationLabel(stop: { town?: string | null; county?: string | null }) {
+  return [stop.town, stop.county].filter((part) => String(part || '').trim()).join(', ')
 }
 
-async function saveCrawl() {
-  if (!activeCrawl.value) return
-  saving.value = true
-  errorMessage.value = ''
-  try {
-    const crawl = await useAuthFetch<CrawlSummary & { stops: CrawlStop[] }>(
-      `/api/crawls/${activeCrawl.value.id}/stops`,
-      {
-        method: 'PUT',
-        body: {
-          name: draftName.value.trim() || activeCrawl.value.name,
-          currentStopIndex: currentStopIndex.value,
-          stops: stops.value.map((s) => ({
-            venueId: s.venueId,
-            venueName: s.venueName,
-            latitude: s.latitude,
-            longitude: s.longitude,
-            notes: s.notes ?? null,
-          })),
-        },
-      },
-    )
-    activeCrawl.value = crawl
-    draftName.value = crawl.name
-    stops.value = (crawl.stops || []).map((s) => ({ ...s }))
-    currentStopIndex.value = crawl.currentStopIndex || 0
-    dirty.value = false
-    lastSavedAt.value = 'just now'
-    await loadCrawls()
-    emit('crawl-updated', crawl)
-  } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not save crawl'
-  } finally {
-    saving.value = false
-  }
+function parseCoord(value: string | number | null | undefined) {
+  const n = Number(value)
+  return Number.isFinite(n) && n !== 0 ? n : null
 }
 
-async function deleteCrawl(id: string) {
+function closeSearch() {
+  searchOpen.value = false
+  highlightIndex.value = -1
+}
+
+function highlightNext() {
+  if (!searchResults.value.length) return
+  searchOpen.value = true
+  highlightIndex.value = (highlightIndex.value + 1) % searchResults.value.length
+}
+
+function highlightPrev() {
+  if (!searchResults.value.length) return
+  searchOpen.value = true
+  highlightIndex.value =
+    highlightIndex.value <= 0 ? searchResults.value.length - 1 : highlightIndex.value - 1
+}
+
+async function selectHighlighted() {
+  if (highlightIndex.value < 0 || !searchResults.value[highlightIndex.value]) return
+  await selectVenue(searchResults.value[highlightIndex.value])
+}
+
+async function selectVenue(venue: VenueSearchHit) {
+  const ok = await addVenueStop({
+    id: venue.id,
+    name: venue.venuename,
+    lat: parseCoord(venue.latitude),
+    lng: parseCoord(venue.longitude),
+  })
+  if (!ok) return
+  venueQuery.value = ''
+  searchResults.value = []
+  searchOpen.value = false
+  highlightIndex.value = -1
+}
+
+async function selectCrawl(id: string) {
+  await loadCrawl(id)
+}
+
+async function onCreateCrawl() {
+  await createCrawl()
+}
+
+async function onSaveMeta() {
+  await saveMeta()
+}
+
+async function onSaveCrawl() {
+  await saveCrawl()
+}
+
+async function onDeleteCrawl(id: string) {
   if (!confirm('Delete this pub crawl? This cannot be undone.')) return
-  deletingId.value = id
-  errorMessage.value = ''
-  try {
-    await useAuthFetch(`/api/crawls/${id}`, { method: 'DELETE' })
-    if (activeCrawl.value?.id === id) startFresh()
-    await loadCrawls()
-  } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not delete crawl'
-  } finally {
-    deletingId.value = null
-  }
+  await deleteCrawl(id)
 }
 
-function addManualStop() {
-  const name = manualName.value.trim()
-  if (!name || !activeCrawl.value) return
-  stops.value.push({
-    venueId: null,
-    venueName: name,
-    latitude: null,
-    longitude: null,
-  })
-  manualName.value = ''
-  markDirty()
-}
-
-/** Called from the map page when the user adds a venue from the modal. */
-function addVenueStop(venue: {
-  id: number
-  name: string
-  lat: number | null
-  lng: number | null
-}) {
-  if (!activeCrawl.value) {
-    errorMessage.value = 'Create or open a crawl first, then add pubs.'
-    return false
-  }
-  if (venue.id && stops.value.some((s) => s.venueId === venue.id)) {
-    errorMessage.value = 'That pub is already on this crawl.'
-    return false
-  }
-  stops.value.push({
-    venueId: venue.id || null,
-    venueName: venue.name,
-    latitude: venue.lat,
-    longitude: venue.lng,
-  })
-  markDirty()
-  errorMessage.value = ''
-  return true
-}
-
-function removeStop(index: number) {
-  stops.value.splice(index, 1)
-  if (currentStopIndex.value >= stops.value.length) {
-    currentStopIndex.value = Math.max(0, stops.value.length - 1)
-  }
-  markDirty()
-}
-
-function setProgress(index: number) {
-  if (index < 0 || index >= stops.value.length) return
-  currentStopIndex.value = index
-  markDirty()
+function onStartFresh() {
+  clearActive()
+  draftName.value = ''
 }
 
 function onDragStart(index: number, event: DragEvent) {
@@ -578,48 +530,14 @@ function onDrop(toIndex: number) {
   dragIndex.value = null
   dropIndex.value = null
   if (fromIndex == null || fromIndex === toIndex) return
-
-  const next = stops.value.slice()
-  const [moved] = next.splice(fromIndex, 1)
-  next.splice(toIndex, 0, moved)
-  stops.value = next
-
-  // Keep "you are here" attached to the same stop after reorder
-  if (currentStopIndex.value === fromIndex) {
-    currentStopIndex.value = toIndex
-  } else if (fromIndex < currentStopIndex.value && toIndex >= currentStopIndex.value) {
-    currentStopIndex.value -= 1
-  } else if (fromIndex > currentStopIndex.value && toIndex <= currentStopIndex.value) {
-    currentStopIndex.value += 1
-  }
-
-  markDirty()
+  reorderStops(fromIndex, toIndex)
 }
 
-function formatSavedTime(iso: string) {
-  try {
-    return new Date(iso).toLocaleString()
-  } catch {
-    return iso
-  }
-}
-
-defineExpose({
-  addVenueStop,
-  activeCrawl,
-  hasActiveCrawl: computed(() => !!activeCrawl.value),
+onMounted(() => {
+  void initialize()
 })
 
-onMounted(async () => {
-  await initializeAuth()
-  if (isLoggedIn.value) await loadCrawls()
-})
-
-watch(isLoggedIn, async (loggedIn) => {
-  if (loggedIn) await loadCrawls()
-  else {
-    crawls.value = []
-    startFresh()
-  }
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 </script>

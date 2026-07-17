@@ -78,7 +78,6 @@
     <USlideover v-model="isCrawlBuilderOpen" side="left" :ui="{ width: 'w-screen max-w-md' }">
       <MapPubCrawlBuilder
         v-if="isLoggedIn"
-        ref="crawlBuilderRef"
         @close="isCrawlBuilderOpen = false"
         @crawl-updated="onCrawlUpdated"
       />
@@ -171,6 +170,7 @@
               variant="soft"
               icon="i-heroicons-plus-20-solid"
               :label="addToCrawlLabel"
+              :loading="crawlAddPending"
               @click="addSelectedVenueToCrawl"
             />
           </div>
@@ -200,25 +200,26 @@ const eventStore = useEventStore()
 const mapboxToken = useMapboxToken()
 const config = useRuntimeConfig()
 const { isLoggedIn, initializeAuth } = useAuth()
+const {
+  activeCrawl,
+  addVenueStop,
+  initialize: initializePubCrawl,
+  errorMessage: crawlErrorMessage,
+} = usePubCrawl()
 
 const selectedCity = ref('')
 const cityNames = computed(() => eventStore.cities.map((city) => city.name))
 
 const isCrawlBuilderOpen = ref(false)
-const crawlBuilderRef = ref<{
-  addVenueStop: (venue: { id: number; name: string; lat: number | null; lng: number | null }) => boolean
-  activeCrawl: { value?: { name?: string } | null } | { name?: string } | null
-  hasActiveCrawl?: { value: boolean } | boolean
-} | null>(null)
-const activeCrawlName = ref('')
 const crawlAddMessage = ref('')
+const crawlAddPending = ref(false)
 let crawlAddMessageTimeout: ReturnType<typeof setTimeout> | null = null
 
 const crawlButtonLabel = computed(() =>
-  activeCrawlName.value ? `Pub crawl · ${activeCrawlName.value}` : 'Pub crawl',
+  activeCrawl.value?.name ? `Pub crawl · ${activeCrawl.value.name}` : 'Pub crawl',
 )
 const addToCrawlLabel = computed(() =>
-  activeCrawlName.value ? `Add to ${activeCrawlName.value}` : 'Add to crawl',
+  activeCrawl.value?.name ? `Add to ${activeCrawl.value.name}` : 'Add to crawl',
 )
 
 function openCrawlBuilder() {
@@ -226,59 +227,41 @@ function openCrawlBuilder() {
   crawlAddMessage.value = ''
 }
 
-function onCrawlUpdated(crawl: { name?: string } | null) {
-  activeCrawlName.value = crawl?.name || ''
+function onCrawlUpdated(_crawl: { id: string; name: string } | null) {
+  // activeCrawl is shared via usePubCrawl(); label updates from that ref
 }
 
-function addSelectedVenueToCrawl() {
-  if (!selectedVenue.value) return
+async function addSelectedVenueToCrawl() {
+  if (!selectedVenue.value || crawlAddPending.value) return
   crawlAddMessage.value = ''
+  crawlAddPending.value = true
 
-  const tryAdd = (attemptsLeft: number) => {
-    const builder = crawlBuilderRef.value
-    if (!builder?.addVenueStop) {
-      if (attemptsLeft > 0) {
-        requestAnimationFrame(() => tryAdd(attemptsLeft - 1))
-      } else {
-        crawlAddMessage.value = 'Open the pub crawl builder and create or load a crawl first.'
-      }
-      return
-    }
-
-    const active = unwrapRef(builder.activeCrawl)
-    if (!active) {
-      crawlAddMessage.value = 'Create or open a crawl in the builder, then add this pub.'
-      return
-    }
-
-    const ok = builder.addVenueStop({
-      id: selectedVenue.value!.id,
-      name: selectedVenue.value!.name,
-      lat: selectedVenue.value!.lat,
-      lng: selectedVenue.value!.lng,
+  try {
+    await initializePubCrawl()
+    const ok = await addVenueStop({
+      id: selectedVenue.value.id,
+      name: selectedVenue.value.name,
+      lat: selectedVenue.value.lat,
+      lng: selectedVenue.value.lng,
     })
 
     if (ok) {
-      crawlAddMessage.value = `Added ${selectedVenue.value!.name} to your crawl. Remember to save.`
+      isCrawlBuilderOpen.value = true
+      crawlAddMessage.value = `Added ${selectedVenue.value.name} to ${activeCrawl.value?.name || 'your crawl'}.`
       if (crawlAddMessageTimeout) clearTimeout(crawlAddMessageTimeout)
       crawlAddMessageTimeout = setTimeout(() => {
         crawlAddMessage.value = ''
       }, 4000)
     } else {
-      // Builder sets its own error (e.g. duplicate); surface a short cue here too
-      crawlAddMessage.value = 'Could not add this pub — check the crawl builder panel.'
+      isCrawlBuilderOpen.value = true
+      crawlAddMessage.value = crawlErrorMessage.value || 'Could not add this pub — create or open a crawl first.'
     }
+  } catch (err: any) {
+    isCrawlBuilderOpen.value = true
+    crawlAddMessage.value = err?.data?.statusMessage || err?.message || 'Could not add this pub to the crawl.'
+  } finally {
+    crawlAddPending.value = false
   }
-
-  if (!isCrawlBuilderOpen.value) isCrawlBuilderOpen.value = true
-  nextTick(() => tryAdd(12))
-}
-
-function unwrapRef<T>(value: { value?: T } | T | null | undefined): T | null | undefined {
-  if (value && typeof value === 'object' && 'value' in (value as object)) {
-    return (value as { value: T }).value
-  }
-  return value as T | null | undefined
 }
 
 const isOpenRight = reactive({
@@ -347,6 +330,7 @@ onMounted(async () => {
   updateDesktopViewport()
   desktopMediaQuery.addEventListener('change', updateDesktopViewport)
   void initializeAuth()
+  void initializePubCrawl()
   void eventStore.fetchCities()
   void loadFilterData()
   await createMap()
