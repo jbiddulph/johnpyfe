@@ -102,17 +102,46 @@ export default defineEventHandler(async (event) => {
     return rows
   }
 
-  function withMeta(crawl: typeof owned[number], role: 'owner' | 'member') {
+  function withMeta(
+    crawl: typeof owned[number],
+    role: 'owner' | 'member',
+    extras?: {
+      invitedByUserId?: string | null
+    },
+  ) {
     const dto = serializeCrawl(crawl, { canEdit: role === 'owner', role })
+    const ownerProfile = profiles.get(crawl.userId)
+    const inviterId = extras?.invitedByUserId || null
+    const inviterProfile = inviterId ? profiles.get(inviterId) : null
     return {
       ...dto,
       members: memberDtos(crawl),
       acceptedMemberCount: (crawl.members || []).filter((m) => m.status === 'accepted').length,
+      owner: {
+        userId: crawl.userId,
+        username: ownerProfile?.username || 'owner',
+        displayName: ownerProfile?.displayName || 'Owner',
+      },
+      invitedBy: inviterProfile
+        ? {
+            userId: inviterId!,
+            username: inviterProfile.username,
+            displayName: inviterProfile.displayName,
+          }
+        : role === 'member'
+          ? {
+              userId: crawl.userId,
+              username: ownerProfile?.username || 'owner',
+              displayName: ownerProfile?.displayName || 'Owner',
+            }
+          : null,
     }
   }
 
   const ownedDtos = owned.map((c) => withMeta(c, 'owner'))
-  const sharedDtos = sharedCrawls.map((c) => withMeta(c, 'member'))
+  const sharedDtos = memberships.map((m) =>
+    withMeta(m.crawl, 'member', { invitedByUserId: m.invitedBy }),
+  )
 
   const activeOwned = ownedDtos.find((c) => !isCrawlCompleted(c))
   const activeShared = sharedDtos.find((c) => !isCrawlCompleted(c))

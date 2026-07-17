@@ -84,7 +84,11 @@ export function usePubCrawl() {
   })
 
   const hasActiveCrawl = computed(() => !!activeCrawl.value)
-  const canEditActiveCrawl = computed(() => !!activeCrawl.value && activeCrawl.value.canEdit !== false && activeCrawl.value.role !== 'member')
+  const canEditActiveCrawl = computed(() =>
+    !!activeCrawl.value
+    && activeCrawl.value.canEdit === true
+    && activeCrawl.value.role === 'owner',
+  )
 
   function ensureCanEdit() {
     if (!canEditActiveCrawl.value) {

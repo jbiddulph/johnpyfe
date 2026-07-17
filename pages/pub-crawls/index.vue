@@ -4,12 +4,12 @@
       <div>
         <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Pub Crawls</h1>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Your active crawl, invites, and shared lists.
-          <span v-if="profile">
-            Signed in as
-            <strong>{{ profile.displayName }}</strong>
-            <span class="text-gray-500 dark:text-gray-400"> (@{{ profile.username }})</span>
-          </span>
+          {{ pageSubtitle }}
+        </p>
+        <p v-if="profile" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Signed in as
+          <strong class="text-gray-700 dark:text-gray-300">{{ profile.displayName }}</strong>
+          (@{{ profile.username }})
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
@@ -31,6 +31,53 @@
     <div v-if="loading && !loaded" class="text-sm text-gray-500">Loading pub crawls…</div>
 
     <template v-else>
+      <!-- Pending invites — always first so invitees can accept -->
+      <section v-if="pendingInvites.length" class="mb-8 space-y-3">
+        <div class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40">
+          <h2 class="text-lg font-semibold text-amber-950 dark:text-amber-100">
+            {{ pendingInvites.length === 1 ? 'You have been invited' : `You have ${pendingInvites.length} invitations` }}
+          </h2>
+          <p class="mt-1 text-sm text-amber-900/80 dark:text-amber-200/80">
+            Accept an invite to view the crawl on the map. You will not be able to edit, invite, or delete it.
+          </p>
+        </div>
+
+        <UCard
+          v-for="invite in pendingInvites"
+          :key="invite.id"
+          :ui="{ body: { padding: 'p-4' }, ring: 'ring-1 ring-amber-300 dark:ring-amber-800' }"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="font-medium text-gray-900 dark:text-white">{{ invite.crawlName }}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Invited by
+                <strong>{{ invite.invitedBy.displayName }}</strong>
+                (@{{ invite.invitedBy.username }})
+                · {{ invite.stopCount }} stop{{ invite.stopCount === 1 ? '' : 's' }}
+              </p>
+            </div>
+            <div class="flex gap-2">
+              <UButton
+                color="emerald"
+                size="sm"
+                :loading="respondingId === invite.id"
+                label="Accept invitation"
+                @click="respondInvite(invite.id, 'accept')"
+              />
+              <UButton
+                color="gray"
+                variant="soft"
+                size="sm"
+                :loading="respondingId === invite.id"
+                label="Decline"
+                @click="respondInvite(invite.id, 'decline')"
+              />
+            </div>
+          </div>
+        </UCard>
+      </section>
+
       <!-- Notifications -->
       <section v-if="notifications.length" class="mb-8 space-y-2">
         <div class="flex items-center justify-between gap-2">
@@ -60,50 +107,35 @@
           >
             <p class="font-medium text-gray-900 dark:text-white">{{ note.title }}</p>
             <p v-if="note.body" class="text-gray-600 dark:text-gray-400">{{ note.body }}</p>
-          </li>
-        </ul>
-      </section>
-
-      <!-- Pending invites -->
-      <section v-if="pendingInvites.length" class="mb-8 space-y-3">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Invitations</h2>
-        <UCard
-          v-for="invite in pendingInvites"
-          :key="invite.id"
-          :ui="{ body: { padding: 'p-4' } }"
-        >
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p class="font-medium text-gray-900 dark:text-white">{{ invite.crawlName }}</p>
-              <p class="text-sm text-gray-500">
-                Invited by @{{ invite.invitedBy.username }}
-                · {{ invite.stopCount }} stop{{ invite.stopCount === 1 ? '' : 's' }}
-              </p>
-            </div>
-            <div class="flex gap-2">
+            <div
+              v-if="note.type === 'crawl_invite' && inviteIdForNotification(note)"
+              class="mt-2 flex flex-wrap gap-2"
+            >
               <UButton
                 color="emerald"
-                size="sm"
-                :loading="respondingId === invite.id"
-                label="Accept"
-                @click="respondInvite(invite.id, 'accept')"
+                size="xs"
+                :loading="respondingId === inviteIdForNotification(note)"
+                label="Accept invitation"
+                @click="respondInvite(inviteIdForNotification(note)!, 'accept')"
               />
               <UButton
                 color="gray"
                 variant="soft"
-                size="sm"
-                :loading="respondingId === invite.id"
+                size="xs"
+                :loading="respondingId === inviteIdForNotification(note)"
                 label="Decline"
-                @click="respondInvite(invite.id, 'decline')"
+                @click="respondInvite(inviteIdForNotification(note)!, 'decline')"
               />
             </div>
-          </div>
-        </UCard>
+          </li>
+        </ul>
       </section>
 
       <!-- Active -->
       <section class="mb-8 space-y-3">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Current active crawl</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          {{ activeSectionTitle }}
+        </h2>
         <CrawlDashboardCard
           v-if="activeCrawl"
           :crawl="activeCrawl"
@@ -117,7 +149,7 @@
         <p v-else class="text-sm text-gray-500">
           No active crawl.
           <NuxtLink to="/map" class="text-amber-700 hover:underline">Create one on the map</NuxtLink>
-          or accept an invite above.
+          <template v-if="pendingInvites.length"> or accept an invite above.</template>
         </p>
       </section>
 
@@ -211,6 +243,7 @@
 <script setup lang="ts">
 definePageMeta({})
 
+const route = useRoute()
 const { isLoggedIn, initializeAuth } = useAuth()
 
 useSiteSeo({
@@ -237,14 +270,24 @@ type CrawlCard = {
   canEdit: boolean
   role: 'owner' | 'member'
   members: CrawlMember[]
+  owner?: Profile | null
+  invitedBy?: Profile | null
   updatedAt: string
+}
+type PendingInvite = {
+  id: string
+  crawlId: string
+  crawlName: string
+  stopCount: number
+  invitedBy: Profile
+  createdAt: string
 }
 
 const profile = ref<Profile | null>(null)
 const activeCrawl = ref<CrawlCard | null>(null)
 const otherCrawls = ref<CrawlCard[]>([])
 const completedCrawls = ref<CrawlCard[]>([])
-const pendingInvites = ref<any[]>([])
+const pendingInvites = ref<PendingInvite[]>([])
 const notifications = ref<any[]>([])
 const unreadNotificationCount = ref(0)
 const loading = ref(false)
@@ -261,6 +304,45 @@ const invitingUserId = ref<string | null>(null)
 const inviteMessage = ref('')
 let inviteTimer: ReturnType<typeof setTimeout> | null = null
 
+const pageSubtitle = computed(() => {
+  if (pendingInvites.value.length === 1) {
+    const invite = pendingInvites.value[0]
+    return `You have been invited by ${invite.invitedBy.displayName} (@${invite.invitedBy.username}) to join “${invite.crawlName}”.`
+  }
+  if (pendingInvites.value.length > 1) {
+    return `You have ${pendingInvites.value.length} pending pub crawl invitations waiting for a response.`
+  }
+  if (activeCrawl.value?.role === 'member' && activeCrawl.value.invitedBy) {
+    const inviter = activeCrawl.value.invitedBy
+    return `Shared crawl invited by ${inviter.displayName} (@${inviter.username}). You can view it, but only the creator can edit.`
+  }
+  return 'Your active crawl, invites, and shared lists.'
+})
+
+const activeSectionTitle = computed(() => {
+  if (activeCrawl.value?.role === 'member') return 'Shared with you'
+  return 'Current active crawl'
+})
+
+function inviteIdForNotification(note: { type?: string; crawlId?: string | null; link?: string | null }) {
+  if (note?.type !== 'crawl_invite') return null
+  const fromLink = typeof note.link === 'string'
+    ? note.link.match(/[?&]invite=([^&]+)/)?.[1]
+    : null
+  if (fromLink && pendingInvites.value.some((invite) => invite.id === fromLink)) {
+    return fromLink
+  }
+  if (note.crawlId) {
+    const match = pendingInvites.value.find((invite) => invite.crawlId === note.crawlId)
+    return match?.id || null
+  }
+  return null
+}
+
+function isOwnerCrawl(crawl: CrawlCard) {
+  return crawl.role === 'owner' && crawl.canEdit === true
+}
+
 async function loadDashboard() {
   loading.value = true
   errorMessage.value = ''
@@ -274,6 +356,11 @@ async function loadDashboard() {
     notifications.value = data.notifications || []
     unreadNotificationCount.value = data.unreadNotificationCount || 0
     loaded.value = true
+
+    const focusInvite = typeof route.query.invite === 'string' ? route.query.invite : ''
+    if (focusInvite && pendingInvites.value.some((invite) => invite.id === focusInvite)) {
+      // Keep invite highlighted via section at top; no extra action needed
+    }
   } catch (err: any) {
     errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load pub crawls'
   } finally {
@@ -282,6 +369,7 @@ async function loadDashboard() {
 }
 
 async function respondInvite(memberId: string, action: 'accept' | 'decline') {
+  if (!memberId) return
   respondingId.value = memberId
   errorMessage.value = ''
   try {
@@ -295,7 +383,7 @@ async function respondInvite(memberId: string, action: 'accept' | 'decline') {
 }
 
 async function toggleComplete(crawl: CrawlCard, completed: boolean) {
-  if (!crawl.canEdit) return
+  if (!isOwnerCrawl(crawl)) return
   try {
     await useAuthFetch(`/api/crawls/${crawl.id}`, {
       method: 'PUT',
@@ -308,7 +396,7 @@ async function toggleComplete(crawl: CrawlCard, completed: boolean) {
 }
 
 function openInvite(crawl: CrawlCard) {
-  if (!crawl.canEdit) return
+  if (!isOwnerCrawl(crawl)) return
   inviteCrawl.value = crawl
   inviteQuery.value = ''
   inviteResults.value = []
