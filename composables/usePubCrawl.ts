@@ -431,6 +431,7 @@ export function usePubCrawl() {
       errorMessage.value = 'Open or create a crawl first.'
       return false
     }
+    if (!ensureCanEdit()) return false
 
     if (!stops.value.length && (activeCrawl.value.stopCount || 0) > 0) {
       await loadCrawl(activeCrawl.value.id)
@@ -482,14 +483,15 @@ export function usePubCrawl() {
     markDirty()
   }
 
-  /** Persist progress immediately (manual Next / auto check-in). */
+  /** Persist progress immediately (manual Next / auto check-in). Creator only. */
   async function setProgressAndSave(index: number, options?: { fromArrival?: boolean }) {
-    if (!activeCrawl.value) return false
+    if (!activeCrawl.value || !ensureCanEdit()) return false
     if (index < 0 || index >= stops.value.length) return false
 
     // Only move forward on auto-arrival; allow manual jumps either way
     if (options?.fromArrival && index <= currentStopIndex.value) return false
 
+    const previousIndex = currentStopIndex.value
     currentStopIndex.value = index
     errorMessage.value = ''
     try {
@@ -506,6 +508,7 @@ export function usePubCrawl() {
       await loadCrawls()
       return true
     } catch (err: any) {
+      currentStopIndex.value = previousIndex
       errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not update progress'
       markDirty()
       return false

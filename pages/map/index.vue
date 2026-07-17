@@ -1273,6 +1273,8 @@ function stopCrawlGeolocation() {
 
 async function handleCrawlGeolocation(lat: number, lng: number) {
   if (!activeCrawl.value || stops.value.length < 1) return
+  // Only the crawl creator can advance progress (including auto check-in)
+  if (!canEditActiveCrawl.value) return
 
   const nearest = findNearestStopIndex(lat, lng, stops.value, CRAWL_ARRIVAL_RADIUS_METERS)
   if (!nearest) return
