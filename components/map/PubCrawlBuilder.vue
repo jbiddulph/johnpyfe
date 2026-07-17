@@ -302,14 +302,10 @@
           </ol>
         </section>
 
-<<<<<<< HEAD
         <section v-if="canEditActiveCrawl" class="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-800">
-=======
-        <section class="space-y-3 border-t border-gray-200 pt-3 dark:border-gray-800">
           <p class="text-xs text-gray-500">
             On the map: dotted walking line + distance labels. Allow location to auto-mark arrival within 50m.
           </p>
->>>>>>> origin/master
           <div v-if="stops.length" class="space-y-1">
             <div class="flex justify-between text-xs text-gray-500">
               <span>Progress</span>
