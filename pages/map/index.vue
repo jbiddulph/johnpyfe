@@ -184,15 +184,21 @@
             />
             <UButton
               v-if="isLoggedIn"
-              color="amber"
+              :color="selectedVenueOnActiveCrawl ? 'red' : 'amber'"
               variant="soft"
-              icon="i-heroicons-plus-20-solid"
-              :label="addToCrawlLabel"
+              :icon="selectedVenueOnActiveCrawl ? 'i-heroicons-minus-20-solid' : 'i-heroicons-plus-20-solid'"
+              :label="crawlToggleLabel"
               :loading="crawlAddPending"
-              @click="addSelectedVenueToCrawl"
+              @click="toggleSelectedVenueOnCrawl"
             />
           </div>
-          <p v-if="crawlAddMessage" class="text-sm text-emerald-700 dark:text-emerald-400">
+          <p
+            v-if="crawlAddMessage"
+            class="text-sm"
+            :class="crawlAddMessageIsError
+              ? 'text-red-600 dark:text-red-400'
+              : 'text-emerald-700 dark:text-emerald-400'"
+          >
             {{ crawlAddMessage }}
           </p>
         </div>
@@ -229,6 +235,8 @@ const {
   legs,
   currentStopIndex,
   addVenueStop,
+  removeVenueStop,
+  isVenueOnActiveCrawl,
   loadCrawl,
   setProgressAndSave,
   initialize: initializePubCrawl,
@@ -240,6 +248,7 @@ const cityNames = computed(() => eventStore.cities.map((city) => city.name))
 
 const isCrawlBuilderOpen = ref(false)
 const crawlAddMessage = ref('')
+const crawlAddMessageIsError = ref(false)
 const crawlAddPending = ref(false)
 const arrivalMessage = ref('')
 const selectedCrawlId = ref('')
@@ -261,9 +270,18 @@ const crawlButtonLabel = computed(() => {
     ? `Manage · ${crawls.value.length} lists`
     : `Manage · ${activeCrawl.value.name}`
 })
-const addToCrawlLabel = computed(() =>
-  activeCrawl.value?.name ? `Add to ${activeCrawl.value.name}` : 'Add to crawl',
+
+const selectedVenueOnActiveCrawl = computed(() =>
+  isVenueOnActiveCrawl(selectedVenue.value?.id),
 )
+
+const crawlToggleLabel = computed(() => {
+  const name = activeCrawl.value?.name
+  if (selectedVenueOnActiveCrawl.value) {
+    return name ? `Remove from ${name}` : 'Remove from crawl'
+  }
+  return name ? `Add to ${name}` : 'Add to crawl'
+})
 
 watch(
   () => activeCrawl.value?.id,
@@ -305,6 +323,7 @@ watch(isLoggedIn, (loggedIn) => {
 function openCrawlBuilder() {
   isCrawlBuilderOpen.value = true
   crawlAddMessage.value = ''
+  crawlAddMessageIsError.value = false
 }
 
 function onCrawlUpdated(_crawl: { id: string; name: string } | null) {
@@ -312,13 +331,43 @@ function onCrawlUpdated(_crawl: { id: string; name: string } | null) {
   updateCrawlRouteOnMap()
 }
 
-async function addSelectedVenueToCrawl() {
+function showCrawlToggleMessage(message: string, isError = false) {
+  crawlAddMessage.value = message
+  crawlAddMessageIsError.value = isError
+  if (crawlAddMessageTimeout) clearTimeout(crawlAddMessageTimeout)
+  crawlAddMessageTimeout = setTimeout(() => {
+    crawlAddMessage.value = ''
+    crawlAddMessageIsError.value = false
+  }, 4000)
+}
+
+async function toggleSelectedVenueOnCrawl() {
   if (!selectedVenue.value || crawlAddPending.value) return
   crawlAddMessage.value = ''
+  crawlAddMessageIsError.value = false
   crawlAddPending.value = true
+
+  const venueName = selectedVenue.value.name
+  const crawlName = activeCrawl.value?.name || 'your crawl'
+  const removing = selectedVenueOnActiveCrawl.value
 
   try {
     await initializePubCrawl()
+
+    if (removing) {
+      const ok = await removeVenueStop(selectedVenue.value.id)
+      if (ok) {
+        showCrawlToggleMessage(`Removed ${venueName} from ${crawlName}.`)
+      } else {
+        isCrawlBuilderOpen.value = true
+        showCrawlToggleMessage(
+          crawlErrorMessage.value || 'Could not remove this pub from the crawl.',
+          true,
+        )
+      }
+      return
+    }
+
     const ok = await addVenueStop({
       id: selectedVenue.value.id,
       name: selectedVenue.value.name,
@@ -328,18 +377,22 @@ async function addSelectedVenueToCrawl() {
 
     if (ok) {
       isCrawlBuilderOpen.value = true
-      crawlAddMessage.value = `Added ${selectedVenue.value.name} to ${activeCrawl.value?.name || 'your crawl'}.`
-      if (crawlAddMessageTimeout) clearTimeout(crawlAddMessageTimeout)
-      crawlAddMessageTimeout = setTimeout(() => {
-        crawlAddMessage.value = ''
-      }, 4000)
+      showCrawlToggleMessage(`Added ${venueName} to ${crawlName}.`)
     } else {
       isCrawlBuilderOpen.value = true
-      crawlAddMessage.value = crawlErrorMessage.value || 'Could not add this pub — create or open a crawl first.'
+      showCrawlToggleMessage(
+        crawlErrorMessage.value || 'Could not add this pub — create or open a crawl first.',
+        true,
+      )
     }
   } catch (err: any) {
     isCrawlBuilderOpen.value = true
-    crawlAddMessage.value = err?.data?.statusMessage || err?.message || 'Could not add this pub to the crawl.'
+    showCrawlToggleMessage(
+      err?.data?.statusMessage
+        || err?.message
+        || (removing ? 'Could not remove this pub from the crawl.' : 'Could not add this pub to the crawl.'),
+      true,
+    )
   } finally {
     crawlAddPending.value = false
   }
