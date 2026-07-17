@@ -1,11 +1,25 @@
 <template>
   <div class="flex h-full min-h-[22rem] flex-col">
     <div class="border-b border-gray-200 px-1 pb-3 dark:border-gray-800">
-      <h3 class="text-base font-semibold text-gray-900 dark:text-white">
-        {{ crawlName }} chat
-      </h3>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+          {{ crawlName }} chat
+        </h3>
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+          :class="realtimeConnected
+            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'"
+        >
+          <span
+            class="h-1.5 w-1.5 rounded-full"
+            :class="realtimeConnected ? 'bg-emerald-500' : 'bg-gray-400'"
+          />
+          {{ realtimeConnected ? 'Live' : 'Connecting' }}
+        </span>
+      </div>
       <p class="mt-0.5 text-xs text-gray-500">
-        Only the crawl creator and accepted members can see this conversation.
+        Only the crawl creator and accepted members can see this conversation. Messages update in real time.
       </p>
     </div>
 
@@ -79,13 +93,18 @@ const props = defineProps<{
   active?: boolean
 }>()
 
+const { $supabase } = useNuxtApp()
+
 const messages = ref<ChatMessage[]>([])
 const draft = ref('')
 const loading = ref(false)
 const sending = ref(false)
 const errorMessage = ref('')
+const realtimeConnected = ref(false)
 const listEl = ref<HTMLElement | null>(null)
-let pollTimer: ReturnType<typeof setInterval> | null = null
+
+let channel: ReturnType<typeof $supabase.channel> | null = null
+let fallbackPollTimer: ReturnType<typeof setInterval> | null = null
 
 function formatTime(iso: string) {
   try {
@@ -107,36 +126,53 @@ function scrollToBottom() {
   })
 }
 
+function appendMessage(message: ChatMessage) {
+  if (!message?.id) return
+  if (messages.value.some((m) => m.id === message.id)) return
+  messages.value = [...messages.value, message]
+  scrollToBottom()
+}
+
 async function loadMessages(options?: { silent?: boolean }) {
   if (!props.crawlId) return
   if (!options?.silent) loading.value = true
-  errorMessage.value = ''
+  if (!options?.silent) errorMessage.value = ''
   try {
-    const after = messages.value.length
+    const after = options?.silent && messages.value.length
       ? messages.value[messages.value.length - 1].createdAt
       : null
     const data = await useAuthFetch<{ messages: ChatMessage[] }>(
       `/api/crawls/${props.crawlId}/messages`,
       {
-        params: after && options?.silent ? { after } : {},
+        params: after ? { after } : {},
       },
     )
     const incoming = data.messages || []
     if (!options?.silent || !after) {
       messages.value = incoming
+      scrollToBottom()
     } else if (incoming.length) {
-      const seen = new Set(messages.value.map((m) => m.id))
-      const fresh = incoming.filter((m) => !seen.has(m.id))
-      if (fresh.length) {
-        messages.value = [...messages.value, ...fresh]
-        scrollToBottom()
-      }
+      for (const message of incoming) appendMessage(message)
     }
-    if (!options?.silent) scrollToBottom()
   } catch (err: any) {
-    errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load chat'
+    if (!options?.silent) {
+      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not load chat'
+    }
   } finally {
     loading.value = false
+  }
+}
+
+async function broadcastMessage(message: ChatMessage) {
+  if (!channel) return
+  try {
+    await channel.send({
+      type: 'broadcast',
+      event: 'chat_message',
+      payload: message,
+    })
+  } catch (err) {
+    console.warn('Could not broadcast chat message', err)
   }
 }
 
@@ -151,10 +187,8 @@ async function sendMessage() {
       body: { body },
     })
     draft.value = ''
-    if (!messages.value.some((m) => m.id === created.id)) {
-      messages.value = [...messages.value, created]
-    }
-    scrollToBottom()
+    appendMessage(created)
+    await broadcastMessage(created)
   } catch (err: any) {
     errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not send message'
   } finally {
@@ -162,34 +196,68 @@ async function sendMessage() {
   }
 }
 
-function startPolling() {
-  stopPolling()
-  pollTimer = setInterval(() => {
-    void loadMessages({ silent: true })
-  }, 4000)
+function stopFallbackPoll() {
+  if (fallbackPollTimer) {
+    clearInterval(fallbackPollTimer)
+    fallbackPollTimer = null
+  }
 }
 
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
+function startFallbackPoll() {
+  stopFallbackPoll()
+  // Safety net if a broadcast is missed
+  fallbackPollTimer = setInterval(() => {
+    void loadMessages({ silent: true })
+  }, 12000)
+}
+
+async function stopRealtime() {
+  stopFallbackPoll()
+  realtimeConnected.value = false
+  if (channel && $supabase) {
+    try {
+      await $supabase.removeChannel(channel)
+    } catch {
+      /* ignore */
+    }
   }
+  channel = null
+}
+
+async function startRealtime(crawlId: string) {
+  await stopRealtime()
+  if (!$supabase?.channel || !crawlId) return
+
+  channel = $supabase
+    .channel(`ukpubs-crawl-chat:${crawlId}`, {
+      config: { broadcast: { self: false } },
+    })
+    .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
+      const message = payload as ChatMessage
+      if (message?.crawlId && message.crawlId !== crawlId) return
+      appendMessage(message)
+    })
+    .subscribe((status: string) => {
+      realtimeConnected.value = status === 'SUBSCRIBED'
+    })
+
+  startFallbackPoll()
 }
 
 watch(
   () => [props.crawlId, props.active] as const,
   async ([id, active]) => {
-    stopPolling()
+    await stopRealtime()
     messages.value = []
     draft.value = ''
     if (!id || active === false) return
     await loadMessages()
-    startPolling()
+    await startRealtime(id)
   },
   { immediate: true },
 )
 
 onBeforeUnmount(() => {
-  stopPolling()
+  void stopRealtime()
 })
 </script>

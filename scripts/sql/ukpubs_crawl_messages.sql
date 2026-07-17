@@ -33,3 +33,28 @@ CREATE INDEX IF NOT EXISTS ukpubs_crawl_messages_crawl_created_idx
 
 CREATE INDEX IF NOT EXISTS ukpubs_crawl_messages_user_idx
     ON public.ukpubs_crawl_messages (user_id);
+
+-- Optional: enable Supabase Realtime postgres changes on this table
+-- (the app uses Realtime broadcast for live chat; this helps if you add DB listeners later)
+DO $$
+BEGIN
+    ALTER TABLE public.ukpubs_crawl_messages REPLICA IDENTITY FULL;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_publication_tables
+            WHERE pubname = 'supabase_realtime'
+              AND schemaname = 'public'
+              AND tablename = 'ukpubs_crawl_messages'
+        ) THEN
+            ALTER PUBLICATION supabase_realtime ADD TABLE public.ukpubs_crawl_messages;
+        END IF;
+    END IF;
+END $$;
