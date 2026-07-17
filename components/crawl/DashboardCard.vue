@@ -78,6 +78,12 @@
         </div>
       </div>
 
+      <CrawlRoutePreview
+        :crawl-name="crawl.name"
+        :stops="crawl.stops"
+        :stop-count="crawl.stopCount"
+      />
+
       <div>
         <h4 class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Who’s on this crawl</h4>
         <ul v-if="crawl.members?.length" class="flex flex-wrap gap-2">
@@ -99,9 +105,18 @@
       </div>
     </div>
 
-    <USlideover v-model="chatOpen">
-      <div class="flex h-full flex-col p-4">
-        <div class="mb-2 flex justify-end">
+    <USlideover
+      v-model="chatOpen"
+      :ui="{ width: 'w-screen max-w-full sm:max-w-md' }"
+    >
+      <div
+        class="flex h-[100dvh] max-h-[100dvh] flex-col px-3 pt-3 sm:h-full sm:max-h-none sm:p-4"
+        style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))"
+      >
+        <div class="mb-1 flex shrink-0 items-center justify-between gap-2 sm:mb-2 sm:justify-end">
+          <p class="truncate text-sm font-medium text-gray-700 dark:text-gray-200 sm:hidden">
+            {{ crawl.name }}
+          </p>
           <UButton
             color="gray"
             variant="ghost"
@@ -136,6 +151,12 @@ const props = defineProps<{
     role?: 'owner' | 'member'
     invitedBy?: { userId: string; username: string; displayName: string } | null
     owner?: { userId: string; username: string; displayName: string } | null
+    stops?: Array<{
+      venueName?: string | null
+      latitude?: number | null
+      longitude?: number | null
+      sortOrder?: number
+    }>
     members?: Array<{
       userId: string
       username: string

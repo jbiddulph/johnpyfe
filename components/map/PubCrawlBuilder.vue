@@ -176,7 +176,7 @@
         </div>
         <CrawlChat
           v-if="chatOpen && chatUserId"
-          class="rounded-lg border border-gray-200 p-3 dark:border-gray-800"
+          class="h-[min(55dvh,22rem)] rounded-lg border border-gray-200 p-2.5 dark:border-gray-800 sm:h-[min(50dvh,24rem)] sm:p-3"
           :crawl-id="activeCrawl.id"
           :crawl-name="activeCrawl.name"
           :current-user-id="chatUserId"

@@ -78,17 +78,16 @@
         </UCard>
       </section>
 
-      <!-- Notifications -->
-      <section v-if="notifications.length" class="mb-8 space-y-2">
+      <!-- Notifications (unread only — Mark all read hides this section) -->
+      <section v-if="unreadNotifications.length" class="mb-8 space-y-2">
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500">
             Notifications
-            <span v-if="unreadNotificationCount" class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">
-              {{ unreadNotificationCount }} new
+            <span class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">
+              {{ unreadNotifications.length }} new
             </span>
           </h2>
           <UButton
-            v-if="unreadNotificationCount"
             size="xs"
             color="gray"
             variant="link"
@@ -98,12 +97,9 @@
         </div>
         <ul class="space-y-2">
           <li
-            v-for="note in notifications.slice(0, 8)"
+            v-for="note in unreadNotifications.slice(0, 8)"
             :key="note.id"
-            class="rounded-md border px-3 py-2 text-sm"
-            :class="note.readAt
-              ? 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900'
-              : 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40'"
+            class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm dark:border-amber-800 dark:bg-amber-950/40"
           >
             <p class="font-medium text-gray-900 dark:text-white">{{ note.title }}</p>
             <p v-if="note.body" class="text-gray-600 dark:text-gray-400">{{ note.body }}</p>
@@ -131,44 +127,48 @@
         </ul>
       </section>
 
-      <!-- Active -->
+      <!-- Your crawls (owned, incomplete) -->
       <section class="mb-8 space-y-3">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ activeSectionTitle }}
-        </h2>
-        <CrawlDashboardCard
-          v-if="activeCrawl"
-          :crawl="activeCrawl"
-          :current-user-id="profile?.userId"
-          accent="emerald"
-          @invite="openInvite(activeCrawl)"
-          @complete="toggleComplete(activeCrawl, true)"
-          @reopen="toggleComplete(activeCrawl, false)"
-          @deleted="loadDashboard"
-        />
-        <p v-else class="text-sm text-gray-500">
-          No active crawl.
-          <NuxtLink to="/map" class="text-amber-700 hover:underline">Create one on the map</NuxtLink>
-          <template v-if="pendingInvites.length"> or accept an invite above.</template>
-        </p>
-      </section>
-
-      <!-- Other -->
-      <section class="mb-8 space-y-3">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Other crawls</h2>
-        <div v-if="otherCrawls.length" class="space-y-3">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Your crawls</h2>
+        <div v-if="yourCrawls.length" class="space-y-3">
           <CrawlDashboardCard
-            v-for="crawl in otherCrawls"
+            v-for="crawl in yourCrawls"
             :key="crawl.id"
             :crawl="crawl"
             :current-user-id="profile?.userId"
+            :accent="activeCrawl?.id === crawl.id ? 'emerald' : undefined"
             @invite="openInvite(crawl)"
             @complete="toggleComplete(crawl, true)"
             @reopen="toggleComplete(crawl, false)"
             @deleted="loadDashboard"
           />
         </div>
-        <p v-else class="text-sm text-gray-500">No other crawls right now.</p>
+        <p v-else class="text-sm text-gray-500">
+          No crawls of your own yet.
+          <NuxtLink to="/map" class="text-amber-700 hover:underline">Create one on the map</NuxtLink>
+        </p>
+      </section>
+
+      <!-- Shared with you (accepted invites, incomplete) -->
+      <section class="mb-8 space-y-3">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Shared with you</h2>
+        <div v-if="sharedCrawls.length" class="space-y-3">
+          <CrawlDashboardCard
+            v-for="crawl in sharedCrawls"
+            :key="crawl.id"
+            :crawl="crawl"
+            :current-user-id="profile?.userId"
+            :accent="activeCrawl?.id === crawl.id ? 'emerald' : undefined"
+            @invite="openInvite(crawl)"
+            @complete="toggleComplete(crawl, true)"
+            @reopen="toggleComplete(crawl, false)"
+            @deleted="loadDashboard"
+          />
+        </div>
+        <p v-else class="text-sm text-gray-500">
+          No shared crawls yet.
+          <template v-if="pendingInvites.length"> Accept an invite above to see it here.</template>
+        </p>
       </section>
 
       <!-- Completed -->
@@ -274,6 +274,12 @@ type CrawlCard = {
   owner?: Profile | null
   invitedBy?: Profile | null
   updatedAt: string
+  stops?: Array<{
+    venueName?: string | null
+    latitude?: number | null
+    longitude?: number | null
+    sortOrder?: number
+  }>
 }
 type PendingInvite = {
   id: string
@@ -296,6 +302,27 @@ const loaded = ref(false)
 const errorMessage = ref('')
 const respondingId = ref<string | null>(null)
 
+const unreadNotifications = computed(() =>
+  notifications.value.filter((note) => !note.readAt),
+)
+
+/** Incomplete owned crawls (active first). */
+const yourCrawls = computed(() => {
+  const ownedIncomplete = [
+    ...(activeCrawl.value?.role === 'owner' ? [activeCrawl.value] : []),
+    ...otherCrawls.value.filter((crawl) => crawl.role === 'owner'),
+  ]
+  return ownedIncomplete
+})
+
+/** Incomplete shared crawls (active first). */
+const sharedCrawls = computed(() => {
+  return [
+    ...(activeCrawl.value?.role === 'member' ? [activeCrawl.value] : []),
+    ...otherCrawls.value.filter((crawl) => crawl.role === 'member'),
+  ]
+})
+
 const inviteOpen = ref(false)
 const inviteCrawl = ref<CrawlCard | null>(null)
 const inviteQuery = ref('')
@@ -317,12 +344,7 @@ const pageSubtitle = computed(() => {
     const inviter = activeCrawl.value.invitedBy
     return `Shared crawl invited by ${inviter.displayName} (@${inviter.username}). You can view it, but only the creator can edit.`
   }
-  return 'Your active crawl, invites, and shared lists.'
-})
-
-const activeSectionTitle = computed(() => {
-  if (activeCrawl.value?.role === 'member') return 'Shared with you'
-  return 'Current active crawl'
+  return 'Your crawls, shared lists, and invites.'
 })
 
 function inviteIdForNotification(note: { type?: string; crawlId?: string | null; link?: string | null }) {
@@ -470,7 +492,8 @@ async function markNotificationsRead() {
       method: 'POST',
       body: { markAllRead: true },
     })
-    await loadDashboard()
+    notifications.value = []
+    unreadNotificationCount.value = 0
   } catch {
     /* ignore */
   }

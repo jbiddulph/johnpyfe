@@ -1,12 +1,12 @@
 <template>
-  <div class="flex h-full min-h-[22rem] flex-col">
-    <div class="border-b border-gray-200 px-1 pb-3 dark:border-gray-800">
+  <div class="flex h-full min-h-0 flex-col">
+    <div class="shrink-0 border-b border-gray-200 px-0.5 pb-2.5 dark:border-gray-800 sm:pb-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+        <h3 class="truncate text-base font-semibold text-gray-900 dark:text-white">
           {{ crawlName }} chat
         </h3>
         <span
-          class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+          class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
           :class="realtimeConnected
             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
             : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'"
@@ -18,14 +18,17 @@
           {{ realtimeConnected ? 'Live' : 'Connecting' }}
         </span>
       </div>
-      <p class="mt-0.5 text-xs text-gray-500">
+      <p class="mt-0.5 hidden text-xs text-gray-500 sm:block">
         Only the crawl creator and accepted members can see this conversation. Messages update in real time.
+      </p>
+      <p class="mt-0.5 text-xs text-gray-500 sm:hidden">
+        Members only · live updates
       </p>
     </div>
 
     <div
       ref="listEl"
-      class="min-h-0 flex-1 space-y-3 overflow-y-auto py-3 pr-1"
+      class="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain py-2.5 pr-0.5 sm:space-y-3 sm:py-3 sm:pr-1"
     >
       <div v-if="loading && !messages.length" class="text-sm text-gray-500">
         Loading chat…
@@ -36,17 +39,17 @@
       <div
         v-for="message in messages"
         :key="message.id"
-        class="rounded-lg px-3 py-2 text-sm"
+        class="rounded-lg px-2.5 py-2 text-sm sm:px-3"
         :class="message.userId === currentUserId
-          ? 'ml-8 bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100'
-          : 'mr-8 bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100'"
+          ? 'ml-6 bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100 sm:ml-10'
+          : 'mr-6 bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100 sm:mr-10'"
       >
-        <div class="mb-1 flex flex-wrap items-baseline justify-between gap-2 text-[11px]">
-          <span class="font-semibold">
-            {{ message.displayName }}
-            <span class="font-normal text-gray-500 dark:text-gray-400">@{{ message.username }}</span>
+        <div class="mb-1 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 text-[11px]">
+          <span class="min-w-0 font-semibold">
+            <span class="truncate">{{ message.displayName }}</span>
+            <span class="font-normal text-gray-500 dark:text-gray-400"> @{{ message.username }}</span>
           </span>
-          <time class="text-gray-500 dark:text-gray-400" :datetime="message.createdAt">
+          <time class="shrink-0 text-gray-500 dark:text-gray-400" :datetime="message.createdAt">
             {{ formatTime(message.createdAt) }}
           </time>
         </div>
@@ -55,20 +58,29 @@
       <p v-if="errorMessage" class="text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
     </div>
 
-    <form class="mt-auto flex gap-2 border-t border-gray-200 pt-3 dark:border-gray-800" @submit.prevent="sendMessage">
+    <form
+      class="mt-auto flex shrink-0 gap-2 border-t border-gray-200 pt-2.5 dark:border-gray-800 sm:pt-3"
+      style="padding-bottom: max(0px, env(safe-area-inset-bottom))"
+      @submit.prevent="sendMessage"
+    >
       <UInput
         v-model="draft"
-        class="flex-1"
+        class="min-w-0 flex-1"
+        size="md"
         maxlength="2000"
         autocomplete="off"
-        placeholder="Write a message…"
+        enterkeyhint="send"
+        placeholder="Message…"
         :disabled="sending"
       />
       <UButton
         type="submit"
         color="amber"
+        size="md"
+        class="shrink-0"
         :loading="sending"
         :disabled="!draft.trim()"
+        icon="i-heroicons-paper-airplane-20-solid"
         label="Send"
       />
     </form>
@@ -108,12 +120,11 @@ let fallbackPollTimer: ReturnType<typeof setInterval> | null = null
 
 function formatTime(iso: string) {
   try {
-    return new Date(iso).toLocaleString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    const date = new Date(iso)
+    const sameDay = new Date().toDateString() === date.toDateString()
+    return date.toLocaleString(undefined, sameDay
+      ? { hour: '2-digit', minute: '2-digit' }
+      : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
   } catch {
     return iso
   }

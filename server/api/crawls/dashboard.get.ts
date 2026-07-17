@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
       orderBy: { createdAt: 'desc' },
     }),
     prisma.ukpubsNotification.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, readAt: null },
       orderBy: { createdAt: 'desc' },
       take: 30,
     }),
@@ -182,6 +182,6 @@ export default defineEventHandler(async (event) => {
       }
     }),
     notifications: notifications.map(serializeNotification),
-    unreadNotificationCount: notifications.filter((n) => !n.readAt).length,
+    unreadNotificationCount: notifications.length,
   }
 })
