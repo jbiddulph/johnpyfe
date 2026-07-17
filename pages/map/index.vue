@@ -1,17 +1,28 @@
 <template>
   <div>
-    <div class="flex justify-between w-full text-xl items-center container mx-auto py-3">
-      {{ venueName }}
-      <USelect
-        class="content-center"
-        icon="i-heroicons-map-pin-20-solid"
-        color="white"
-        size="sm"
-        :options="cityNames"
-        placeholder="Search by city..."
-        v-model="selectedCity"
-        @change="searchCity(selectedCity)"
-      />
+    <div class="flex justify-between w-full text-xl items-center container mx-auto py-3 gap-3 flex-wrap">
+      <span>{{ venueName }}</span>
+      <div class="flex items-center gap-2 flex-wrap">
+        <UButton
+          v-if="isLoggedIn"
+          size="sm"
+          color="amber"
+          variant="soft"
+          icon="i-heroicons-map-20-solid"
+          :label="crawlPanelLabel"
+          @click="openCrawlBuilder"
+        />
+        <USelect
+          class="content-center"
+          icon="i-heroicons-map-pin-20-solid"
+          color="white"
+          size="sm"
+          :options="cityNames"
+          placeholder="Search by city..."
+          v-model="selectedCity"
+          @change="searchCity(selectedCity)"
+        />
+      </div>
     </div>
     <div class="bg-gray-100 border-t">
       <venue-namesList class="h-full" :venuenames="venueStore.names" @venue-name="venueNameSelected" />
@@ -63,6 +74,14 @@
           @close="isOpenLeft.slideover = false"
         />
       </div>
+    </USlideover>
+    <USlideover v-model="isCrawlBuilderOpen" side="left" :ui="{ width: 'w-screen max-w-md' }">
+      <MapPubCrawlBuilder
+        v-if="isLoggedIn"
+        ref="crawlBuilderRef"
+        @close="isCrawlBuilderOpen = false"
+        @crawl-updated="onCrawlUpdated"
+      />
     </USlideover>
     <UModal v-model="isVenueModalOpen">
       <UCard v-if="selectedVenue" :ui="{ ring: '', divide: 'divide-y divide-gray-100 dark:divide-gray-800' }">
@@ -146,7 +165,18 @@
               label="Events"
               @click="openSelectedVenueEvents"
             />
+            <UButton
+              v-if="isLoggedIn"
+              color="amber"
+              variant="soft"
+              icon="i-heroicons-plus-20-solid"
+              :label="addToCrawlLabel"
+              @click="addSelectedVenueToCrawl"
+            />
           </div>
+          <p v-if="crawlAddMessage" class="text-sm text-emerald-700 dark:text-emerald-400">
+            {{ crawlAddMessage }}
+          </p>
         </div>
       </UCard>
     </UModal>
@@ -169,9 +199,87 @@ const venueStore = useVenueStore()
 const eventStore = useEventStore()
 const mapboxToken = useMapboxToken()
 const config = useRuntimeConfig()
+const { isLoggedIn, initializeAuth } = useAuth()
 
 const selectedCity = ref('')
 const cityNames = computed(() => eventStore.cities.map((city) => city.name))
+
+const isCrawlBuilderOpen = ref(false)
+const crawlBuilderRef = ref<{
+  addVenueStop: (venue: { id: number; name: string; lat: number | null; lng: number | null }) => boolean
+  activeCrawl: { value?: { name?: string } | null } | { name?: string } | null
+  hasActiveCrawl?: { value: boolean } | boolean
+} | null>(null)
+const activeCrawlName = ref('')
+const crawlAddMessage = ref('')
+let crawlAddMessageTimeout: ReturnType<typeof setTimeout> | null = null
+
+const crawlButtonLabel = computed(() =>
+  activeCrawlName.value ? `Pub crawl · ${activeCrawlName.value}` : 'Pub crawl',
+)
+const addToCrawlLabel = computed(() =>
+  activeCrawlName.value ? `Add to ${activeCrawlName.value}` : 'Add to crawl',
+)
+
+function openCrawlBuilder() {
+  isCrawlBuilderOpen.value = true
+  crawlAddMessage.value = ''
+}
+
+function onCrawlUpdated(crawl: { name?: string } | null) {
+  activeCrawlName.value = crawl?.name || ''
+}
+
+function addSelectedVenueToCrawl() {
+  if (!selectedVenue.value) return
+  crawlAddMessage.value = ''
+
+  const tryAdd = (attemptsLeft: number) => {
+    const builder = crawlBuilderRef.value
+    if (!builder?.addVenueStop) {
+      if (attemptsLeft > 0) {
+        requestAnimationFrame(() => tryAdd(attemptsLeft - 1))
+      } else {
+        crawlAddMessage.value = 'Open the pub crawl builder and create or load a crawl first.'
+      }
+      return
+    }
+
+    const active = unwrapRef(builder.activeCrawl)
+    if (!active) {
+      crawlAddMessage.value = 'Create or open a crawl in the builder, then add this pub.'
+      return
+    }
+
+    const ok = builder.addVenueStop({
+      id: selectedVenue.value!.id,
+      name: selectedVenue.value!.name,
+      lat: selectedVenue.value!.lat,
+      lng: selectedVenue.value!.lng,
+    })
+
+    if (ok) {
+      crawlAddMessage.value = `Added ${selectedVenue.value!.name} to your crawl. Remember to save.`
+      if (crawlAddMessageTimeout) clearTimeout(crawlAddMessageTimeout)
+      crawlAddMessageTimeout = setTimeout(() => {
+        crawlAddMessage.value = ''
+      }, 4000)
+    } else {
+      // Builder sets its own error (e.g. duplicate); surface a short cue here too
+      crawlAddMessage.value = 'Could not add this pub — check the crawl builder panel.'
+    }
+  }
+
+  if (!isCrawlBuilderOpen.value) isCrawlBuilderOpen.value = true
+  nextTick(() => tryAdd(12))
+}
+
+function unwrapRef<T>(value: { value?: T } | T | null | undefined): T | null | undefined {
+  if (value && typeof value === 'object' && 'value' in (value as object)) {
+    return (value as { value: T }).value
+  }
+  return value as T | null | undefined
+}
 
 const isOpenRight = reactive({
   slideover: false,
@@ -238,6 +346,7 @@ onMounted(async () => {
   desktopMediaQuery = window.matchMedia('(min-width: 768px)')
   updateDesktopViewport()
   desktopMediaQuery.addEventListener('change', updateDesktopViewport)
+  void initializeAuth()
   void eventStore.fetchCities()
   void loadFilterData()
   await createMap()
@@ -763,6 +872,7 @@ function updateDesktopViewport() {
 
 onBeforeUnmount(() => {
   if (popupTimeout) clearTimeout(popupTimeout)
+  if (crawlAddMessageTimeout) clearTimeout(crawlAddMessageTimeout)
   desktopMediaQuery?.removeEventListener('change', updateDesktopViewport)
   popup?.remove()
   map.value?.remove()
