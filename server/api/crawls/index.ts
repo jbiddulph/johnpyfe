@@ -1,32 +1,41 @@
 import { prisma } from '../../utils/prisma'
 import { requireAuth } from '../../utils/require-auth'
-import { serializeCrawl } from '../../utils/crawls'
+import { serializeCrawl, stopInclude } from '../../utils/crawls'
+import { ensureUkpubsProfile } from '../../utils/crawl-profiles'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  await ensureUkpubsProfile(user)
   const method = event.method
 
   if (method === 'GET') {
-    const crawls = await prisma.ukpubsCrawl.findMany({
-      where: { userId: user.id },
-      include: {
-        stops: {
-          orderBy: { sortOrder: 'asc' },
-          include: {
-            venue: {
-              select: {
-                id: true,
-                venuename: true,
-                town: true,
-                county: true,
-              },
+    const [owned, memberships] = await Promise.all([
+      prisma.ukpubsCrawl.findMany({
+        where: { userId: user.id },
+        include: {
+          stops: { orderBy: { sortOrder: 'asc' }, include: stopInclude },
+        },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      prisma.ukpubsCrawlMember.findMany({
+        where: { userId: user.id, status: 'accepted' },
+        include: {
+          crawl: {
+            include: {
+              stops: { orderBy: { sortOrder: 'asc' }, include: stopInclude },
             },
           },
         },
-      },
-      orderBy: { updatedAt: 'desc' },
-    })
-    return crawls.map(serializeCrawl)
+      }),
+    ])
+
+    const ownedDtos = owned.map((c) => serializeCrawl(c, { canEdit: true, role: 'owner' }))
+    const sharedDtos = memberships
+      .map((m) => m.crawl)
+      .filter(Boolean)
+      .map((c) => serializeCrawl(c, { canEdit: false, role: 'member' }))
+
+    return [...ownedDtos, ...sharedDtos]
   }
 
   if (method === 'POST') {
@@ -43,11 +52,11 @@ export default defineEventHandler(async (event) => {
         currentStopIndex: 0,
       },
       include: {
-        stops: { orderBy: { sortOrder: 'asc' } },
+        stops: { orderBy: { sortOrder: 'asc' }, include: stopInclude },
       },
     })
 
-    return serializeCrawl(crawl)
+    return serializeCrawl(crawl, { canEdit: true, role: 'owner' })
   }
 
   throw createError({ statusCode: 405, statusMessage: 'Method not allowed' })

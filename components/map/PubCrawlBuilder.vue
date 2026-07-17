@@ -118,7 +118,13 @@
       </section>
 
       <template v-if="activeCrawl">
-        <section class="space-y-2">
+        <UAlert
+          v-if="!canEditActiveCrawl"
+          color="sky"
+          variant="soft"
+          description="View only — you were invited to this crawl. Only the creator can edit or delete it."
+        />
+        <section v-if="canEditActiveCrawl" class="space-y-2">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Add a pub</h3>
           <p class="text-xs text-gray-500">
             Click a pub on the map and use “Add to crawl”, or search by name below.
@@ -194,15 +200,16 @@
                   'border-emerald-400 bg-emerald-50/60 dark:border-emerald-700 dark:bg-emerald-950/30': index === currentStopIndex,
                   'border-gray-200 dark:border-gray-800': dragIndex !== index && dropIndex !== index && index !== currentStopIndex,
                 }"
-                draggable="true"
-                @dragstart="onDragStart(index, $event)"
+                :draggable="canEditActiveCrawl"
+                @dragstart="canEditActiveCrawl && onDragStart(index, $event)"
                 @dragend="onDragEnd"
-                @dragover.prevent="onDragOver(index)"
+                @dragover.prevent="canEditActiveCrawl && onDragOver(index)"
                 @dragleave="onDragLeave(index)"
-                @drop.prevent="onDrop(index)"
+                @drop.prevent="canEditActiveCrawl && onDrop(index)"
               >
                 <div class="flex items-start gap-2 px-2 py-2">
                   <button
+                    v-if="canEditActiveCrawl"
                     type="button"
                     class="mt-0.5 cursor-grab touch-none text-gray-400 active:cursor-grabbing"
                     aria-label="Drag to reorder"
@@ -360,6 +367,7 @@ const {
   removeStopLocal,
   setProgress,
   reorderStops,
+  canEditActiveCrawl,
   initialize,
 } = usePubCrawl()
 

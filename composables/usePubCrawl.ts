@@ -18,6 +18,9 @@ export type CrawlSummary = {
   currentStopIndex: number
   stopCount: number
   updatedAt: string
+  completedAt?: string | null
+  canEdit?: boolean
+  role?: 'owner' | 'member' | 'none'
   stops?: CrawlStop[]
 }
 
@@ -81,6 +84,15 @@ export function usePubCrawl() {
   })
 
   const hasActiveCrawl = computed(() => !!activeCrawl.value)
+  const canEditActiveCrawl = computed(() => !!activeCrawl.value && activeCrawl.value.canEdit !== false && activeCrawl.value.role !== 'member')
+
+  function ensureCanEdit() {
+    if (!canEditActiveCrawl.value) {
+      errorMessage.value = 'Only the crawl creator can edit or delete this list.'
+      return false
+    }
+    return true
+  }
 
   function legLabel(fromIndex: number) {
     return legs.value[fromIndex]?.label || 'Distance unknown'
@@ -182,7 +194,7 @@ export function usePubCrawl() {
   }
 
   async function saveMeta() {
-    if (!activeCrawl.value) return null
+    if (!activeCrawl.value || !ensureCanEdit()) return null
     const name = draftName.value.trim()
     if (!name) return null
     saving.value = true
@@ -192,7 +204,7 @@ export function usePubCrawl() {
         method: 'PUT',
         body: { name },
       })
-      activeCrawl.value = { ...activeCrawl.value, name: crawl.name }
+      activeCrawl.value = { ...activeCrawl.value, name: crawl.name, canEdit: true, role: 'owner' }
       rememberActiveCrawlId(crawl.id)
       await loadCrawls()
       return crawl
@@ -205,7 +217,7 @@ export function usePubCrawl() {
   }
 
   async function saveCrawl() {
-    if (!activeCrawl.value) return null
+    if (!activeCrawl.value || !ensureCanEdit()) return null
     saving.value = true
     errorMessage.value = ''
     try {
@@ -226,7 +238,7 @@ export function usePubCrawl() {
           },
         },
       )
-      activeCrawl.value = crawl
+      activeCrawl.value = { ...crawl, canEdit: true, role: 'owner' }
       draftName.value = crawl.name
       stops.value = (crawl.stops || []).map((s) => ({ ...s }))
       currentStopIndex.value = crawl.currentStopIndex || 0
@@ -244,6 +256,11 @@ export function usePubCrawl() {
   }
 
   async function deleteCrawl(id: string) {
+    const target = crawls.value.find((c) => c.id === id)
+    if (target && target.canEdit === false) {
+      errorMessage.value = 'Only the crawl creator can delete this list.'
+      return false
+    }
     deletingId.value = id
     errorMessage.value = ''
     try {
@@ -274,6 +291,10 @@ export function usePubCrawl() {
   }) {
     const crawl = await ensureActiveCrawl()
     if (!crawl) return false
+    if (crawl.canEdit === false || crawl.role === 'member') {
+      errorMessage.value = 'Only the crawl creator can add pubs to this list.'
+      return false
+    }
 
     if (!stops.value.length && (crawl.stopCount || 0) > 0) {
       await loadCrawl(crawl.id)
@@ -317,6 +338,7 @@ export function usePubCrawl() {
   }
 
   function removeStopLocal(index: number) {
+    if (!ensureCanEdit()) return
     stops.value.splice(index, 1)
     if (currentStopIndex.value >= stops.value.length) {
       currentStopIndex.value = Math.max(0, stops.value.length - 1)
@@ -325,12 +347,14 @@ export function usePubCrawl() {
   }
 
   function setProgress(index: number) {
+    if (!ensureCanEdit()) return
     if (index < 0 || index >= stops.value.length) return
     currentStopIndex.value = index
     markDirty()
   }
 
   function reorderStops(fromIndex: number, toIndex: number) {
+    if (!ensureCanEdit()) return
     if (fromIndex === toIndex) return
     const next = stops.value.slice()
     const [moved] = next.splice(fromIndex, 1)
@@ -387,6 +411,7 @@ export function usePubCrawl() {
     totalWalkLabel,
     progressPercent,
     hasActiveCrawl,
+    canEditActiveCrawl,
     legLabel,
     clearActive,
     loadCrawls,

@@ -208,13 +208,16 @@ model TownImage {
 
 /// Saved pub crawl for a logged-in user (table: ukpubs_crawls)
 model UkpubsCrawl {
-  id               String            @id @default(uuid())
-  userId           String            @map("user_id")
+  id               String               @id @default(uuid())
+  userId           String               @map("user_id")
   name             String
-  currentStopIndex Int               @default(0) @map("current_stop_index")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
+  currentStopIndex Int                  @default(0) @map("current_stop_index")
+  completedAt      DateTime?            @map("completed_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
   stops            UkpubsCrawlStop[]
+  members          UkpubsCrawlMember[]
+  notifications    UkpubsNotification[]
 
   @@index([userId])
   @@index([userId, updatedAt(sort: Desc)])
@@ -238,4 +241,49 @@ model UkpubsCrawlStop {
   @@index([crawlId, sortOrder])
   @@index([venueId])
   @@map("ukpubs_crawl_stops")
+}
+
+/// Searchable usernames for crawl invites (table: ukpubs_profiles)
+model UkpubsProfile {
+  userId      String   @id @map("user_id")
+  username    String   @unique
+  displayName String   @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("ukpubs_profiles")
+}
+
+/// Invited / joined users on a crawl (table: ukpubs_crawl_members)
+model UkpubsCrawlMember {
+  id          String      @id @default(uuid())
+  crawlId     String      @map("crawl_id")
+  userId      String      @map("user_id")
+  invitedBy   String      @map("invited_by")
+  status      String      @default("pending")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  respondedAt DateTime?   @map("responded_at")
+  crawl       UkpubsCrawl @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+
+  @@unique([crawlId, userId])
+  @@index([userId, status])
+  @@index([crawlId, status])
+  @@map("ukpubs_crawl_members")
+}
+
+/// In-app notifications (table: ukpubs_notifications)
+model UkpubsNotification {
+  id        String       @id @default(uuid())
+  userId    String       @map("user_id")
+  type      String
+  title     String
+  body      String?
+  link      String?
+  crawlId   String?      @map("crawl_id")
+  readAt    DateTime?    @map("read_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+  crawl     UkpubsCrawl? @relation(fields: [crawlId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("ukpubs_notifications")
 }
