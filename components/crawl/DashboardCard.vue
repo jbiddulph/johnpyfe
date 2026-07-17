@@ -11,11 +11,7 @@
                 ? 'bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100'
                 : 'bg-sky-100 text-sky-900 dark:bg-sky-900 dark:text-sky-100'"
             >
-<<<<<<< HEAD
-              {{ isOwner ? 'Creator' : (crawl.role === 'member' ? 'Invited' : 'View only') }}
-=======
               {{ isOwner ? 'Creator' : 'Invited' }}
->>>>>>> origin/master
             </span>
             <span
               v-if="crawl.completedAt"
@@ -38,7 +34,6 @@
         <div class="flex flex-wrap gap-2">
           <UButton size="xs" color="amber" variant="soft" to="/map" label="View on map" />
           <UButton
-<<<<<<< HEAD
             size="xs"
             color="sky"
             variant="soft"
@@ -47,8 +42,6 @@
             @click="chatOpen = true"
           />
           <UButton
-=======
->>>>>>> origin/master
             v-if="isOwner"
             size="xs"
             color="gray"
@@ -162,13 +155,7 @@ const emit = defineEmits<{
   deleted: []
 }>()
 
-<<<<<<< HEAD
-const isOwner = computed(() =>
-  props.crawl.canEdit === true && (props.crawl.role == null || props.crawl.role === 'owner'),
-)
-=======
 const isOwner = computed(() => props.crawl.role === 'owner' && props.crawl.canEdit === true)
->>>>>>> origin/master
 
 const invitedByLabel = computed(() => {
   const inviter = props.crawl.invitedBy || props.crawl.owner
@@ -179,10 +166,7 @@ const invitedByLabel = computed(() => {
   return inviter.displayName || (inviter.username ? `@${inviter.username}` : '')
 })
 
-<<<<<<< HEAD
 const chatOpen = ref(false)
-=======
->>>>>>> origin/master
 const deleting = ref(false)
 
 async function deleteCrawl() {
