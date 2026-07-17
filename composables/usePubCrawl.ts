@@ -4,6 +4,8 @@ export type CrawlStop = {
   id?: string
   venueId: number | null
   venueName: string
+  town?: string | null
+  county?: string | null
   latitude: number | null
   longitude: number | null
   notes?: string | null
@@ -257,37 +259,10 @@ export function usePubCrawl() {
     }
   }
 
-  async function addManualStop(nameInput: string) {
-    const name = nameInput.trim()
-    if (!name) return false
-    const crawl = await ensureActiveCrawl()
-    if (!crawl) return false
-
-    addingStop.value = true
-    errorMessage.value = ''
-    try {
-      const created = await useAuthFetch<CrawlStop>(`/api/crawls/${crawl.id}/stops`, {
-        method: 'POST',
-        body: { venueName: name },
-      })
-      stops.value = [...stops.value, created]
-      dirty.value = false
-      lastSavedAt.value = 'just now'
-      await loadCrawls()
-      if (activeCrawl.value) {
-        activeCrawl.value = {
-          ...activeCrawl.value,
-          stopCount: stops.value.length,
-          stops: stops.value,
-        }
-      }
-      return true
-    } catch (err: any) {
-      errorMessage.value = err?.data?.statusMessage || err?.message || 'Could not add stop'
-      return false
-    } finally {
-      addingStop.value = false
-    }
+  async function addManualStop(_nameInput: string) {
+    // Manual free-text stops are no longer supported — use addVenueStop with a DB venue.
+    errorMessage.value = 'Pick a pub from the search results.'
+    return false
   }
 
   /** Add a map venue and persist immediately. */

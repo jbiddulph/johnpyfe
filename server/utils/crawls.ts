@@ -1,11 +1,17 @@
-import type { UkpubsCrawl, UkpubsCrawlStop } from '@prisma/client'
+import type { UkpubsCrawl, UkpubsCrawlStop, Venue } from '@prisma/client'
 import { prisma } from './prisma'
+
+type StopWithVenue = UkpubsCrawlStop & {
+  venue?: Pick<Venue, 'id' | 'venuename' | 'town' | 'county'> | null
+}
 
 export type CrawlStopDto = {
   id: string
   crawlId: string
   venueId: number | null
   venueName: string
+  town: string | null
+  county: string | null
   latitude: number | null
   longitude: number | null
   sortOrder: number
@@ -24,12 +30,16 @@ export type CrawlDto = {
   stopCount: number
 }
 
-export function serializeStop(stop: UkpubsCrawlStop): CrawlStopDto {
+export function serializeStop(stop: StopWithVenue): CrawlStopDto {
+  const town = stop.venue?.town?.trim() || null
+  const county = stop.venue?.county?.trim() || null
   return {
     id: stop.id,
     crawlId: stop.crawlId,
     venueId: stop.venueId,
     venueName: stop.venueName,
+    town,
+    county,
     latitude: stop.latitude,
     longitude: stop.longitude,
     sortOrder: stop.sortOrder,
@@ -39,7 +49,7 @@ export function serializeStop(stop: UkpubsCrawlStop): CrawlStopDto {
 }
 
 export function serializeCrawl(
-  crawl: UkpubsCrawl & { stops?: UkpubsCrawlStop[] },
+  crawl: UkpubsCrawl & { stops?: StopWithVenue[] },
 ): CrawlDto {
   const stops = (crawl.stops || [])
     .slice()
@@ -58,11 +68,25 @@ export function serializeCrawl(
   }
 }
 
+const stopInclude = {
+  venue: {
+    select: {
+      id: true,
+      venuename: true,
+      town: true,
+      county: true,
+    },
+  },
+} as const
+
 export async function getCrawlForUser(crawlId: string, userId: string) {
   const crawl = await prisma.ukpubsCrawl.findFirst({
     where: { id: crawlId, userId },
     include: {
-      stops: { orderBy: { sortOrder: 'asc' } },
+      stops: {
+        orderBy: { sortOrder: 'asc' },
+        include: stopInclude,
+      },
     },
   })
   if (!crawl) {
@@ -77,3 +101,5 @@ export function parseOptionalCoord(value: unknown): number | null {
   if (!Number.isFinite(n) || n === 0) return null
   return n
 }
+
+export { stopInclude }

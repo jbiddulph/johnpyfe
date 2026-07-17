@@ -10,7 +10,19 @@ export default defineEventHandler(async (event) => {
     const crawls = await prisma.ukpubsCrawl.findMany({
       where: { userId: user.id },
       include: {
-        stops: { orderBy: { sortOrder: 'asc' } },
+        stops: {
+          orderBy: { sortOrder: 'asc' },
+          include: {
+            venue: {
+              select: {
+                id: true,
+                venuename: true,
+                town: true,
+                county: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { updatedAt: 'desc' },
     })

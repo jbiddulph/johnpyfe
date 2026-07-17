@@ -121,25 +121,52 @@
         <section class="space-y-2">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Add a pub</h3>
           <p class="text-xs text-gray-500">
-            Click a pub on the map and use “Add to crawl”, or type a name here.
+            Click a pub on the map and use “Add to crawl”, or search by name below.
           </p>
-          <div class="flex gap-2">
+          <div class="relative">
             <UInput
-              v-model="manualName"
-              class="flex-1"
-              placeholder="Type a pub name…"
+              v-model="venueQuery"
+              icon="i-heroicons-magnifying-glass-20-solid"
+              placeholder="Search pubs by name, town, or county…"
               maxlength="200"
-              @keydown.enter.prevent="onAddManual"
+              autocomplete="off"
+              :loading="searchLoading"
+              @keydown.down.prevent="highlightNext"
+              @keydown.up.prevent="highlightPrev"
+              @keydown.enter.prevent="selectHighlighted"
+              @keydown.esc="closeSearch"
             />
-            <UButton
-              color="gray"
-              variant="soft"
-              :disabled="!manualName.trim() || addingStop"
-              :loading="addingStop"
-              label="Add"
-              @click="onAddManual"
-            />
+            <ul
+              v-if="showSearchResults"
+              class="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+              role="listbox"
+            >
+              <li v-if="searchLoading" class="px-3 py-2 text-sm text-gray-500">Searching…</li>
+              <li
+                v-else-if="!searchResults.length"
+                class="px-3 py-2 text-sm text-gray-500"
+              >
+                No pubs found. Try another name or town.
+              </li>
+              <li
+                v-for="(venue, index) in searchResults"
+                :key="venue.id"
+                role="option"
+                class="cursor-pointer px-3 py-2 text-sm"
+                :class="index === highlightIndex
+                  ? 'bg-amber-50 text-amber-950 dark:bg-amber-950/50 dark:text-amber-50'
+                  : 'text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-800'"
+                @mousedown.prevent="selectVenue(venue)"
+                @mouseenter="highlightIndex = index"
+              >
+                <span class="block font-medium truncate">{{ venue.venuename }}</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {{ venueLocationLabel(venue) }}
+                </span>
+              </li>
+            </ul>
           </div>
+          <p v-if="addingStop" class="text-xs text-gray-500">Adding to crawl…</p>
         </section>
 
         <section class="space-y-2">
@@ -212,7 +239,12 @@
                     <p class="mt-1 truncate font-medium text-gray-900 dark:text-white">
                       {{ stop.venueName }}
                     </p>
-                    <p v-if="!stop.venueId" class="text-xs text-gray-500">Added manually</p>
+                    <p v-if="stopLocationLabel(stop)" class="text-xs text-gray-500 truncate">
+                      {{ stopLocationLabel(stop) }}
+                    </p>
+                    <p v-else-if="!stop.venueId" class="text-xs text-amber-700 dark:text-amber-400">
+                      Not linked to a venue listing
+                    </p>
                   </div>
                   <div class="flex shrink-0 flex-col items-end gap-1">
                     <UButton
@@ -324,16 +356,35 @@ const {
   saveMeta,
   saveCrawl,
   deleteCrawl,
-  addManualStop,
+  addVenueStop,
   removeStopLocal,
   setProgress,
   reorderStops,
   initialize,
 } = usePubCrawl()
 
-const manualName = ref('')
+type VenueSearchHit = {
+  id: number
+  venuename: string
+  town: string
+  county: string
+  latitude?: string | null
+  longitude?: string | null
+}
+
+const venueQuery = ref('')
+const searchResults = ref<VenueSearchHit[]>([])
+const searchLoading = ref(false)
+const searchOpen = ref(false)
+const highlightIndex = ref(-1)
 const dragIndex = ref<number | null>(null)
 const dropIndex = ref<number | null>(null)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+let searchRequestId = 0
+
+const showSearchResults = computed(() =>
+  searchOpen.value && venueQuery.value.trim().length >= 2,
+)
 
 watch(
   activeCrawl,
@@ -342,6 +393,88 @@ watch(
   },
   { immediate: true },
 )
+
+watch(venueQuery, (value) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  const q = value.trim()
+  if (q.length < 2) {
+    searchResults.value = []
+    searchOpen.value = false
+    highlightIndex.value = -1
+    searchLoading.value = false
+    return
+  }
+  searchOpen.value = true
+  searchLoading.value = true
+  searchTimer = setTimeout(() => {
+    void runVenueSearch(q)
+  }, 250)
+})
+
+async function runVenueSearch(q: string) {
+  const requestId = ++searchRequestId
+  try {
+    const results = await $fetch<VenueSearchHit[]>('/api/venues/search', {
+      params: { q, limit: 12 },
+    })
+    if (requestId !== searchRequestId) return
+    searchResults.value = results
+    highlightIndex.value = results.length ? 0 : -1
+  } catch (err) {
+    if (requestId !== searchRequestId) return
+    console.error('Venue search failed:', err)
+    searchResults.value = []
+    highlightIndex.value = -1
+  } finally {
+    if (requestId === searchRequestId) searchLoading.value = false
+  }
+}
+
+function venueLocationLabel(venue: VenueSearchHit) {
+  return [venue.town, venue.county].filter((part) => String(part || '').trim()).join(', ')
+}
+
+function parseCoord(value: string | number | null | undefined) {
+  const n = Number(value)
+  return Number.isFinite(n) && n !== 0 ? n : null
+}
+
+function closeSearch() {
+  searchOpen.value = false
+  highlightIndex.value = -1
+}
+
+function highlightNext() {
+  if (!searchResults.value.length) return
+  searchOpen.value = true
+  highlightIndex.value = (highlightIndex.value + 1) % searchResults.value.length
+}
+
+function highlightPrev() {
+  if (!searchResults.value.length) return
+  searchOpen.value = true
+  highlightIndex.value =
+    highlightIndex.value <= 0 ? searchResults.value.length - 1 : highlightIndex.value - 1
+}
+
+async function selectHighlighted() {
+  if (highlightIndex.value < 0 || !searchResults.value[highlightIndex.value]) return
+  await selectVenue(searchResults.value[highlightIndex.value])
+}
+
+async function selectVenue(venue: VenueSearchHit) {
+  const ok = await addVenueStop({
+    id: venue.id,
+    name: venue.venuename,
+    lat: parseCoord(venue.latitude),
+    lng: parseCoord(venue.longitude),
+  })
+  if (!ok) return
+  venueQuery.value = ''
+  searchResults.value = []
+  searchOpen.value = false
+  highlightIndex.value = -1
+}
 
 async function selectCrawl(id: string) {
   await loadCrawl(id)
@@ -367,13 +500,6 @@ async function onDeleteCrawl(id: string) {
 function onStartFresh() {
   clearActive()
   draftName.value = ''
-}
-
-async function onAddManual() {
-  const name = manualName.value.trim()
-  if (!name) return
-  const ok = await addManualStop(name)
-  if (ok) manualName.value = ''
 }
 
 function onDragStart(index: number, event: DragEvent) {
@@ -405,5 +531,9 @@ function onDrop(toIndex: number) {
 
 onMounted(() => {
   void initialize()
+})
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 </script>
