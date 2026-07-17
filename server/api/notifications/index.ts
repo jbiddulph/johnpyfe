@@ -7,13 +7,13 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'GET') {
     const rows = await prisma.ukpubsNotification.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, readAt: null },
       orderBy: { createdAt: 'desc' },
       take: 40,
     })
     return {
       notifications: rows.map(serializeNotification),
-      unreadCount: rows.filter((n) => !n.readAt).length,
+      unreadCount: rows.length,
     }
   }
 

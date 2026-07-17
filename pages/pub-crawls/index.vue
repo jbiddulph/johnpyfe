@@ -78,17 +78,16 @@
         </UCard>
       </section>
 
-      <!-- Notifications -->
-      <section v-if="notifications.length" class="mb-8 space-y-2">
+      <!-- Notifications (unread only — Mark all read hides this section) -->
+      <section v-if="unreadNotifications.length" class="mb-8 space-y-2">
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500">
             Notifications
-            <span v-if="unreadNotificationCount" class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">
-              {{ unreadNotificationCount }} new
+            <span class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">
+              {{ unreadNotifications.length }} new
             </span>
           </h2>
           <UButton
-            v-if="unreadNotificationCount"
             size="xs"
             color="gray"
             variant="link"
@@ -98,12 +97,9 @@
         </div>
         <ul class="space-y-2">
           <li
-            v-for="note in notifications.slice(0, 8)"
+            v-for="note in unreadNotifications.slice(0, 8)"
             :key="note.id"
-            class="rounded-md border px-3 py-2 text-sm"
-            :class="note.readAt
-              ? 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900'
-              : 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40'"
+            class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm dark:border-amber-800 dark:bg-amber-950/40"
           >
             <p class="font-medium text-gray-900 dark:text-white">{{ note.title }}</p>
             <p v-if="note.body" class="text-gray-600 dark:text-gray-400">{{ note.body }}</p>
@@ -296,6 +292,10 @@ const loaded = ref(false)
 const errorMessage = ref('')
 const respondingId = ref<string | null>(null)
 
+const unreadNotifications = computed(() =>
+  notifications.value.filter((note) => !note.readAt),
+)
+
 const inviteOpen = ref(false)
 const inviteCrawl = ref<CrawlCard | null>(null)
 const inviteQuery = ref('')
@@ -470,7 +470,8 @@ async function markNotificationsRead() {
       method: 'POST',
       body: { markAllRead: true },
     })
-    await loadDashboard()
+    notifications.value = []
+    unreadNotificationCount.value = 0
   } catch {
     /* ignore */
   }
