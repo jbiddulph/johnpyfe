@@ -1,13 +1,12 @@
 <template>
   <HomeHeroSearch />
-  <HomeWorldCupBanner />
   <HomePubCrawlAnnouncementModal />
 
   <div class="container mx-auto px-4 py-10">
     <section class="mb-12 text-center max-w-3xl mx-auto">
       <p class="text-xl text-gray-600 dark:text-gray-400">
         Discover events, browse by town or county, and find pubs near you — including
-        <strong class="font-medium text-gray-700 dark:text-gray-300">World Cup 2026 sports pubs</strong>,
+        <strong class="font-medium text-gray-700 dark:text-gray-300">sports pubs</strong>,
         coastal towns and Premier League grounds.
       </p>
       <div class="flex flex-wrap justify-center gap-3 mt-6">
@@ -94,55 +93,23 @@ const stadiumListItems = computed(() =>
 const siteUrl = siteBaseUrl()
 
 useSiteSeo({
-  title: 'World Cup 2026 Pubs & Sports Bars UK — Watch England Live',
+  title: 'UK Pubs & Sports Bars Directory — Find Venues Near You',
   description:
-    'Find pubs and sports bars showing FIFA World Cup 2026 across the UK. Watch England vs Argentina live on Wednesday 15 July at 8pm BST — discover World Cup pubs in London, Manchester, Birmingham, Leeds, Liverpool, Bristol, Brighton, Glasgow, Edinburgh, Newcastle, Sheffield, Nottingham and Cardiff. Browse sports bars with big screens, England semi-final screenings, BBC One and ITV pub viewings, and bookable sports pubs near you.',
+    'Discover pubs and sports bars across the UK. Browse venues in London, Manchester, Birmingham, Leeds, Liverpool, Bristol, Brighton, Glasgow, Edinburgh, Newcastle, Sheffield, Nottingham and Cardiff. Find sports bars with big screens, live events, coastal pubs, and venues near Premier League grounds.',
   keywords:
-    'World Cup 2026 pubs, World Cup pubs UK, sports bars UK, pubs showing World Cup, England World Cup pubs, watch England World Cup pub, England vs Argentina pub, World Cup sports bars, World Cup semi-final pubs, FIFA World Cup venues UK, pubs showing football UK, sports pub finder, World Cup 2026 London pubs, World Cup pubs Manchester, World Cup pubs Birmingham, World Cup pubs Leeds, World Cup pubs Liverpool, World Cup pubs Bristol, World Cup pubs Brighton, World Cup pubs Newcastle, World Cup pubs Sheffield, World Cup pubs Nottingham, World Cup pubs Cardiff, World Cup pubs Glasgow, World Cup pubs Edinburgh, pubs with big screens, sports bars near me, England knockout pubs, Semi-final World Cup pub, BBC One World Cup pub, watch World Cup in pub, UK sports venues, football pubs UK, World Cup screening pubs, book sports pub table, FANZO pubs, O\'Neills World Cup, Walkabout World Cup, BOX sports bar, sports TV pubs, England Argentina pub screening, Mercedes-Benz Stadium Atlanta',
+    'UK pubs, sports bars UK, pubs near me, UK pub directory, sports pubs, football pubs UK, live sports venues, pubs with big screens, sports bars near me, UK venues, pub finder, London pubs, Manchester pubs, Birmingham pubs, Leeds pubs, Liverpool pubs, Bristol pubs, Brighton pubs, Newcastle pubs, Sheffield pubs, Nottingham pubs, Cardiff pubs, Glasgow pubs, Edinburgh pubs, coastal pubs, Premier League pubs, live music venues, pub events, sports TV pubs',
   path: '/',
   jsonLd: [
     {
       '@context': 'https://schema.org',
-      '@type': 'SportsEvent',
-      name: 'England vs Argentina — FIFA World Cup 2026 Semi-final',
-      description:
-        'Watch England vs Argentina in the FIFA World Cup 2026 Semi-final at UK pubs and sports bars. Kick-off Wednesday 15 July 2026 at 8:00pm BST, live on BBC One from Mercedes-Benz Stadium, Atlanta.',
-      startDate: '2026-07-15T20:00:00+01:00',
-      eventStatus: 'https://schema.org/EventScheduled',
-      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-      location: {
-        '@type': 'Place',
-        name: 'Mercedes-Benz Stadium',
-        address: {
-          '@type': 'PostalAddress',
-          addressLocality: 'Atlanta',
-          addressRegion: 'GA',
-          addressCountry: 'US',
-        },
-      },
-      organizer: {
-        '@type': 'Organization',
-        name: 'FIFA',
-      },
-      offers: {
-        '@type': 'Offer',
-        url: `${siteUrl}/search?q=sports+bar`,
-        availability: 'https://schema.org/InStock',
-        price: '0',
-        priceCurrency: 'GBP',
-        description: 'Find UK pubs and sports bars screening the match',
-      },
-    },
-    {
-      '@context': 'https://schema.org',
       '@type': 'WebPage',
-      name: 'World Cup 2026 Pubs & Sports Bars UK',
+      name: 'UK Pubs & Sports Bars Directory',
       description:
-        'UK Pubs directory of sports bars, football pubs and venues showing FIFA World Cup 2026 matches including England fixtures.',
+        'Comprehensive UK directory of pubs, sports bars, and venues with live events, sports screenings, and more.',
       url: siteUrl,
       about: {
         '@type': 'Thing',
-        name: 'FIFA World Cup 2026 pub and sports bar listings',
+        name: 'UK pub and sports bar listings',
       },
     },
   ],
