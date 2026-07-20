@@ -2,21 +2,21 @@
   <div>
     <div
       v-if="isAdmin"
-      class="bg-amber-50 border-b border-amber-200 text-sm dark:bg-amber-950 dark:border-amber-900"
+      class="bg-lime-50 border-b border-lime-200 text-sm dark:bg-lime-950 dark:border-lime-900"
     >
       <div class="max-w-screen-xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2">
-        <span class="font-medium text-amber-900 dark:text-amber-100">Admin</span>
+        <span class="font-medium text-lime-900 dark:text-lime-100">Admin</span>
         <div class="flex flex-wrap gap-4">
-          <NuxtLink to="/admin/reports" class="font-semibold text-amber-700 hover:underline dark:text-amber-300">
+          <NuxtLink to="/admin/reports" class="font-semibold text-lime-700 hover:underline dark:text-lime-300">
             Reports
           </NuxtLink>
-          <NuxtLink to="/admin/claims" class="text-amber-700 hover:underline dark:text-amber-300">
+          <NuxtLink to="/admin/claims" class="text-lime-700 hover:underline dark:text-lime-300">
             Pub claims
           </NuxtLink>
-          <NuxtLink to="/admin/dashboard" class="text-amber-700 hover:underline dark:text-amber-300">
+          <NuxtLink to="/admin/dashboard" class="text-lime-700 hover:underline dark:text-lime-300">
             Dashboard
           </NuxtLink>
-          <NuxtLink to="/admin/past-events" class="text-amber-700 hover:underline dark:text-amber-300">
+          <NuxtLink to="/admin/past-events" class="text-lime-700 hover:underline dark:text-lime-300">
             Past events
           </NuxtLink>
         </div>
@@ -68,10 +68,10 @@
                 <NuxtLink @click="toggleMenu" to="/dashboard" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">My pubs</NuxtLink>
               </li>
               <li v-if="isAdmin">
-                <NuxtLink @click="toggleMenu" to="/admin/reports" class="block py-2 px-3 text-amber-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-amber-800 md:p-0 dark:text-amber-400 md:dark:hover:text-amber-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Reports</NuxtLink>
+                <NuxtLink @click="toggleMenu" to="/admin/reports" class="block py-2 px-3 text-lime-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-lime-800 md:p-0 dark:text-lime-400 md:dark:hover:text-lime-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Reports</NuxtLink>
               </li>
               <li v-if="isAdmin">
-                <NuxtLink @click="toggleMenu" to="/admin/claims" class="block py-2 px-3 text-amber-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-amber-800 md:p-0 dark:text-amber-400 md:dark:hover:text-amber-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Pub claims</NuxtLink>
+                <NuxtLink @click="toggleMenu" to="/admin/claims" class="block py-2 px-3 text-lime-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-lime-800 md:p-0 dark:text-lime-400 md:dark:hover:text-lime-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Pub claims</NuxtLink>
               </li>
               <li v-if="isAdmin">
                 <NuxtLink @click="toggleMenu" to="/admin/past-events" class="block py-2 px-3 text-red-600 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-red-700 md:p-0 dark:text-red-400 md:dark:hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Past Events (Admin)</NuxtLink>

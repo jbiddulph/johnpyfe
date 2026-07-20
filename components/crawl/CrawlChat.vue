@@ -41,7 +41,7 @@
         :key="message.id"
         class="rounded-lg px-2.5 py-2 text-sm sm:px-3"
         :class="message.userId === currentUserId
-          ? 'ml-6 bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100 sm:ml-10'
+          ? 'ml-6 bg-lime-50 text-lime-950 dark:bg-lime-950/40 dark:text-lime-100 sm:ml-10'
           : 'mr-6 bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100 sm:mr-10'"
       >
         <div class="mb-1 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 text-[11px]">
@@ -75,7 +75,7 @@
       />
       <UButton
         type="submit"
-        color="amber"
+        color="lime"
         size="md"
         class="shrink-0"
         :loading="sending"

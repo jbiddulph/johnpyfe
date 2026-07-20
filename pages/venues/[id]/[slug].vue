@@ -88,7 +88,7 @@
             <h2 class="text-3xl font-bold">Address</h2>
             <p class="text-2xl">{{ venueAddressLine || '—' }}</p>
             <p v-if="venueWebsiteHref" class="text-xl mt-2">
-              <a :href="venueWebsiteHref" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline break-all">
+              <a :href="venueWebsiteHref" target="_blank" rel="noopener noreferrer" class="text-lime-600 hover:underline break-all">
                 {{ venueWebsiteLabel }}
               </a>
             </p>
@@ -111,7 +111,7 @@
                 :href="item.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-amber-600 hover:underline"
+                class="text-lime-600 hover:underline"
               >
                 {{ item.label }}
               </a>
@@ -123,10 +123,10 @@
           <h2 class="text-3xl font-bold">Menus</h2>
           <ul class="mt-3 space-y-2 text-xl">
             <li v-if="ownerMenus.food">
-              <a :href="ownerMenus.food" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline">Food menu</a>
+              <a :href="ownerMenus.food" target="_blank" rel="noopener noreferrer" class="text-lime-600 hover:underline">Food menu</a>
             </li>
             <li v-if="ownerMenus.drinks">
-              <a :href="ownerMenus.drinks" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline">Drinks menu</a>
+              <a :href="ownerMenus.drinks" target="_blank" rel="noopener noreferrer" class="text-lime-600 hover:underline">Drinks menu</a>
             </li>
           </ul>
         </section>
@@ -176,7 +176,7 @@
             <p v-if="hiddenNearbyCount > 0 && !showAllNearby" class="mt-6 text-center">
               <button
                 type="button"
-                class="text-lg font-semibold text-amber-600 hover:text-amber-700 hover:underline dark:text-amber-500"
+                class="text-lg font-semibold text-lime-600 hover:text-lime-700 hover:underline dark:text-lime-500"
                 @click="showAllNearby = true"
               >
                 Show more within a mile

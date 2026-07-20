@@ -10,7 +10,7 @@
       <NuxtLink
         v-else
         to="/map"
-        class="group relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+        class="group relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-500"
         :aria-label="`View ${crawlName} route on the map`"
       >
         <img

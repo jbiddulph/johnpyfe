@@ -10,7 +10,7 @@
         coastal towns and Premier League grounds.
       </p>
       <div class="flex flex-wrap justify-center gap-3 mt-6">
-        <UButton to="/venues" size="lg" color="amber">Browse venues</UButton>
+        <UButton to="/venues" size="lg" color="lime">Browse venues</UButton>
         <UButton to="/counties" size="lg" variant="outline">Browse by county</UButton>
         <UButton to="/events" size="lg" variant="outline">Events</UButton>
       </div>

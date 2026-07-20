@@ -1,12 +1,12 @@
 <template>
   <section
     v-if="showBanner"
-    class="world-cup-banner border-b border-amber-700/30 bg-gradient-to-r from-green-900 via-gray-900 to-red-900"
+    class="world-cup-banner border-b border-lime-700/30 bg-gradient-to-r from-green-900 via-gray-900 to-red-900"
     aria-label="Argentina vs Spain World Cup Final"
   >
     <div class="container mx-auto px-4 py-8 md:py-10">
       <div class="text-center">
-        <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
+        <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-lime-300">
           FIFA World Cup 2026 · Final
         </p>
 
@@ -32,7 +32,7 @@
             <span class="text-2xl font-light text-white/60 md:text-3xl">vs</span>
             <time
               datetime="2026-07-20T20:00:00+01:00"
-              class="mt-1 text-sm font-medium text-amber-200 md:text-base"
+              class="mt-1 text-sm font-medium text-lime-200 md:text-base"
             >
               Sun 20 Jul · 8:00pm BST
             </time>
@@ -72,7 +72,7 @@
           <UButton
             to="/search?q=sports+bar"
             size="lg"
-            color="amber"
+            color="lime"
           >
             Find sports pubs near you
           </UButton>
@@ -90,7 +90,7 @@
       </div>
 
       <section class="mt-8 rounded-lg border border-white/10 bg-black/20">
-        <h3 class="px-4 py-3 text-sm font-semibold text-amber-200 md:text-base">
+        <h3 class="px-4 py-3 text-sm font-semibold text-lime-200 md:text-base">
           Top World Cup pubs &amp; sports bars showing the match (by city)
         </h3>
         <p class="border-t border-white/10 px-4 pt-4 text-sm leading-relaxed text-white/70">

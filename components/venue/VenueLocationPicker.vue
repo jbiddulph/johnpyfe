@@ -129,7 +129,7 @@ onBeforeUnmount(() => {
   transform: translate(-50%, -50%);
   border-radius: 50%;
   border: 2px solid #fff;
-  background-color: #ea580c;
+  background-color: #65a30d;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 </style>

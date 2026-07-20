@@ -4,7 +4,7 @@
     <h1 class="text-4xl font-bold mb-6">Edit pub profile</h1>
 
     <p v-if="!isLoggedIn" class="text-gray-600">
-      <NuxtLink to="/login" class="text-amber-600 hover:underline">Sign in</NuxtLink> to edit this pub.
+      <NuxtLink to="/login" class="text-lime-600 hover:underline">Sign in</NuxtLink> to edit this pub.
     </p>
     <p v-else-if="loading" class="text-gray-600">Loading…</p>
     <p v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</p>
@@ -119,7 +119,7 @@
           <input
             v-model="form.showOriginalVenueImage"
             type="checkbox"
-            class="mt-1 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+            class="mt-1 h-4 w-4 rounded border-gray-300 text-lime-600 focus:ring-lime-500"
           />
           <span class="text-sm">
             <span class="font-medium text-gray-900 dark:text-gray-100">Show original venue image</span>
@@ -171,7 +171,7 @@
       </section>
 
       <div class="flex flex-wrap gap-3">
-        <UButton type="submit" color="amber" label="Save changes" :loading="saving" />
+        <UButton type="submit" color="lime" label="Save changes" :loading="saving" />
         <UButton to="/dashboard" label="Back" variant="outline" />
       </div>
       <p v-if="savedMessage" class="text-sm text-emerald-700">
@@ -179,7 +179,7 @@
         <NuxtLink
           v-if="venueSlug"
           :to="venuePath(venueId, venueSlug)"
-          class="ml-2 font-medium text-amber-700 hover:underline"
+          class="ml-2 font-medium text-lime-700 hover:underline"
         >
           View your pub page
         </NuxtLink>

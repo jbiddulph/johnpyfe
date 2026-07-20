@@ -37,7 +37,7 @@
   width: 3rem;
   height: 3rem;
   border: 4px solid rgba(217, 119, 6, 0.2);
-  border-top-color: #d97706;
+  border-top-color: #65a30d;
   border-radius: 50%;
   animation: place-route-spin 0.75s linear infinite;
 }

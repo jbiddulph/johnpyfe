@@ -37,7 +37,7 @@
           />
           <button
             type="submit"
-            class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-amber-600 text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
+            class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-lime-600 text-white transition hover:bg-lime-700 disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
             :disabled="!canSearch"
             aria-label="Search"
           >

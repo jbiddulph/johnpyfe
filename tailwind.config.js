@@ -1,22 +1,34 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    './src/**/*.{html,js,vue}', // Adjust the paths according to your project structure
-    './components/**/*.{vue,js}', // Include components directory
-    './pages/**/*.{vue,js}', // Include pages directory
-    './layouts/**/*.{vue,js}', // Include layouts directory
+    './components/**/*.{vue,js}',
+    './pages/**/*.{vue,js}',
+    './layouts/**/*.{vue,js}',
+    './app.config.ts',
+    './assets/css/**/*.{css}',
   ],
   theme: {
     extend: {
       colors: {
+        // Brand accent: lime green + pale pastel green (replaces former amber/orange)
         primary: {
-          DEFAULT: '#1abc9c', // Change this to your desired green color
-          dark: '#16a085', // Optional: Add a darker shade
-          light: '#2ecc71', // Optional: Add a lighter shade
+          50: '#f7fee7',
+          100: '#ecfccb',
+          200: '#d9f99d',
+          300: '#bef264',
+          400: '#a3e635',
+          500: '#84cc16',
+          600: '#65a30d',
+          700: '#4d7c0f',
+          800: '#3f6212',
+          900: '#365314',
+          950: '#1a2e05',
+          DEFAULT: '#65a30d',
+          dark: '#4d7c0f',
+          light: '#a3e635',
         },
       },
     },
   },
   plugins: [],
 }
-

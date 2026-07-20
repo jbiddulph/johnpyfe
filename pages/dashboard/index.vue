@@ -5,7 +5,7 @@
     <p class="text-gray-600 dark:text-gray-400 mb-8">Manage claimed pubs, billing, and your listing profile.</p>
 
     <p v-if="!isLoggedIn" class="text-lg text-gray-600 mb-4">
-      <NuxtLink to="/login" class="text-amber-600 hover:underline">Sign in</NuxtLink>
+      <NuxtLink to="/login" class="text-lime-600 hover:underline">Sign in</NuxtLink>
       to manage your pubs.
     </p>
 
@@ -25,7 +25,7 @@
           <div>
             <dt class="font-medium">Email</dt>
             <dd>
-              <a :href="`mailto:${ownerEmail}`" class="text-amber-600 hover:underline">{{ ownerEmail }}</a>
+              <a :href="`mailto:${ownerEmail}`" class="text-lime-600 hover:underline">{{ ownerEmail }}</a>
             </dd>
           </div>
         </dl>
@@ -46,7 +46,7 @@
           <div><dt class="font-medium">Verified pubs</dt><dd>{{ status.organisation.verifiedClaimCount }} / {{ status.organisation.pubLimit || '—' }}</dd></div>
         </dl>
         <div class="flex flex-wrap gap-3">
-          <UButton to="/dashboard/billing" color="amber" label="Billing & plans" />
+          <UButton to="/dashboard/billing" color="lime" label="Billing & plans" />
           <UButton
             v-if="status.organisation && !status.organisation.hasProAccess"
             label="Refresh subscription"

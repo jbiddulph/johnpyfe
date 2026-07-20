@@ -26,7 +26,7 @@
 
     <UAlert
       v-if="route.query.checkout === 'canceled'"
-      color="amber"
+      color="lime"
       variant="soft"
       title="Checkout canceled"
       description="No payment was taken. You can choose a plan below when you are ready."
@@ -34,7 +34,7 @@
     />
 
     <p v-if="!isLoggedIn" class="text-gray-600">
-      <NuxtLink to="/login" class="text-amber-600 hover:underline">Sign in</NuxtLink> to manage billing.
+      <NuxtLink to="/login" class="text-lime-600 hover:underline">Sign in</NuxtLink> to manage billing.
     </p>
     <p v-else-if="loading" class="text-gray-600">Loading…</p>
 
@@ -49,7 +49,7 @@
 
     <UAlert
       v-if="status && !status.hasOrganisation"
-      color="amber"
+      color="lime"
       variant="soft"
       title="Claim a venue when you are ready"
       description="You can subscribe now. After payment, claim a venue from its page and we will verify ownership before editing goes live."
@@ -100,7 +100,7 @@
             <p class="text-sm text-gray-600 mt-1">Up to {{ plan.pubLimit }} {{ plan.pubLimit === 1 ? 'pub' : 'pubs' }}</p>
             <UButton
               class="mt-4"
-              color="amber"
+              color="lime"
               :label="status.organisation?.plan === plan.id ? 'Current plan' : `Choose ${plan.label}`"
               :disabled="status.organisation?.plan === plan.id && status.organisation?.hasProAccess"
               :loading="checkoutPlan === plan.id"

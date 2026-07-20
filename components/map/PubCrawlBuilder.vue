@@ -35,7 +35,7 @@
           <div class="flex items-center gap-1">
             <UButton
               size="xs"
-              color="amber"
+              color="lime"
               variant="soft"
               icon="i-heroicons-plus-20-solid"
               label="New list"
@@ -63,7 +63,7 @@
             :key="crawl.id"
             class="flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
             :class="crawl.id === activeCrawl?.id
-              ? 'border-amber-400 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40'
+              ? 'border-lime-400 bg-lime-50 dark:border-lime-700 dark:bg-lime-950/40'
               : 'border-gray-200 dark:border-gray-800'"
           >
             <button
@@ -75,7 +75,7 @@
                 {{ crawl.name }}
                 <span
                   v-if="isOwnedCrawl(crawl)"
-                  class="ml-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+                  class="ml-1 text-[10px] font-semibold uppercase tracking-wide text-lime-700"
                 >Yours</span>
                 <span
                   v-else
@@ -132,7 +132,7 @@
           <input
             v-model="draftStartsAt"
             type="datetime-local"
-            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
           <p class="text-xs text-gray-500">Shown to everyone you invite.</p>
         </div>
@@ -153,7 +153,7 @@
         <div class="flex flex-wrap gap-2">
           <UButton
             v-if="creatingNewList || !activeCrawl"
-            color="amber"
+            color="lime"
             :loading="saving"
             :disabled="!draftName.trim()"
             label="Create"
@@ -161,7 +161,7 @@
           />
           <UButton
             v-else
-            color="amber"
+            color="lime"
             variant="soft"
             :loading="saving"
             :disabled="!draftName.trim() || !metaDirty"
@@ -255,7 +255,7 @@
                 role="option"
                 class="cursor-pointer px-3 py-2 text-sm"
                 :class="index === highlightIndex
-                  ? 'bg-amber-50 text-amber-950 dark:bg-amber-950/50 dark:text-amber-50'
+                  ? 'bg-lime-50 text-lime-950 dark:bg-lime-950/50 dark:text-lime-50'
                   : 'text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-800'"
                 @mousedown.prevent="selectVenue(venue)"
                 @mouseenter="highlightIndex = index"
@@ -302,7 +302,7 @@
                   </div>
                   <UButton
                     size="xs"
-                    color="amber"
+                    color="lime"
                     :loading="invitingUserId === person.userId"
                     label="Invite"
                     @click="sendInvite(person)"
@@ -338,8 +338,8 @@
               <li
                 class="rounded-md border bg-white dark:bg-gray-900"
                 :class="{
-                  'border-amber-400 ring-1 ring-amber-400': dragIndex === index,
-                  'border-amber-300': dropIndex === index && dragIndex !== index,
+                  'border-lime-400 ring-1 ring-lime-400': dragIndex === index,
+                  'border-lime-300': dropIndex === index && dragIndex !== index,
                   'border-emerald-400 bg-emerald-50/60 dark:border-emerald-700 dark:bg-emerald-950/30': index === currentStopIndex,
                   'border-gray-200 dark:border-gray-800': dragIndex !== index && dropIndex !== index && index !== currentStopIndex,
                 }"
@@ -363,7 +363,7 @@
                   <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2">
                       <span
-                        class="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded bg-amber-100 px-1.5 text-xs font-semibold text-amber-900 dark:bg-amber-900 dark:text-amber-100"
+                        class="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded bg-lime-100 px-1.5 text-xs font-semibold text-lime-900 dark:bg-lime-900 dark:text-lime-100"
                       >
                         {{ index + 1 }}
                       </span>
@@ -392,7 +392,7 @@
                     <p v-if="stopLocationLabel(stop)" class="text-xs text-gray-500 truncate">
                       {{ stopLocationLabel(stop) }}
                     </p>
-                    <p v-else-if="!stop.venueId" class="text-xs text-amber-700 dark:text-amber-400">
+                    <p v-else-if="!stop.venueId" class="text-xs text-lime-700 dark:text-lime-400">
                       Not linked to a venue listing
                     </p>
                   </div>
@@ -421,7 +421,7 @@
                 v-if="index < stops.length - 1"
                 class="flex items-center gap-2 py-1.5 pl-8 text-xs text-gray-500"
               >
-                <UIcon name="i-heroicons-arrow-long-down-20-solid" class="h-4 w-4 shrink-0 text-amber-600" />
+                <UIcon name="i-heroicons-arrow-long-down-20-solid" class="h-4 w-4 shrink-0 text-lime-600" />
                 <span>{{ legLabel(index) }}</span>
               </li>
             </template>
@@ -465,7 +465,7 @@
 
           <UButton
             block
-            color="amber"
+            color="lime"
             :loading="saving"
             :disabled="!dirty"
             label="Save order & progress"

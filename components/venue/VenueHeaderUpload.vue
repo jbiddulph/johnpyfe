@@ -9,7 +9,7 @@
       </div>
       <label
         v-if="canAddMore"
-        class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
+        class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-lime-300 bg-lime-50 px-3 py-2 text-sm font-medium text-lime-900 hover:bg-lime-100 dark:border-lime-800 dark:bg-lime-950 dark:text-lime-100"
         :class="{ 'pointer-events-none opacity-60': uploading }"
       >
         <UIcon name="i-heroicons-photo-20-solid" class="h-4 w-4" />
@@ -32,7 +32,7 @@
       </div>
       <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
         <div
-          class="h-full rounded-full bg-amber-500 transition-all duration-150 ease-out"
+          class="h-full rounded-full bg-lime-500 transition-all duration-150 ease-out"
           :style="{ width: `${uploadProgress}%` }"
         />
       </div>
@@ -46,8 +46,8 @@
         :key="item.path"
         class="relative overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
         :class="{
-          'ring-2 ring-amber-400 opacity-70': dragIndex === index,
-          'border-amber-400': dropIndex === index && dragIndex !== index,
+          'ring-2 ring-lime-400 opacity-70': dragIndex === index,
+          'border-lime-400': dropIndex === index && dragIndex !== index,
         }"
         draggable="true"
         @dragstart="onDragStart(index, $event)"

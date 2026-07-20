@@ -13,7 +13,7 @@
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <UButton color="amber" to="/map" label="Open map builder" />
+        <UButton color="lime" to="/map" label="Open map builder" />
         <UButton color="gray" variant="soft" :loading="loading" label="Refresh" @click="loadDashboard" />
       </div>
     </div>
@@ -33,11 +33,11 @@
     <template v-else>
       <!-- Pending invites — always first so invitees can accept -->
       <section v-if="pendingInvites.length" class="mb-8 space-y-3">
-        <div class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40">
-          <h2 class="text-lg font-semibold text-amber-950 dark:text-amber-100">
+        <div class="rounded-lg border border-lime-300 bg-lime-50 px-4 py-3 dark:border-lime-800 dark:bg-lime-950/40">
+          <h2 class="text-lg font-semibold text-lime-950 dark:text-lime-100">
             {{ pendingInvites.length === 1 ? 'You have been invited' : `You have ${pendingInvites.length} invitations` }}
           </h2>
-          <p class="mt-1 text-sm text-amber-900/80 dark:text-amber-200/80">
+          <p class="mt-1 text-sm text-lime-900/80 dark:text-lime-200/80">
             Accept an invite to view the crawl on the map. You will not be able to edit, invite, or delete it.
           </p>
         </div>
@@ -45,7 +45,7 @@
         <UCard
           v-for="invite in pendingInvites"
           :key="invite.id"
-          :ui="{ body: { padding: 'p-4' }, ring: 'ring-1 ring-amber-300 dark:ring-amber-800' }"
+          :ui="{ body: { padding: 'p-4' }, ring: 'ring-1 ring-lime-300 dark:ring-lime-800' }"
         >
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="min-w-0 space-y-1">
@@ -56,12 +56,12 @@
                 (@{{ invite.invitedBy.username }})
                 · {{ invite.stopCount }} stop{{ invite.stopCount === 1 ? '' : 's' }}
               </p>
-              <p v-if="invite.startsAt" class="text-sm font-medium text-amber-950 dark:text-amber-100">
+              <p v-if="invite.startsAt" class="text-sm font-medium text-lime-950 dark:text-lime-100">
                 Starts {{ formatCrawlStartsAt(invite.startsAt) }}
               </p>
               <p
                 v-if="invite.inviteeNotes"
-                class="whitespace-pre-wrap text-sm text-amber-900/90 dark:text-amber-100/90"
+                class="whitespace-pre-wrap text-sm text-lime-900/90 dark:text-lime-100/90"
               >
                 {{ invite.inviteeNotes }}
               </p>
@@ -92,7 +92,7 @@
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500">
             Notifications
-            <span class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">
+            <span class="ml-1 rounded bg-lime-100 px-1.5 py-0.5 text-lime-900">
               {{ unreadNotifications.length }} new
             </span>
           </h2>
@@ -108,7 +108,7 @@
           <li
             v-for="note in unreadNotifications.slice(0, 8)"
             :key="note.id"
-            class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm dark:border-amber-800 dark:bg-amber-950/40"
+            class="rounded-md border border-lime-300 bg-lime-50 px-3 py-2 text-sm dark:border-lime-800 dark:bg-lime-950/40"
           >
             <p class="font-medium text-gray-900 dark:text-white">{{ note.title }}</p>
             <p v-if="note.body" class="text-gray-600 dark:text-gray-400">{{ note.body }}</p>
@@ -154,7 +154,7 @@
         </div>
         <p v-else class="text-sm text-gray-500">
           No crawls of your own yet.
-          <NuxtLink to="/map" class="text-amber-700 hover:underline">Create one on the map</NuxtLink>
+          <NuxtLink to="/map" class="text-lime-700 hover:underline">Create one on the map</NuxtLink>
         </p>
       </section>
 
@@ -232,7 +232,7 @@
               </div>
               <UButton
                 size="xs"
-                color="amber"
+                color="lime"
                 :loading="invitingUserId === person.userId"
                 label="Invite"
                 @click="sendInvite(person)"
