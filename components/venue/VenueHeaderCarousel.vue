@@ -12,6 +12,7 @@
           :key="currentSrc"
           :src="currentSrc"
           :alt="alt"
+          :title="alt"
           width="1200"
           height="480"
           :fetchpriority="activeIndex === 0 ? 'high' : 'auto'"

@@ -59,6 +59,19 @@ export function venueSeoKeywords(venuename: string, town: string, county: string
   return [...new Set(parts)].join(', ')
 }
 
+/**
+ * SEO alt text for venue photos: "{Venue} pub, {Town}, {County}".
+ * Skips a duplicate "pub" when the venue name already ends with pub/bar/inn/tavern.
+ */
+export function venueImageAlt(venuename: string, town?: string, county?: string): string {
+  const name = formatPlaceName(venuename) || 'Pub'
+  const place = formatPlaceName(town)
+  const region = formatPlaceName(county)
+  const alreadyTyped = /\b(pub|bar|inn|tavern|hotel|club)\s*$/i.test(name)
+  const subject = alreadyTyped ? name : `${name} pub`
+  return [subject, place, region].filter(Boolean).join(', ')
+}
+
 export function townSeoHeadline(town: string, county?: string): string {
   const place = formatPlaceName(town)
   const region = formatPlaceName(county)

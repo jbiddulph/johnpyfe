@@ -1,5 +1,5 @@
 import { cleanDbString, isValidWebsite } from '../utils/format-venue'
-import { siteSeoTitle } from '../utils/site-seo-copy'
+import { siteSeoTitle, venueImageAlt } from '../utils/site-seo-copy'
 import { canonicalSiteUrl } from '../utils/site-url'
 
 type SiteSeoOptions = {
@@ -110,12 +110,16 @@ export function venueJsonLd(
     website?: string
     latitude?: string
     longitude?: string
+    photo?: string
   },
   canonical: string,
+  options: { imageUrl?: string | null } = {},
 ) {
   const lat = venue.latitude ? Number.parseFloat(venue.latitude) : undefined
   const lng = venue.longitude ? Number.parseFloat(venue.longitude) : undefined
   const website = isValidWebsite(venue.website) ? cleanDbString(venue.website) : null
+  const imageAlt = venueImageAlt(venue.venuename, venue.town, venue.county)
+  const imageUrl = options.imageUrl?.startsWith('http') ? options.imageUrl : null
 
   return {
     '@context': 'https://schema.org',
@@ -123,6 +127,18 @@ export function venueJsonLd(
     name: venue.venuename,
     url: canonical,
     ...(website ? { sameAs: website } : {}),
+    ...(imageUrl
+      ? {
+          image: {
+            '@type': 'ImageObject',
+            url: imageUrl,
+            contentUrl: imageUrl,
+            description: imageAlt,
+            name: imageAlt,
+            caption: imageAlt,
+          },
+        }
+      : {}),
     address: {
       '@type': 'PostalAddress',
       streetAddress: cleanDbString(venue.address) ?? undefined,

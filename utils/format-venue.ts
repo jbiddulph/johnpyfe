@@ -132,6 +132,11 @@ const DEFAULT_VENUE_PHOTO_MARKERS = [
   'images/venues/awaiting',
 ]
 
+/** Broken Google Place Photo CDN URLs (often 403 when hotlinked). */
+const BROKEN_VENUE_PHOTO_PREFIXES = [
+  'https://lh3.googleusercontent.com/place-photos/',
+]
+
 /** Fallback hero/card image when a venue has no photo. */
 export const DEFAULT_VENUE_IMAGE = '/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg'
 
@@ -143,9 +148,16 @@ export function isDefaultVenuePhoto(photo: unknown): boolean {
   return DEFAULT_VENUE_PHOTO_MARKERS.some((marker) => lower.includes(marker))
 }
 
-/** Returns a usable image URL, or null for placeholders / missing photos. */
+/** True for known-broken remote photo hosts (e.g. Google Place Photos CDN). */
+export function isBrokenVenuePhoto(photo: unknown): boolean {
+  const p = cleanDbString(photo)
+  if (!p) return false
+  return BROKEN_VENUE_PHOTO_PREFIXES.some((prefix) => p.startsWith(prefix))
+}
+
+/** Returns a usable image URL, or null for placeholders / missing / broken photos. */
 export function resolveVenuePhotoUrl(photo: unknown, config: VenuePhotoConfig = {}): string | null {
-  if (isDefaultVenuePhoto(photo)) return null
+  if (isDefaultVenuePhoto(photo) || isBrokenVenuePhoto(photo)) return null
 
   const p = cleanDbString(photo)!
 

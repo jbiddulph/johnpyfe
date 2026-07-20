@@ -7,12 +7,13 @@
       <VenueHeaderCarousel
         v-if="venueHeaderImages.length"
         :images="venueHeaderImages"
-        :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
+        :alt="venuePhotoAlt"
       />
       <div v-else class="w-full max-h-[480px] overflow-hidden bg-gray-200 dark:bg-gray-700">
         <img
           :src="venuePhotoSrc"
-          :alt="`${venue.venuename} in ${venueTownLabel || venue.town}`"
+          :alt="venuePhotoAlt"
+          :title="venuePhotoAlt"
           width="1200"
           height="480"
           fetchpriority="high"
@@ -216,6 +217,7 @@ import {
   venueHasCoords,
 } from '@/utils/format-venue'
 import {
+  venueImageAlt,
   venueSeoDescription,
   venueSeoHeadline,
   venueSeoKeywords,
@@ -400,6 +402,10 @@ const venuePhotoSrc = computed(() => {
   return resolveVenueDisplayPhotoUrl(venue.value?.photo, photoConfig.value)
 })
 
+const venuePhotoAlt = computed(() =>
+  venueImageAlt(venue.value?.venuename, venue.value?.town, venue.value?.county),
+)
+
 const venueDescription = computed(() =>
   cleanDbString(ownerProfile.value?.customDescription) || cleanDbString(venue.value?.description),
 )
@@ -455,9 +461,12 @@ useSiteSeo(() => ({
   description: seoDescription.value,
   keywords: seoKeywords.value || undefined,
   path: canonicalPath.value,
+  image: venuePhotoSrc.value?.startsWith('http') ? venuePhotoSrc.value : undefined,
   jsonLd: venue.value
     ? [
-        venueJsonLd(venue.value, `${siteUrl}${canonicalPath.value}`),
+        venueJsonLd(venue.value, `${siteUrl}${canonicalPath.value}`, {
+          imageUrl: venuePhotoSrc.value?.startsWith('http') ? venuePhotoSrc.value : null,
+        }),
         breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
       ]
     : undefined,

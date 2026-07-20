@@ -2,7 +2,8 @@
   <NuxtLink :to="venuePath(venue.id, venue.slug)" class="venue-card-media block bg-gray-100">
     <img
       :src="photoUrl"
-      :alt="`${venue.venuename} photo`"
+      :alt="imageAlt"
+      :title="imageAlt"
       class="venue-card-media__img"
       width="400"
       height="180"
@@ -14,6 +15,7 @@
 
 <script setup lang="ts">
 import { resolveVenueDisplayPhotoUrl } from '@/utils/format-venue'
+import { venueImageAlt } from '@/utils/site-seo-copy'
 
 const props = defineProps({
   venue: {
@@ -30,6 +32,10 @@ const photoConfig = computed(() => ({
 }))
 
 const photoUrl = computed(() => resolveVenueDisplayPhotoUrl(props.venue?.photo, photoConfig.value))
+
+const imageAlt = computed(() =>
+  venueImageAlt(props.venue?.venuename, props.venue?.town, props.venue?.county),
+)
 </script>
 
 <style scoped>
