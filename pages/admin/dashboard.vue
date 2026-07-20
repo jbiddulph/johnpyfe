@@ -167,7 +167,7 @@
             <UButton 
               label="Edit" 
               size="sm" 
-              color="lime"
+              color="blue"
               @click="editEvent(event)"
             />
           </div>

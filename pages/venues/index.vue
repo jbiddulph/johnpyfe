@@ -24,7 +24,7 @@
         <UButton
           v-if="showSearchGo"
           label="Go"
-          color="lime"
+          color="blue"
           @click="runSearch"
         />
       </div>
@@ -43,7 +43,7 @@
           <span v-if="selectedCounty">County: {{ selectedCountyLabel }}</span>
           <span v-if="selectedCounty && selectedTown"> · </span>
           <span v-if="selectedTown">Town: {{ selectedTownLabel }}</span>
-          <button type="button" class="ml-2 text-lime-600 hover:underline" @click="clearFilters">
+          <button type="button" class="ml-2 text-blue-600 hover:underline" @click="clearFilters">
             Clear filters
           </button>
           <span class="mx-2">·</span>
@@ -67,7 +67,7 @@
                     </UButton>
                   </NuxtLink>
                   <UButton icon="i-heroicons-eye" class="mr-1 text-xs" size="sm" color="green" @click="openDetailsModal(venue)" />
-                  <UButton icon="i-heroicons-pencil-square" class="mr-1 text-xs" size="sm" color="lime" @click="openEditModal(venue, venue.id)" />
+                  <UButton icon="i-heroicons-pencil-square" class="mr-1 text-xs" size="sm" color="blue" @click="openEditModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-photo" class="mr-1 text-xs" size="sm" color="pink" @click="openPhotoUploadModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-map-pin" class="mr-1 text-xs" size="sm" color="blue" @click="openMapModal(venue, venue.id)" />
                   <UButton icon="i-heroicons-calendar" class="mr-1 text-xs" size="sm" color="violet" @click="openAddEventModal(venue, venue.id)" />

@@ -12,7 +12,7 @@
           v-for="option in periodOptions"
           :key="option.value"
           :label="option.label"
-          :color="selectedPeriod === option.value ? 'lime' : 'gray'"
+          :color="selectedPeriod === option.value ? 'blue' : 'gray'"
           :variant="selectedPeriod === option.value ? 'solid' : 'outline'"
           @click="selectedPeriod = option.value"
         />
@@ -38,7 +38,7 @@
         </div>
       </div>
 
-      <div class="rounded-lg border border-lime-200 bg-lime-50 p-4 mb-8 text-sm text-lime-900 dark:border-lime-900 dark:bg-lime-950 dark:text-lime-100">
+      <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 mb-8 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
         <p v-for="(note, index) in report.notes" :key="index">{{ note }}</p>
       </div>
 
@@ -221,6 +221,6 @@ useSiteSeo({
 
 <style scoped>
 .reports-rank {
-  @apply flex h-8 w-8 items-center justify-center rounded-full bg-lime-100 text-sm font-semibold text-lime-800 dark:bg-lime-900/40 dark:text-lime-200;
+  @apply flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-800 dark:bg-blue-900/40 dark:text-blue-200;
 }
 </style>

@@ -12,7 +12,7 @@
             :href="directionsUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-lime-600 hover:underline font-medium"
+            class="text-blue-600 hover:underline font-medium"
           >
             Get directions
           </a>
@@ -278,13 +278,13 @@ watch(
 .venue-map-pin--primary {
   width: 32px;
   height: 32px;
-  background-color: #65a30d;
+  background-color: #2563eb;
 }
 
 .venue-map-pin--nearby {
   width: 16px;
   height: 16px;
-  background-color: #bef264;
+  background-color: #93c5fd;
   border-width: 1.5px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
@@ -322,7 +322,7 @@ watch(
 }
 
 .venue-map-popup .venue-map-popup__link {
-  color: #65a30d !important;
+  color: #2563eb !important;
   font-weight: 500;
   text-decoration: underline;
 }

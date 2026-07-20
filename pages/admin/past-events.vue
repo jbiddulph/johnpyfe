@@ -76,7 +76,7 @@
           <!-- Admin controls -->
           <div class="flex justify-center mb-2">
             <UButton label="Delete" class="mr-2 text-xs" color="red" @click="openDeleteModal(event)" />
-            <UButton label="Edit" class="text-xs" color="lime" @click="openEditEventModal(event)" />
+            <UButton label="Edit" class="text-xs" color="blue" @click="openEditEventModal(event)" />
           </div>
           
           <div class="w-full items-center bg-white dark:bg-gray-900 rounded-md border border-gray-200">

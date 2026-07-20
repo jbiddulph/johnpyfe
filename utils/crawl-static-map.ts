@@ -102,7 +102,7 @@ export function crawlStaticMapUrl(
   const pins = points
     .map(([lng, lat], index) => {
       const label = Math.min(index + 1, 99)
-      return `pin-s-${label}+65a30d(${lng},${lat})`
+      return `pin-s-${label}+2563eb(${lng},${lat})`
     })
     .join(',')
 

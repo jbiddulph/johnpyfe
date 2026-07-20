@@ -6,7 +6,7 @@
         <NuxtLink
           v-if="item.to && index < items.length - 1"
           :to="item.to"
-          class="text-lime-600 hover:text-lime-700 hover:underline dark:text-lime-500"
+          class="text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-500"
         >
           {{ item.label }}
         </NuxtLink>

@@ -17,7 +17,7 @@
           />
           <UButton
             size="sm"
-            :color="canEditActiveCrawl ? 'lime' : 'sky'"
+            :color="canEditActiveCrawl ? 'blue' : 'sky'"
             variant="soft"
             :icon="canEditActiveCrawl ? 'i-heroicons-map-20-solid' : 'i-heroicons-eye-20-solid'"
             :label="crawlButtonLabel"
@@ -70,7 +70,7 @@
             <button
               v-if="selectedVenueDetails && !isDesktopViewport"
               type="button"
-              class="mt-1 text-sm font-medium text-lime-700 hover:text-lime-800"
+              class="mt-1 text-sm font-medium text-blue-700 hover:text-blue-800"
               @click="reopenVenueDetails"
             >
               Back to pub details
@@ -127,7 +127,7 @@
           <div class="flex flex-wrap items-center justify-center gap-2">
             <UButton
               v-if="selectedVenue.id"
-              color="lime"
+              color="blue"
               variant="solid"
               :to="selectedVenueUrl"
               label="View venue"
@@ -140,7 +140,7 @@
             />
             <UButton
               v-if="showCrawlToggleButton"
-              :color="selectedVenueOnActiveCrawl ? 'red' : 'lime'"
+              :color="selectedVenueOnActiveCrawl ? 'red' : 'blue'"
               variant="soft"
               :icon="selectedVenueOnActiveCrawl ? 'i-heroicons-minus-20-solid' : 'i-heroicons-plus-20-solid'"
               :label="crawlToggleLabel"
@@ -178,7 +178,7 @@
                 :href="selectedVenueWebsiteHref"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-lime-700 hover:text-lime-800 dark:text-lime-400 dark:hover:text-lime-300"
+                class="text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
               >
                 {{ selectedVenueWebsiteLabel }}
               </a>
@@ -752,9 +752,9 @@ function ensureClusterLayers() {
       'circle-color': [
         'step',
         ['get', 'point_count'],
-        '#84cc16',
+        '#3b82f6',
         25,
-        '#65a30d',
+        '#2563eb',
         100,
         '#b45309',
         500,
@@ -798,7 +798,7 @@ function ensureClusterLayers() {
     source: SOURCE_ID,
     filter: ['!', ['has', 'point_count']],
     paint: {
-      'circle-color': '#65a30d',
+      'circle-color': '#2563eb',
       'circle-radius': [
         'interpolate',
         ['linear'],
@@ -1061,7 +1061,7 @@ function ensureCrawlRouteLayers() {
           'case',
           ['==', ['get', 'isCurrent'], 1],
           '#059669',
-          '#65a30d',
+          '#2563eb',
         ],
         'circle-stroke-width': 2,
         'circle-stroke-color': '#ffffff',

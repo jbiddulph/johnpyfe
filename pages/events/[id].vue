@@ -15,7 +15,7 @@
       </div>
       <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div class="container mx-auto px-4 py-5">
-          <p v-if="event.category?.name" class="text-sm font-medium uppercase tracking-wide text-lime-600 dark:text-lime-500 mb-1">
+          <p v-if="event.category?.name" class="text-sm font-medium uppercase tracking-wide text-blue-600 dark:text-blue-500 mb-1">
             {{ event.category.name }}
           </p>
           <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
@@ -26,7 +26,7 @@
             <NuxtLink
               v-if="event.listing"
               :to="venuePath(event.listing.id, event.listing.slug)"
-              class="text-lime-600 hover:underline dark:text-lime-500"
+              class="text-blue-600 hover:underline dark:text-blue-500"
             >
               {{ venueName }}
             </NuxtLink>
@@ -75,7 +75,7 @@
                   <NuxtLink
                     v-if="townHref"
                     :to="townHref"
-                    class="text-lime-600 hover:underline dark:text-lime-500"
+                    class="text-blue-600 hover:underline dark:text-blue-500"
                   >
                     {{ event.city.name }}
                   </NuxtLink>
@@ -87,7 +87,7 @@
                 <dd class="text-lg mt-1">
                   <NuxtLink
                     :to="venuePath(event.listing.id, event.listing.slug)"
-                    class="text-lime-600 hover:underline dark:text-lime-500"
+                    class="text-blue-600 hover:underline dark:text-blue-500"
                   >
                     {{ event.listing.venuename }}
                   </NuxtLink>
@@ -96,7 +96,7 @@
               <div v-if="event.website">
                 <dt class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tickets / info</dt>
                 <dd class="text-lg mt-1">
-                  <a :href="event.website" target="_blank" rel="noopener" class="text-lime-600 hover:underline break-all dark:text-lime-500">
+                  <a :href="event.website" target="_blank" rel="noopener" class="text-blue-600 hover:underline break-all dark:text-blue-500">
                     View event page
                   </a>
                 </dd>
@@ -107,7 +107,7 @@
           <NuxtLink
             v-if="event.listing"
             :to="venuePath(event.listing.id, event.listing.slug)"
-            class="block rounded-lg border border-lime-200 bg-lime-50 px-4 py-3 text-center font-semibold text-lime-800 hover:bg-lime-100 dark:border-lime-900 dark:bg-lime-950 dark:text-lime-200 dark:hover:bg-lime-900"
+            class="block rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-center font-semibold text-blue-800 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200 dark:hover:bg-blue-900"
           >
             View {{ event.listing.venuename }}
           </NuxtLink>

@@ -9,8 +9,8 @@
       <template #header>
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-center gap-3">
-            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-lime-100 dark:bg-lime-900">
-              <UIcon name="i-heroicons-map-20-solid" class="h-6 w-6 text-lime-600 dark:text-lime-400" />
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+              <UIcon name="i-heroicons-map-20-solid" class="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h3 class="text-xl font-bold text-gray-900 dark:text-white">
@@ -39,8 +39,8 @@
 
         <div class="space-y-3">
           <div class="flex items-start gap-3">
-            <div class="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lime-50 dark:bg-lime-950">
-              <UIcon name="i-heroicons-map-pin-20-solid" class="h-4 w-4 text-lime-600 dark:text-lime-400" />
+            <div class="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950">
+              <UIcon name="i-heroicons-map-pin-20-solid" class="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h4 class="font-semibold text-gray-900 dark:text-white">Add Venues</h4>
@@ -51,8 +51,8 @@
           </div>
 
           <div class="flex items-start gap-3">
-            <div class="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lime-50 dark:bg-lime-950">
-              <UIcon name="i-heroicons-user-group-20-solid" class="h-4 w-4 text-lime-600 dark:text-lime-400" />
+            <div class="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950">
+              <UIcon name="i-heroicons-user-group-20-solid" class="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h4 class="font-semibold text-gray-900 dark:text-white">Invite Friends</h4>
@@ -63,8 +63,8 @@
           </div>
 
           <div class="flex items-start gap-3">
-            <div class="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lime-50 dark:bg-lime-950">
-              <UIcon name="i-heroicons-chat-bubble-left-right-20-solid" class="h-4 w-4 text-lime-600 dark:text-lime-400" />
+            <div class="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950">
+              <UIcon name="i-heroicons-chat-bubble-left-right-20-solid" class="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h4 class="font-semibold text-gray-900 dark:text-white">Chat & Coordinate</h4>
@@ -75,8 +75,8 @@
           </div>
         </div>
 
-        <div class="rounded-lg border border-lime-200 bg-lime-50 p-4 dark:border-lime-800 dark:bg-lime-950/30">
-          <p class="text-sm text-lime-900 dark:text-lime-100">
+        <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
+          <p class="text-sm text-blue-900 dark:text-blue-100">
             <strong>Pro tip:</strong> Allow location access to automatically check in when you arrive within 50 meters of each venue!
           </p>
         </div>
@@ -91,7 +91,7 @@
             @click="handleClose"
           />
           <UButton
-            color="lime"
+            color="blue"
             label="Try Pub Crawl Builder"
             to="/map"
             @click="handleClose"

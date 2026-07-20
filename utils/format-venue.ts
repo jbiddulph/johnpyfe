@@ -188,6 +188,6 @@ export function venueStaticMapUrl(
   const lat = parseVenueCoord(venue.latitude)
   const lng = parseVenueCoord(venue.longitude)
   if (lat == null || lng == null || !token) return null
-  const pin = `pin-s+65a30d(${lng},${lat})`
+  const pin = `pin-s+2563eb(${lng},${lat})`
   return `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/${pin}/${lng},${lat},14,0/${width}x${height}@2x?access_token=${encodeURIComponent(token)}`
 }

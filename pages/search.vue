@@ -22,7 +22,7 @@
         />
         <button
           type="submit"
-          class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-lime-600 text-white transition hover:bg-lime-700 disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
+          class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
           :disabled="!canSearch"
           aria-label="Search"
         >
@@ -39,7 +39,7 @@
       <template v-else-if="results">
         <p v-if="!hasAnyResults" class="text-lg text-gray-600 mb-6">
           No towns, counties or venues matched “{{ activeQuery }}”. Try a different spelling or browse
-          <NuxtLink to="/counties" class="text-lime-600 hover:underline">counties</NuxtLink>.
+          <NuxtLink to="/counties" class="text-blue-600 hover:underline">counties</NuxtLink>.
         </p>
 
         <section v-if="results.towns.length" class="mb-10">

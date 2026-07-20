@@ -1,6 +1,6 @@
 <template>
   <section
-    class="claim-venue rounded-xl border-2 border-lime-200 bg-lime-50 p-4 shadow-sm dark:border-lime-900 dark:bg-lime-950/40 md:p-5"
+    class="claim-venue rounded-xl border-2 border-blue-200 bg-blue-50 p-4 shadow-sm dark:border-blue-900 dark:bg-blue-950/40 md:p-5"
     aria-label="Claim or manage this venue"
   >
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -33,13 +33,13 @@
         <template v-if="ownerAccess?.isOwner">
           <UButton
             v-if="ownerAccess.canEdit"
-            color="lime"
+            color="blue"
             label="Edit listing"
             :to="`/dashboard/pubs/${venueId}`"
           />
           <UButton
             v-if="ownerAccess.needsSubscription"
-            color="lime"
+            color="blue"
             label="Subscribe to edit"
             to="/dashboard/billing"
           />
@@ -56,7 +56,7 @@
         <template v-else-if="!claimStatus?.claimed">
           <UButton
             v-if="isLoggedIn"
-            color="lime"
+            color="blue"
             size="lg"
             label="Claim this venue"
             icon="i-heroicons-building-storefront-20-solid"
@@ -65,7 +65,7 @@
           />
           <UButton
             v-else
-            color="lime"
+            color="blue"
             size="lg"
             label="Sign in to claim"
             icon="i-heroicons-building-storefront-20-solid"

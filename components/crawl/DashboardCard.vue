@@ -8,7 +8,7 @@
             <span
               class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
               :class="isOwner
-                ? 'bg-lime-100 text-lime-900 dark:bg-lime-900 dark:text-lime-100'
+                ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
                 : 'bg-sky-100 text-sky-900 dark:bg-sky-900 dark:text-sky-100'"
             >
               {{ isOwner ? 'Creator' : 'Invited' }}
@@ -41,7 +41,7 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <UButton size="xs" color="lime" variant="soft" to="/map" label="View on map" />
+          <UButton size="xs" color="blue" variant="soft" to="/map" label="View on map" />
           <UButton
             size="xs"
             color="sky"
@@ -101,7 +101,7 @@
             :key="`${member.userId}-${member.status}`"
             class="rounded-full border px-2.5 py-1 text-xs"
             :class="member.status === 'pending'
-              ? 'border-dashed border-lime-400 text-lime-800 dark:text-lime-200'
+              ? 'border-dashed border-blue-400 text-blue-800 dark:text-blue-200'
               : 'border-gray-200 text-gray-800 dark:border-gray-700 dark:text-gray-200'"
           >
             @{{ member.username }}
