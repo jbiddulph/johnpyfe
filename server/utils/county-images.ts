@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
-import { delay, fetchCountyPhotoFromPlaces } from './county-places'
+import { fetchCountyPhotoFromPlaces } from './county-places'
+import { fetchCountyImageFromWeb, delay } from './county-scraper'
 import { canonicalCountySlug, findCanonicalCountyBySlug } from './uk-counties'
 
 export type CountyImageRecord = {
@@ -168,6 +169,37 @@ export async function refreshAllCountyImages(
     } catch (error) {
       skipped++
       console.error(`Failed for ${county.displayName}:`, error)
+    }
+    await delay(delayMs)
+  }
+
+  return { updated, skipped, total: counties.length }
+}
+
+/** Populate or refresh all county images using web scraping (for scripts). */
+export async function refreshAllCountyImagesFromWeb(
+  prisma: PrismaClient,
+  counties: Array<{ slug: string; displayName: string }>,
+  delayMs = 1000,
+) {
+  let updated = 0
+  let skipped = 0
+
+  for (const county of counties) {
+    try {
+      console.log(`Fetching image for ${county.displayName}...`)
+      const result = await fetchCountyImageFromWeb(county.displayName)
+      if (!result) {
+        skipped++
+        console.warn(`No photo found for ${county.displayName} (${county.slug})`)
+      } else {
+        await cacheCountyImage(prisma, county.slug, result.photoUrl, result.attribution)
+        updated++
+        console.log(`✓ Cached image for ${county.displayName}`)
+      }
+    } catch (error) {
+      skipped++
+      console.error(`✗ Failed for ${county.displayName}:`, error)
     }
     await delay(delayMs)
   }
