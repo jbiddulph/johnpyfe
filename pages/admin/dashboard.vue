@@ -1,6 +1,25 @@
 <template>
   <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8">Dashboard</h1>
+    <h1 class="text-3xl font-bold mb-4">Dashboard</h1>
+    
+    <!-- Admin Navigation -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 mb-8">
+      <nav class="flex flex-wrap gap-4">
+        <UButton
+          label="Dashboard"
+          color="primary"
+          variant="solid"
+          to="/admin/dashboard"
+        />
+        <UButton
+          label="News Articles"
+          color="gray"
+          variant="soft"
+          to="/admin/news"
+          icon="i-heroicons-newspaper"
+        />
+      </nav>
+    </div>
     
     <!-- Bulk Event Creation -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">

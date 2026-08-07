@@ -1,6 +1,26 @@
 <template>
   <div class="container mx-auto p-4 my-8">
     <Breadcrumbs :items="breadcrumbItems" />
+    
+    <!-- Admin Navigation -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 mb-6">
+      <nav class="flex flex-wrap gap-4">
+        <UButton
+          label="Dashboard"
+          color="gray"
+          variant="soft"
+          to="/admin/dashboard"
+        />
+        <UButton
+          label="News Articles"
+          color="primary"
+          variant="solid"
+          icon="i-heroicons-newspaper"
+          to="/admin/news"
+        />
+      </nav>
+    </div>
+    
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-4xl font-bold">News articles</h1>
       <UButton color="green" icon="i-heroicons-plus" label="New Article" @click="openCreateModal" />
