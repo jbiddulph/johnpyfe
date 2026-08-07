@@ -122,8 +122,8 @@ const markAnnouncementSeen = () => {
   if (import.meta.client) {
     try {
       localStorage.setItem(STORAGE_KEY, 'true')
-    } catch (err) {
-      console.warn('Failed to save announcement state:', err)
+    } catch {
+      // Silently fail if localStorage is unavailable
     }
   }
 }

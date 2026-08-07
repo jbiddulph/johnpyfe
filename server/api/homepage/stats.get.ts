@@ -23,7 +23,6 @@ export default defineEventHandler(async (event) => {
     cacheExpiresAt = Date.now() + CACHE_MS
     return cached
   } catch (error) {
-    console.error('[api/homepage/stats] failed:', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to load homepage stats',
