@@ -306,3 +306,22 @@ model UkpubsCrawlMessage {
   @@index([userId])
   @@map("ukpubs_crawl_messages")
 }
+
+/// News articles for the site (table: ukpubs_news)
+model UkpubsNews {
+  id          String    @id @default(uuid())
+  title       String
+  slug        String    @unique
+  excerpt     String    @db.VarChar(500)
+  content     String    @db.Text
+  imageUrl    String?   @map("image_url")
+  authorName  String    @map("author_name")
+  isFeatured  Boolean   @default(false) @map("is_featured")
+  publishedAt DateTime  @default(now()) @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([isFeatured, publishedAt(sort: Desc)])
+  @@index([publishedAt(sort: Desc)])
+  @@map("ukpubs_news")
+}

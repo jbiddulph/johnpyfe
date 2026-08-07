@@ -16,6 +16,8 @@
       </div>
     </section>
 
+    <HomeFeaturedNews :article="featuredNews" />
+
     <div v-if="statsPending" class="text-lg text-gray-600 text-center py-8">Loading highlights…</div>
 
     <template v-else-if="stats">
@@ -75,6 +77,11 @@ const requestFetch = useRequestFetch()
 const { data: stats, pending: statsPending } = await useAsyncData(
   'homepage-stats',
   () => requestFetch('/api/homepage/stats'),
+)
+
+const { data: featuredNews } = await useAsyncData(
+  'featured-news',
+  () => requestFetch('/api/news/featured'),
 )
 
 const stadiumListItems = computed(() =>
