@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
-import { delay, fetchCountyPhotoFromPlaces } from './county-places'
-import { fetchCountyImageFromWeb } from './county-scraper'
+import { fetchCountyPhotoFromPlaces } from './county-places'
+import { fetchCountyImageFromWeb, delay } from './county-scraper'
 import { canonicalCountySlug, findCanonicalCountyBySlug } from './uk-counties'
 
 export type CountyImageRecord = {
