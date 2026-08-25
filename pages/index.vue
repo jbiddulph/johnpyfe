@@ -17,6 +17,7 @@
     </section>
 
     <HomeFeaturedNews :article="featuredNews" />
+    <HomeLatestNews :articles="latestNews" />
 
     <div v-if="statsPending" class="text-lg text-gray-600 text-center py-8">Loading highlights…</div>
 
@@ -83,6 +84,13 @@ const { data: featuredNews } = await useAsyncData(
   'featured-news',
   () => requestFetch('/api/news/featured'),
 )
+
+const { data: latestNewsData } = await useAsyncData(
+  'latest-news',
+  () => requestFetch('/api/news/latest?limit=12'),
+)
+
+const latestNews = computed(() => latestNewsData.value?.articles ?? [])
 
 const stadiumListItems = computed(() =>
   (stats.value?.stadiumPubs ?? []).map((s) => ({

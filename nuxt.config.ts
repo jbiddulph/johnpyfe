@@ -73,6 +73,7 @@ export default defineNuxtConfig({
     '/api/venues/*/owner-profile': { cache: false },
     '/api/homepage/stats': { cache: false },
     '/api/news/featured': { cache: false },
+    '/api/news/latest': { cache: false },
     '/events/**': { isr: 900 },
     '/news/**': { isr: 1800 },
     '/pubs-near-stadiums/**': { isr: 3600 },
