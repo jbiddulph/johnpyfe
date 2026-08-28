@@ -43,6 +43,8 @@ model Venue {
   claim               VenueClaim?
   profile             VenueProfile?
   crawlStops          UkpubsCrawlStop[]
+  favorites           UkpubsFavorite[]
+  reviews             UkpubsReview[]
 }
 
 model Organisation {
@@ -305,6 +307,37 @@ model UkpubsCrawlMessage {
   @@index([crawlId, createdAt])
   @@index([userId])
   @@map("ukpubs_crawl_messages")
+}
+
+/// User favourite pub (table: ukpubs_favorites)
+model UkpubsFavorite {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  venueId   Int      @map("venue_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, venueId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([venueId])
+  @@map("ukpubs_favorites")
+}
+
+/// Five-star review with optional comment (table: ukpubs_reviews)
+model UkpubsReview {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  venueId   Int      @map("venue_id")
+  rating    Int
+  comment   String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, venueId])
+  @@index([venueId, createdAt(sort: Desc)])
+  @@index([userId])
+  @@map("ukpubs_reviews")
 }
 
 /// News articles for the site (table: ukpubs_news)

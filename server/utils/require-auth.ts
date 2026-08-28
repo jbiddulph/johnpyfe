@@ -38,3 +38,14 @@ export async function requireAuth(event: H3Event): Promise<User> {
 
   return data.user
 }
+
+/** Return the authenticated user when a bearer token is present, otherwise null. */
+export async function tryAuth(event: H3Event): Promise<User | null> {
+  const authHeader = getHeader(event, 'authorization')
+  if (!authHeader?.startsWith('Bearer ')) return null
+  try {
+    return await requireAuth(event)
+  } catch {
+    return null
+  }
+}
