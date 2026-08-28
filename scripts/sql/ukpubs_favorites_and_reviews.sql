@@ -87,12 +87,15 @@ END $$;
 
 -- 3) updated_at trigger
 CREATE OR REPLACE FUNCTION public.ukpubs_reviews_set_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 DROP TRIGGER IF EXISTS ukpubs_reviews_updated_at ON public.ukpubs_reviews;
 CREATE TRIGGER ukpubs_reviews_updated_at
