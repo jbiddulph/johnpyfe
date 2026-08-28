@@ -47,6 +47,7 @@
         </dl>
         <div class="flex flex-wrap gap-3">
           <UButton to="/dashboard/billing" color="blue" label="Billing & plans" />
+          <UButton to="/favorites" color="gray" variant="soft" label="Favourite pubs" />
           <UButton
             v-if="status.organisation && !status.organisation.hasProAccess"
             label="Refresh subscription"

@@ -43,7 +43,22 @@
                   — {{ venueTownLabel }}<template v-if="venueCountyLabel">, {{ venueCountyLabel }}</template>
                 </span>
               </h1>
+              <p
+                v-if="reviewSummary.count"
+                class="mt-2 flex flex-wrap items-center gap-2 text-base font-normal text-gray-700 dark:text-gray-300"
+              >
+                <VenueStarRating :model-value="reviewSummary.average" readonly size="sm" />
+                <span>
+                  {{ reviewSummary.average?.toFixed(1) }}
+                  ({{ reviewSummary.count }} review{{ reviewSummary.count === 1 ? '' : 's' }})
+                </span>
+              </p>
             </div>
+            <VenueFavoriteButton
+              class="shrink-0"
+              :venue-id="Number(venue.id)"
+              :initial-favorite="reviewPayload?.isFavorite"
+            />
           </div>
           <VenueClaimPubButton :venue-id="Number(venue.id)" />
         </div>
@@ -137,6 +152,14 @@
             <li v-for="(item, index) in venueFeatureItems" :key="index">{{ item }}</li>
           </ul>
         </section>
+
+        <VenueReviews
+          :venue-id="Number(venue.id)"
+          :initial-summary="reviewPayload?.summary"
+          :initial-reviews="reviewPayload?.reviews"
+          :initial-my-review="reviewPayload?.myReview"
+          @updated="onReviewsUpdated"
+        />
 
         <VenueMap
           v-if="venueHasMapCoords"
@@ -298,6 +321,16 @@ const { data: ownerBranding, refresh: refreshOwnerBranding } = await useAsyncDat
   { server: false, lazy: true, default: () => null },
 )
 
+const { data: reviewPayload } = await useAsyncData(
+  `venue-reviews-${venueId}`,
+  () => requestFetch(`/api/venues/${venueId}/reviews`).catch(() => null),
+  { default: () => null },
+)
+
+function onReviewsUpdated(payload) {
+  reviewPayload.value = payload
+}
+
 const venueEvents = computed(() => sortEventsByStartAsc(events.value ?? []))
 const hasVenueEvents = computed(() => venueEvents.value.length > 0)
 const nearbyPubs = computed(() => nearbyData.value?.items ?? [])
@@ -417,6 +450,10 @@ const ownerMenus = computed(() => ({
 
 const venueFeatureItems = computed(() => parseVenueFeatures(venue.value?.features))
 
+const reviewSummary = computed(() =>
+  reviewPayload.value?.summary || { average: null, count: 0, ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
+)
+
 const breadcrumbItems = computed(() =>
   buildVenueBreadcrumbItems({
     venue: venue.value,
@@ -466,6 +503,9 @@ useSiteSeo(() => ({
     ? [
         venueJsonLd(venue.value, `${siteUrl}${canonicalPath.value}`, {
           imageUrl: venuePhotoSrc.value?.startsWith('http') ? venuePhotoSrc.value : null,
+          rating: reviewSummary.value.count
+            ? { average: reviewSummary.value.average, count: reviewSummary.value.count }
+            : null,
         }),
         breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
       ]

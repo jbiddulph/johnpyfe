@@ -35,6 +35,7 @@ psql $DATABASE_URL -f scripts/sql/seed_news_vertical_drinking.sql
 - `ukpubs_pub_crawls.sql` - Pub crawl related schema/data
 - `ukpubs_crawl_schedule.sql` - Crawl scheduling data
 - `ukpubs_profiles_on_signup.sql` - User profile initialization
+- `ukpubs_favorites_and_reviews.sql` - Favourite pubs and five-star reviews
 
 ## Other Scripts
 

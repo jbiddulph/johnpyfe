@@ -113,7 +113,7 @@ export function venueJsonLd(
     photo?: string
   },
   canonical: string,
-  options: { imageUrl?: string | null } = {},
+  options: { imageUrl?: string | null; rating?: { average: number | null; count: number } | null } = {},
 ) {
   const lat = venue.latitude ? Number.parseFloat(venue.latitude) : undefined
   const lng = venue.longitude ? Number.parseFloat(venue.longitude) : undefined
@@ -153,6 +153,17 @@ export function venueJsonLd(
             '@type': 'GeoCoordinates',
             latitude: lat,
             longitude: lng,
+          },
+        }
+      : {}),
+    ...(options.rating?.count && options.rating.average != null
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: options.rating.average,
+            reviewCount: options.rating.count,
+            bestRating: 5,
+            worstRating: 1,
           },
         }
       : {}),
