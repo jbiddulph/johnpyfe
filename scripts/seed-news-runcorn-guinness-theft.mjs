@@ -39,18 +39,20 @@ const article = {
 }
 
 async function main() {
-  await prisma.ukpubsNews.updateMany({
-    where: {
-      isFeatured: true,
-      slug: { not: slug },
-    },
-    data: { isFeatured: false },
-  })
+  const saved = await prisma.$transaction(async (tx) => {
+    await tx.ukpubsNews.updateMany({
+      where: {
+        isFeatured: true,
+        slug: { not: slug },
+      },
+      data: { isFeatured: false },
+    })
 
-  const saved = await prisma.ukpubsNews.upsert({
-    where: { slug },
-    create: article,
-    update: article,
+    return tx.ukpubsNews.upsert({
+      where: { slug },
+      create: article,
+      update: article,
+    })
   })
 
   console.log(`seeded featured article: ${saved.slug} featured=${saved.isFeatured}`)

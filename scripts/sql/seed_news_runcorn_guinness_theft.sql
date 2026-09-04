@@ -1,5 +1,8 @@
 -- Featured news article: Runcorn Guinness depot theft (31 August 2026)
 -- Only one article should be featured at a time.
+-- Unfeature and upsert in one transaction so a failed insert cannot leave the site with no featured article.
+BEGIN;
+
 UPDATE ukpubs_news
 SET is_featured = false
 WHERE is_featured = true
@@ -55,3 +58,5 @@ ON CONFLICT (slug) DO UPDATE SET
     is_featured = EXCLUDED.is_featured,
     published_at = EXCLUDED.published_at,
     updated_at = NOW();
+
+COMMIT;
