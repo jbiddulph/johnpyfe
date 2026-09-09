@@ -205,6 +205,15 @@ useSiteSeo({
   title: seoTitle,
   description: seoDescription,
   path: canonicalPath,
+  page: {
+    key: 'event',
+    vars: {
+      event: event.value.event_title,
+      venue: venueName.value ?? '',
+      town: townLabel.value ?? '',
+      date: formatEventStart(event.value?.event_start).label ?? '',
+    },
+  },
   type: 'article',
   jsonLd: [
     eventJsonLd(event.value, `${siteBaseUrl()}${canonicalPath}`),

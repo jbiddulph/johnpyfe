@@ -2,6 +2,7 @@
   <div class="container mx-auto p-4 my-8">
     <Breadcrumbs :items="breadcrumbItems" />
     <h1 class="text-4xl font-bold mb-4">Browse by county</h1>
+    <p v-if="seoIntro" class="mb-4 max-w-3xl text-lg text-gray-600 dark:text-gray-400">{{ seoIntro }}</p>
     <p v-if="totalCount > 0" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
       {{ totalCount }} {{ totalCount === 1 ? 'county' : 'counties' }}
       <span v-if="totalPages > 1"> — page {{ currentPage }} of {{ totalPages }}</span>
@@ -73,9 +74,12 @@ function scrollToTop() {
   }
 }
 
+const seoIntro = useSiteSeoIntro('counties')
+
 useSiteSeo({
   title: 'Browse pubs and events by county',
   description: 'County hub pages for pubs, venues and events across the UK. Pick a county to browse towns and listings.',
   path: '/counties',
+  page: { key: 'counties' },
 })
 </script>

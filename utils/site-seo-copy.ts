@@ -4,12 +4,13 @@ export const SITE_BRAND = 'UK Pubs'
 
 const SMALL_TITLE_WORDS = new Set(['in', 'and', 'or', 'the', 'a', 'an', 'of', 'near', 'for', 'at', 'by'])
 
-/** Append "| UK Pubs" unless the title already includes the brand. */
-export function siteSeoTitle(headline: string): string {
+/** Append "| UK Pubs" (or the approved title suffix) unless the title already includes it. */
+export function siteSeoTitle(headline: string, brand: string = SITE_BRAND): string {
   const trimmed = headline.trim()
-  if (!trimmed) return SITE_BRAND
-  if (trimmed.toLowerCase().includes(`| ${SITE_BRAND.toLowerCase()}`)) return trimmed
-  return `${trimmed} | ${SITE_BRAND}`
+  const suffix = brand.trim() || SITE_BRAND
+  if (!trimmed) return suffix
+  if (trimmed.toLowerCase().includes(`| ${suffix.toLowerCase()}`)) return trimmed
+  return `${trimmed} | ${suffix}`
 }
 
 /** Title-case a search phrase, keeping small words lowercase after the first word. */

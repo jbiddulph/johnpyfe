@@ -1,7 +1,10 @@
 <template>
   <div class="container mx-auto p-4">
     <div class="flex w-full flex-wrap justify-between items-center gap-4">
-      <h1 class="text-4xl font-bold my-8">Venues</h1>
+      <div class="my-8">
+        <h1 class="text-4xl font-bold">Venues</h1>
+        <p v-if="seoIntro" class="mt-2 max-w-3xl text-lg text-gray-600 dark:text-gray-400">{{ seoIntro }}</p>
+      </div>
       <div class="flex flex-wrap items-center gap-3 ml-auto">
         <select v-model="selectedCounty" class="select min-w-[200px]" @change="onCountyChange">
           <option value="">All Counties</option>
@@ -145,12 +148,14 @@
 </template>
 
 <script lang="ts" setup>
-useHead({
-  title: 'Pubs and Venues in the UK', // Optional: Set the page title
-  meta: [
-    { name: 'keywords', content: 'Venues, Pubs, Bars, UK' },
-    { name: 'description', content: 'Venues and pubs for events around the UK' }
-  ]
+const seoIntro = useSiteSeoIntro('venues')
+
+useSiteSeo({
+  title: 'Pubs and Venues in the UK',
+  description: 'Browse pubs, bars and venues across the UK. Filter by town or county and find events, photos and details for every listing.',
+  keywords: 'UK pubs, pubs, bars, venues, pub directory',
+  path: '/venues',
+  page: { key: 'venues' },
 });
 const toast = useToast();
 import { useVenueStore } from "@/store/venue.js";

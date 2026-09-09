@@ -4,7 +4,7 @@
 
   <div class="home-band bg-white dark:bg-gray-900">
     <div class="container mx-auto px-4 py-14">
-      <HomeExploreTiles />
+      <HomeExploreTiles :intro="homeIntro || undefined" />
     </div>
   </div>
 
@@ -101,6 +101,8 @@
 <script lang="ts" setup>
 const HOMEPAGE_NEWS_LIMIT = 6
 
+const homeIntro = useSiteSeoIntro('home')
+
 const requestFetch = useRequestFetch()
 
 const { data: stats, pending: statsPending } = await useAsyncData(
@@ -148,6 +150,7 @@ useSiteSeo({
   keywords:
     'UK pubs, sports bars UK, pubs near me, UK pub directory, sports pubs, football pubs UK, live sports venues, pubs with big screens, sports bars near me, UK venues, pub finder, London pubs, Manchester pubs, Birmingham pubs, Leeds pubs, Liverpool pubs, Bristol pubs, Brighton pubs, Newcastle pubs, Sheffield pubs, Nottingham pubs, Cardiff pubs, Glasgow pubs, Edinburgh pubs, coastal pubs, Premier League pubs, live music venues, pub events, sports TV pubs, pub crawl planner',
   path: '/',
+  page: { key: 'home' },
   jsonLd: [
     {
       '@context': 'https://schema.org',

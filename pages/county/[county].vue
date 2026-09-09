@@ -13,6 +13,7 @@
         :title="`Pubs & events in ${countyDisplayName}`"
         :path="canonicalPath"
       />
+      <p v-if="seoIntro" class="mt-6 max-w-3xl text-lg text-gray-600 dark:text-gray-400">{{ seoIntro }}</p>
       <CountyTownList
         :county-name="countyDisplayName"
         :county-slug="countySlug"
@@ -101,11 +102,25 @@ const seoTitle = computed(() => countySeoHeadline(countyDisplayName.value))
 const seoDescription = computed(() => countySeoDescription(countyDisplayName.value))
 const seoKeywords = computed(() => countySeoKeywords(countyDisplayName.value))
 
+const seoIntro = useSiteSeoIntro('county', () => ({
+  county: countyDisplayName.value,
+  venueCount: mapVenues.value.length || '',
+  townCount: countyTowns.value.length || '',
+}))
+
 useSiteSeo(() => ({
   title: seoTitle.value,
   description: seoDescription.value,
   keywords: seoKeywords.value,
   path: canonicalPath,
+  page: {
+    key: 'county',
+    vars: {
+      county: countyDisplayName.value,
+      venueCount: mapVenues.value.length || '',
+      townCount: countyTowns.value.length || '',
+    },
+  },
   jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
 }))
 </script>

@@ -230,6 +230,7 @@ useSiteSeo(() => ({
   description: seoDescription.value,
   keywords: seoKeywords.value,
   path: '/search',
+  page: { key: 'search', vars: { query: activeQuery.value } },
 }))
 </script>
 

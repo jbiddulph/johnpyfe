@@ -262,6 +262,7 @@ useSiteSeo({
   title: 'Pub Crawls',
   description: 'Manage your pub crawl lists, invites, and shared crawls.',
   path: '/pub-crawls',
+  page: { key: 'pub-crawls' },
 })
 
 type Profile = { userId: string; username: string; displayName: string }

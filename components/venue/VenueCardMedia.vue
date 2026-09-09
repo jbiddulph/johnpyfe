@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { resolveVenueDisplayPhotoUrl } from '@/utils/format-venue'
+import { cleanDbString, formatPlaceName, resolveVenueDisplayPhotoUrl } from '@/utils/format-venue'
 import { venueImageAlt } from '@/utils/site-seo-copy'
 
 const props = defineProps({
@@ -33,8 +33,17 @@ const photoConfig = computed(() => ({
 
 const photoUrl = computed(() => resolveVenueDisplayPhotoUrl(props.venue?.photo, photoConfig.value))
 
-const imageAlt = computed(() =>
-  venueImageAlt(props.venue?.venuename, props.venue?.town, props.venue?.county),
+const imageAlt = useSiteSeoTemplateText(
+  'venue',
+  'imageAltTemplate',
+  () => ({
+    venue: formatPlaceName(props.venue?.venuename),
+    town: formatPlaceName(props.venue?.town),
+    county: formatPlaceName(props.venue?.county),
+    postcode: cleanDbString(props.venue?.postcode) ?? '',
+    venueType: cleanDbString(props.venue?.venuetype) ?? '',
+  }),
+  () => venueImageAlt(props.venue?.venuename, props.venue?.town, props.venue?.county),
 )
 </script>
 

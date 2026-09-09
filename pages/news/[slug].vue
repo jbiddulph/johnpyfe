@@ -183,6 +183,7 @@ useSiteSeo(() => {
     description: a.excerpt,
     keywords: keywordsFromTitle(a.title),
     path,
+    page: { key: 'news-article' as const, vars: { title: a.title, excerpt: a.excerpt } },
     image: a.imageUrl || '/ukpubs-logo.png',
     type: 'article' as const,
     jsonLd: [

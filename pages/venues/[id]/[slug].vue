@@ -498,6 +498,18 @@ useSiteSeo(() => ({
   description: seoDescription.value,
   keywords: seoKeywords.value || undefined,
   path: canonicalPath.value,
+  page: {
+    key: 'venue',
+    // Owner- or agent-written listing copy always wins over site-wide templates.
+    useTemplates: !cleanDbString(ownerProfile.value?.pageTitle) && !cleanDbString(ownerProfile.value?.metaDescription),
+    vars: {
+      venue: formatPlaceName(venue.value?.venuename),
+      town: formatPlaceName(venue.value?.town),
+      county: formatPlaceName(venue.value?.county),
+      postcode: cleanDbString(venue.value?.postcode) ?? '',
+      venueType: cleanDbString(venue.value?.venuetype) ?? '',
+    },
+  },
   image: venuePhotoSrc.value?.startsWith('http') ? venuePhotoSrc.value : undefined,
   jsonLd: venue.value
     ? [

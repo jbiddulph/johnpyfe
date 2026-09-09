@@ -133,8 +133,14 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 })
 
+const siteTitleSuffix = useSiteTitleSuffix()
+
 useHead({
-  titleTemplate: (title) => (title ? `${title} | UK Pubs` : 'UK Pubs'),
+  titleTemplate: (title) => {
+    const suffix = siteTitleSuffix.value
+    if (!title) return suffix
+    return title.toLowerCase().includes(`| ${suffix.toLowerCase()}`) ? title : `${title} | ${suffix}`
+  },
   meta: [
     { name: 'author', content: 'John Biddulph - UK Pubs' },
   ],
@@ -167,6 +173,7 @@ const adminItems = [
   { label: 'Reports', to: '/admin/reports' },
   { label: 'Pub claims', to: '/admin/claims' },
   { label: 'SEO Agent', to: '/admin/seo-agent' },
+  { label: 'Site-wide SEO', to: '/admin/seo-agent/site' },
   { label: 'Past events', to: '/admin/past-events' },
 ]
 

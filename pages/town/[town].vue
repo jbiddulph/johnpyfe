@@ -4,6 +4,7 @@
     <div class="container mx-auto p-4 my-8">
       <Breadcrumbs :items="breadcrumbItems" />
       <h1 class="text-4xl font-bold mt-6 mb-2">{{ townName }}</h1>
+      <p v-if="seoIntro" class="mb-2 max-w-3xl text-lg text-gray-600 dark:text-gray-400">{{ seoIntro }}</p>
 
       <SocialShareButtons
         class="mt-4 mb-6"
@@ -204,11 +205,20 @@ const seoKeywords = computed(() =>
   townSeoKeywords(townName.value, countyHub.value?.displayName),
 )
 
+const seoTemplateVars = () => ({
+  town: townName.value,
+  county: countyHub.value?.displayName ?? '',
+  venueCount: venueTotal.value || '',
+})
+
+const seoIntro = useSiteSeoIntro('town', seoTemplateVars)
+
 useSiteSeo(() => ({
   title: seoTitle.value,
   description: seoDescription.value,
   keywords: seoKeywords.value,
   path: canonicalPath,
+  page: { key: 'town', vars: seoTemplateVars() },
   jsonLd: breadcrumbJsonLd(breadcrumbItems.value, siteUrl),
 }))
 

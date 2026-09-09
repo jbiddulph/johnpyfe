@@ -4,7 +4,8 @@
       <h2 id="home-explore-heading" class="text-3xl font-bold text-gray-900 dark:text-white">
         Everything for a good night out
       </h2>
-      <p class="mt-3 text-lg text-gray-600 dark:text-gray-400">
+      <p v-if="intro" class="mt-3 text-lg text-gray-600 dark:text-gray-400">{{ intro }}</p>
+      <p v-else class="mt-3 text-lg text-gray-600 dark:text-gray-400">
         Discover events, browse by town or county, and find pubs near you — including
         <strong class="font-medium text-gray-700 dark:text-gray-300">sports pubs</strong>,
         coastal towns and Premier League grounds.
@@ -47,6 +48,11 @@
 </template>
 
 <script setup lang="ts">
+defineProps<{
+  /** Approved site-wide intro copy; falls back to the default paragraph. */
+  intro?: string
+}>()
+
 const tiles = [
   {
     to: '/map',

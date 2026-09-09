@@ -150,6 +150,73 @@ model AiSeoRun {
   @@map("ai_seo_runs")
 }
 
+/// One site-wide SEO audit run by the AI SEO agent. Proposals hang off it and
+/// nothing is applied until an admin approves each one (or a whole batch).
+model SiteSeoAudit {
+  id            String    @id @default(uuid())
+  status        String    @default("running")
+  focus         String?   @db.VarChar(2000)
+  score         Int?
+  summary       String?   @db.Text
+  findings      Json?
+  inventory     Json?
+  proposalCount Int       @default(0) @map("proposal_count")
+  error         Json?
+  startedAt     DateTime  @default(now()) @map("started_at")
+  finishedAt    DateTime? @map("finished_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  proposals     SiteSeoProposal[]
+
+  @@index([status, startedAt(sort: Desc)])
+  @@map("site_seo_audits")
+}
+
+model SiteSeoProposal {
+  id         String    @id @default(uuid())
+  auditId    String    @map("audit_id")
+  kind       String
+  target     String
+  title      String    @db.VarChar(300)
+  rationale  String    @db.Text
+  impact     String    @default("medium")
+  effort     String    @default("low")
+  before     Json?
+  after      Json
+  status     String    @default("pending")
+  reviewedAt DateTime? @map("reviewed_at")
+  appliedAt  DateTime? @map("applied_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  audit      SiteSeoAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("site_seo_proposals")
+}
+
+/// Approved site-wide overrides for a page type (templates use {placeholders}).
+model SiteSeoPageConfig {
+  pageKey             String   @id @map("page_key")
+  titleTemplate       String?  @map("title_template") @db.VarChar(200)
+  descriptionTemplate String?  @map("description_template") @db.VarChar(500)
+  keywords            String?  @db.VarChar(500)
+  introText           String?  @map("intro_text") @db.Text
+  linkTitleTemplate   String?  @map("link_title_template") @db.VarChar(200)
+  imageAltTemplate    String?  @map("image_alt_template") @db.VarChar(200)
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("site_seo_page_configs")
+}
+
+/// Global SEO strategy settings (keyword include/exclude lists, title suffix, ...).
+model SiteSeoSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_seo_settings")
+}
+
 model City {
   id        Int      @id @default(autoincrement())
   name      String
