@@ -1,14 +1,13 @@
 <template>
   <NuxtLink :to="venuePath(venue.id, venue.slug)" class="venue-card-media block bg-gray-100">
-    <img
+    <OptimizedImg
       :src="photoUrl"
       :alt="imageAlt"
-      :title="imageAlt"
-      class="venue-card-media__img"
+      img-class="venue-card-media__img"
       width="400"
       height="180"
+      sizes="sm:50vw md:25vw"
       loading="lazy"
-      decoding="async"
     />
   </NuxtLink>
 </template>

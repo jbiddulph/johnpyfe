@@ -24,7 +24,7 @@
             <div class="flex justify-center mb-2">
               <div v-if="user && isAdmin">
                   <UButton label="Delete" class="mr-2 text-xs" color="red" @click="openDeleteModal(event)" />
-                  <UButton label="Edit" class="text-xs" color="blue" @click="openEditEventModal(event)" />
+                  <UButton label="Edit" class="text-xs" color="primary" @click="openEditEventModal(event)" />
               </div>
             </div>
             <event-listing 

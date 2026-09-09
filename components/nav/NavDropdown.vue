@@ -100,8 +100,8 @@ const isChildActive = computed(() =>
 const triggerClass = computed(() => {
   if (props.variant === 'admin') {
     return [
-      'text-blue-700 dark:text-blue-400 md:dark:hover:text-blue-300 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-800',
-      isChildActive.value ? 'text-blue-800 dark:text-blue-300' : '',
+      'text-primary-700 dark:text-primary-400 md:dark:hover:text-primary-300 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-800',
+      isChildActive.value ? 'text-primary-800 dark:text-primary-300' : '',
     ]
   }
   return [
@@ -112,7 +112,7 @@ const triggerClass = computed(() => {
 
 const itemClass = computed(() =>
   props.variant === 'admin'
-    ? 'text-blue-700 dark:text-blue-400'
+    ? 'text-primary-700 dark:text-primary-400'
     : 'text-gray-900 dark:text-gray-100',
 )
 

@@ -1,3 +1,20 @@
+const brand = {
+  50: '#F3FBFA',
+  100: '#D5F4EF',
+  200: '#ABE8DF',
+  300: '#74D4C6',
+  400: '#3BBEAD',
+  500: '#16A394',
+  600: '#0E8579',
+  700: '#0C6B62',
+  800: '#0F5550',
+  900: '#104743',
+  950: '#052E2B',
+  DEFAULT: '#0E8579',
+  dark: '#0C6B62',
+  light: '#3BBEAD',
+}
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -5,27 +22,24 @@ export default {
     './pages/**/*.{vue,js}',
     './layouts/**/*.{vue,js}',
     './app.config.ts',
-    './assets/css/**/*.{css}',
+    './assets/css/**/*.css',
   ],
   theme: {
     extend: {
       colors: {
-        // Brand accent: blue + pale pastel blue
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
-          DEFAULT: '#2563eb',
-          dark: '#1d4ed8',
-          light: '#60a5fa',
+        brand,
+        primary: brand,
+        surface: {
+          DEFAULT: '#F6F3EE',
+          dark: '#111827',
+        },
+        pin: {
+          DEFAULT: '#E53935',
+          dark: '#C62828',
+        },
+        pint: {
+          DEFAULT: '#F5B301',
+          dark: '#D97706',
         },
       },
     },

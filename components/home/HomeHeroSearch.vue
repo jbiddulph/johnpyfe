@@ -1,21 +1,33 @@
 <template>
   <section class="home-hero relative w-full min-h-[320px] max-h-[520px] overflow-hidden bg-gray-900">
-    <img
-      src="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg"
-      alt=""
-      width="1920"
-      height="480"
-      fetchpriority="high"
-      loading="eager"
-      decoding="async"
-      class="absolute inset-0 h-full w-full object-cover"
-      aria-hidden="true"
-    />
-    <div class="home-hero__overlay absolute inset-0 bg-black/45" aria-hidden="true" />
+    <picture>
+      <source
+        type="image/avif"
+        srcset="/assets/images/hero-home-640.avif 640w, /assets/images/hero-home-960.avif 960w, /assets/images/hero-home-1280.avif 1280w, /assets/images/hero-home-1600.avif 1600w"
+        sizes="100vw"
+      >
+      <source
+        type="image/webp"
+        srcset="/assets/images/hero-home-640.webp 640w, /assets/images/hero-home-960.webp 960w, /assets/images/hero-home-1280.webp 1280w, /assets/images/hero-home-1600.webp 1600w"
+        sizes="100vw"
+      >
+      <img
+        src="/assets/images/hero-home-1280.jpg"
+        alt=""
+        width="1280"
+        height="416"
+        fetchpriority="high"
+        loading="eager"
+        decoding="async"
+        class="absolute inset-0 h-full w-full object-cover"
+        aria-hidden="true"
+      >
+    </picture>
+    <div class="home-hero__overlay absolute inset-0 bg-gradient-to-b from-primary-950/55 via-black/35 to-primary-950/70" aria-hidden="true" />
 
     <div class="relative z-[1] flex min-h-[320px] max-h-[520px] flex-col items-center justify-center px-4 py-10 md:py-14">
-      <p class="mb-2 text-sm font-medium uppercase tracking-widest text-white/80">UK Pubs</p>
-      <h1 class="mb-8 max-w-3xl text-center text-3xl font-light text-white drop-shadow-md md:text-5xl">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-[0.22em] text-pint">UK Pubs</p>
+      <h1 class="mb-8 max-w-3xl text-center text-3xl font-semibold tracking-tight text-white drop-shadow-md md:text-5xl">
         Find pubs and venues across the UK
       </h1>
 
@@ -37,7 +49,7 @@
           />
           <button
             type="submit"
-            class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
+            class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-pint text-stone-900 transition hover:bg-pint-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
             :disabled="!canSearch"
             aria-label="Search"
           >

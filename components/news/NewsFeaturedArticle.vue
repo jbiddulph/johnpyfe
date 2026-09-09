@@ -9,15 +9,15 @@
         :to="`/news/${article.slug}`"
         class="block aspect-[16/9] overflow-hidden bg-amber-100 dark:bg-gray-800 lg:aspect-auto lg:min-h-[320px]"
       >
-        <img
+        <OptimizedImg
           :src="article.imageUrl"
           :alt="`${article.title} — UK pub news`"
-          class="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+          img-class="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
           width="960"
           height="540"
+          sizes="sm:100vw lg:50vw"
           loading="lazy"
-          decoding="async"
-        >
+        />
       </NuxtLink>
       <div class="flex flex-col justify-center px-6 py-8 sm:px-8 sm:py-10">
         <div class="mb-4 flex items-center gap-2">

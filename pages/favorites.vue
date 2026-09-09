@@ -7,7 +7,7 @@
     </p>
 
     <p v-if="!isLoggedIn" class="text-lg text-gray-600 mb-4">
-      <NuxtLink to="/login?redirect=/favorites" class="text-blue-600 hover:underline">Sign in</NuxtLink>
+      <NuxtLink to="/login?redirect=/favorites" class="text-primary-600 hover:underline">Sign in</NuxtLink>
       to save and view your favourite pubs.
     </p>
 
@@ -18,7 +18,7 @@
     <template v-else>
       <p v-if="!items.length" class="text-lg text-gray-600">
         You have not favourited any pubs yet.
-        <NuxtLink to="/venues" class="text-blue-600 hover:underline">Browse venues</NuxtLink>
+        <NuxtLink to="/venues" class="text-primary-600 hover:underline">Browse venues</NuxtLink>
         and tap the heart on a pub you like.
       </p>
 

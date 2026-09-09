@@ -60,14 +60,15 @@
         </div>
 
         <figure v-if="article.imageUrl" class="mb-8 -mx-4 sm:mx-0 overflow-hidden sm:rounded-xl">
-          <img
+          <OptimizedImg
             :src="article.imageUrl"
             :alt="imageAlt"
-            class="w-full max-h-[28rem] object-cover"
-            itemprop="image"
+            img-class="w-full max-h-[28rem] object-cover"
             width="1200"
             height="675"
-          >
+            sizes="sm:100vw md:768px"
+            loading="eager"
+          />
         </figure>
       </header>
 

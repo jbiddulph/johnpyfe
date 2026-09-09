@@ -36,7 +36,7 @@
         </div>
       </div>
     </nav>
-    <main class="bg-primary-100 dark:bg-gray-800">
+    <main class="bg-surface dark:bg-gray-900">
       <slot />
     </main>
     <footer>

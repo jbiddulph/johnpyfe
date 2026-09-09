@@ -13,7 +13,7 @@
           :href="websiteHref"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-blue-600 hover:underline break-all"
+          class="text-primary-600 hover:underline break-all"
         >
           {{ websiteLabel }}
         </a>

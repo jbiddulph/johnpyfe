@@ -52,7 +52,7 @@
               <p>Slug: {{ article.slug }}</p>
             </div>
             <div class="flex gap-2">
-              <UButton size="xs" color="blue" label="Edit" @click="openEditModal(article)" />
+              <UButton size="xs" color="primary" label="Edit" @click="openEditModal(article)" />
               <UButton size="xs" color="red" variant="soft" label="Delete" @click="openDeleteModal(article)" />
               <UButton size="xs" color="gray" variant="ghost" label="View" :to="`/news/${article.slug}`" target="_blank" />
             </div>

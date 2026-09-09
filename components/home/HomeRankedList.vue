@@ -17,15 +17,17 @@
             class="home-ranked-photo__media relative min-h-[140px] overflow-hidden"
             :class="{ 'home-ranked-photo__media--fallback': !hasUsableImage(item, index) }"
           >
-            <img
+            <OptimizedImg
               v-if="hasUsableImage(item, index)"
               :src="imageSrc(item, index)"
               :alt="imageAlt(item)"
-              class="absolute inset-0 h-full w-full object-cover"
+              img-class="absolute inset-0 h-full w-full object-cover"
+              width="640"
+              height="360"
+              sizes="sm:50vw lg:33vw"
               loading="lazy"
-              decoding="async"
               @error="markImageFailed(item, index)"
-            >
+            />
             <div class="home-ranked-photo__overlay" aria-hidden="true" />
             <div class="home-ranked-photo__content relative z-[1] flex min-h-[140px] flex-col justify-end p-4 text-white">
               <span class="home-ranked__rank home-ranked__rank--photo mb-2 w-fit" aria-hidden="true">
@@ -147,7 +149,7 @@ function imageAttribution(item: HomeRankedItem, index: number) {
 
 <style scoped>
 .home-ranked__rank {
-  @apply flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-800 dark:bg-blue-900/40 dark:text-blue-200;
+  @apply flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-800 dark:bg-primary-900/40 dark:text-primary-200;
 }
 
 .home-ranked__rank--photo {

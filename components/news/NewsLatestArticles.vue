@@ -6,15 +6,15 @@
       class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:hover:border-amber-600"
     >
       <NuxtLink :to="`/news/${article.slug}`" class="block aspect-[16/10] overflow-hidden bg-gray-100 dark:bg-gray-800" :title="linkTitle(article)">
-        <img
-          :src="article.imageUrl || '/assets/images/awaiting.jpg'"
+        <OptimizedImg
+          :src="article.imageUrl || '/assets/images/awaiting-640.webp'"
           :alt="imageAlt(article)"
-          class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          loading="lazy"
-          decoding="async"
+          img-class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           width="640"
           height="400"
-        >
+          sizes="sm:50vw lg:33vw"
+          loading="lazy"
+        />
       </NuxtLink>
       <div class="flex flex-1 flex-col p-4">
         <time class="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400" :datetime="article.publishedAt">
