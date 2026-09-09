@@ -21,7 +21,7 @@
 - ✅ 5-minute cache for performance
 
 ### 4. Frontend Components
-- ✅ `HomeFeaturedNews.vue` - Featured article card for homepage
+- ✅ `components/news/NewsFeaturedArticle.vue` - Featured article card for homepage
   - Attractive amber/orange gradient design
   - Responsive layout
   - Author and publication date
@@ -80,8 +80,8 @@
 │           ├── featured.get.ts (new)
 │           └── [slug].get.ts (new)
 ├── components/
-│   └── home/
-│       └── HomeFeaturedNews.vue (new)
+│   └── news/
+│       └── NewsFeaturedArticle.vue (new)
 ├── pages/
 │   ├── index.vue (updated)
 │   └── news/
@@ -117,7 +117,7 @@ Query Prisma for isFeatured=true
     ↓
 Return cached or fresh data
     ↓
-Display in HomeFeaturedNews component
+Display in NewsFeaturedArticle component
     ↓
 User clicks "Read full article"
     ↓
