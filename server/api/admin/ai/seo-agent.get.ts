@@ -1,6 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAdmin } from '../../../utils/require-admin'
-import { countVenuesNeedingSeoImprovement } from '../../../utils/ai/seo-agent'
+import { countVenuesNeedingSeoImprovement, expireStaleSeoRuns } from '../../../utils/ai/seo-agent'
 
 function isMissingSeoTableError(error: unknown): boolean {
   const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
 
   if (live) {
     try {
+      await expireStaleSeoRuns()
       const recentRuns = await prisma.aiSeoRun.findMany({
         orderBy: { startedAt: 'desc' },
         take: 10,
@@ -42,6 +43,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    await expireStaleSeoRuns()
     const [
       totalRuns,
       completedRuns,
