@@ -24,7 +24,7 @@
               img-class="absolute inset-0 h-full w-full object-cover"
               width="640"
               height="360"
-              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              sizes="sm:50vw lg:33vw"
               loading="lazy"
               @error="markImageFailed(item, index)"
             />
