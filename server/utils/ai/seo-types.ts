@@ -44,3 +44,22 @@ export type SavedSeoChanges = {
   recommendationId: string
   improvementCount: number
 }
+
+export type SaveSeoChangesOptions = {
+  runId?: string | null
+}
+
+export type SeoFieldSnapshot = {
+  pageTitle: string
+  metaDescription: string
+  description: string
+  seoKeywords: string
+}
+
+export type SeoFieldDiff = {
+  field: keyof SeoFieldSnapshot
+  label: string
+  before: string
+  after: string
+  changed: boolean
+}

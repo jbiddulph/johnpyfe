@@ -5,17 +5,27 @@
       <div class="flex flex-col gap-2">
         <h1 class="text-4xl font-bold">SEO Agent</h1>
         <p class="text-gray-600 dark:text-gray-300">
-          The daily job analyses live listings for thin or missing SEO, whether or not they have been processed before, then writes improvements through the app SEO agent.
+          Each run is capped at {{ runLimit }} listings so it can finish inside Netlify’s 15-minute background limit (about 112 listings was as far as 500 got). 300 would take roughly three separate 15-minute workers, not one.
         </p>
       </div>
-      <button
-        type="button"
-        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
-        :disabled="startingRun || loading || Boolean(activeRun)"
-        @click="startSeoBatch"
-      >
-        {{ startingRun ? 'Starting…' : activeRun ? 'Run in progress' : 'Run 500 now' }}
-      </button>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-60"
+          :disabled="stoppingRun || loading || !activeRun"
+          @click="stopSeoBatch"
+        >
+          {{ stoppingRun ? 'Stopping…' : 'Stop run' }}
+        </button>
+        <button
+          type="button"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+          :disabled="startingRun || stoppingRun || loading || Boolean(activeRun)"
+          @click="startSeoBatch"
+        >
+          {{ startingRun ? 'Starting…' : activeRun ? 'Run in progress' : `Run ${runLimit} now` }}
+        </button>
+      </div>
     </div>
 
     <p v-if="loading && !agentStatus" class="text-gray-600">Loading...</p>
@@ -30,14 +40,22 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <NuxtLink
+          to="/admin/seo-agent/improvements?status=pending"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 hover:ring-2 hover:ring-amber-400 transition"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">Pending improvements</p>
           <p class="text-3xl font-bold text-amber-600">{{ agentStatus?.totals.pendingRecommendations }}</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+          <p class="mt-2 text-xs text-amber-700 dark:text-amber-300">View before and after</p>
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/seo-agent/improvements?status=applied"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 hover:ring-2 hover:ring-green-400 transition"
+        >
           <p class="text-sm text-gray-500 dark:text-gray-400">Applied improvements</p>
           <p class="text-3xl font-bold text-green-600">{{ agentStatus?.totals.appliedRecommendations }}</p>
-        </div>
+          <p class="mt-2 text-xs text-green-700 dark:text-green-300">View before and after</p>
+        </NuxtLink>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
           <p class="text-sm text-gray-500 dark:text-gray-400">Completed runs</p>
           <p class="text-3xl font-bold text-blue-600">{{ agentStatus?.totals.completedRuns }}</p>
@@ -66,6 +84,10 @@
           <div>
             <dt class="text-gray-500 dark:text-gray-400">UK time</dt>
             <dd>{{ agentStatus?.schedule.ukSummerTime }} BST / {{ agentStatus?.schedule.ukWinterTime }} GMT</dd>
+          </div>
+          <div>
+            <dt class="text-gray-500 dark:text-gray-400">Per worker</dt>
+            <dd>{{ agentStatus?.schedule.listingsPerWorker }} listings / {{ agentStatus?.schedule.workerMinutes }} min</dd>
           </div>
           <div>
             <dt class="text-gray-500 dark:text-gray-400">Daily limit</dt>
@@ -113,12 +135,28 @@
         >
           <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
             <p class="font-semibold">Current run in progress</p>
-            <p>
-              {{ activeRun.processedCount }} / {{ activeRun.requestedLimit }} processed ·
-              {{ activeRun.appliedCount }} applied ·
-              {{ activeRun.draftedCount }} drafted ·
-              {{ activeRun.errorCount }} errors
-            </p>
+            <div class="flex flex-wrap items-center gap-3">
+              <p>
+                {{ activeRun.processedCount }} / {{ activeRun.requestedLimit }} processed ·
+                {{ activeRun.appliedCount }} applied ·
+                {{ activeRun.draftedCount }} drafted ·
+                {{ activeRun.errorCount }} errors
+              </p>
+              <NuxtLink
+                :to="`/admin/seo-agent/improvements?runId=${activeRun.id}`"
+                class="font-medium underline"
+              >
+                View changes
+              </NuxtLink>
+              <button
+                type="button"
+                class="font-medium underline"
+                :disabled="stoppingRun"
+                @click="stopSeoBatch"
+              >
+                Stop
+              </button>
+            </div>
           </div>
           <div class="h-2 rounded-full bg-blue-200 dark:bg-blue-900 overflow-hidden">
             <div
@@ -131,7 +169,11 @@
         <p v-if="agentStatus?.recentRuns.length === 0" class="text-gray-600 dark:text-gray-300">
           No SEO agent runs have been recorded yet.
         </p>
-        <div v-else class="overflow-x-auto">
+        <template v-else>
+          <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+            Click a run to see the previous title, meta description, page description and keywords next to the new copy.
+          </p>
+          <div class="overflow-x-auto">
           <table class="min-w-full text-sm border border-gray-200 dark:border-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-900">
               <tr>
@@ -142,6 +184,7 @@
                 <th class="p-3 text-left">Drafted</th>
                 <th class="p-3 text-left">Applied</th>
                 <th class="p-3 text-left">Errors</th>
+                <th class="p-3 text-left">Changes</th>
               </tr>
             </thead>
             <tbody>
@@ -149,12 +192,19 @@
                 v-for="run in agentStatus?.recentRuns"
                 :key="run.id"
                 class="border-t border-gray-200 dark:border-gray-700"
-                :class="run.status === 'running' ? 'bg-blue-50 dark:bg-blue-950/40' : ''"
+                :class="isLiveSeoRun(run) ? 'bg-blue-50 dark:bg-blue-950/40' : ''"
               >
-                <td class="p-3">{{ formatDateTime(run.startedAt) }}</td>
+                <td class="p-3">
+                  <NuxtLink
+                    :to="`/admin/seo-agent/improvements?runId=${run.id}`"
+                    class="hover:underline"
+                  >
+                    {{ formatDateTime(run.startedAt) }}
+                  </NuxtLink>
+                </td>
                 <td class="p-3">
                   <span
-                    v-if="run.status === 'running'"
+                    v-if="isLiveSeoRun(run)"
                     class="inline-flex items-center gap-2 font-medium text-blue-700 dark:text-blue-300"
                   >
                     <span class="relative flex h-2 w-2">
@@ -163,6 +213,7 @@
                     </span>
                     Running
                   </span>
+                  <span v-else-if="run.status === 'running'" class="capitalize">Timed out</span>
                   <span v-else class="capitalize">{{ run.status.replaceAll('_', ' ') }}</span>
                 </td>
                 <td class="p-3">{{ run.requestedLimit }}</td>
@@ -170,10 +221,19 @@
                 <td class="p-3">{{ run.draftedCount }}</td>
                 <td class="p-3">{{ run.appliedCount }}</td>
                 <td class="p-3">{{ run.errorCount }}</td>
+                <td class="p-3">
+                  <NuxtLink
+                    :to="`/admin/seo-agent/improvements?runId=${run.id}`"
+                    class="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    View
+                  </NuxtLink>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
+        </template>
       </div>
     </div>
   </div>
@@ -191,6 +251,8 @@ type SeoAgentStatus = {
     ukSummerTime: string
     ukWinterTime: string
     dailyLimit: number
+    listingsPerWorker?: number
+    workerMinutes?: number
     concurrency: number
     webSearchEnabled: boolean
     openAiConfigured: boolean
@@ -214,12 +276,14 @@ type SeoAgentStatus = {
     errorCount: number
     startedAt: string
     finishedAt: string | null
+    updatedAt?: string
   }>
   migrationReady: boolean
 }
 
 const loading = ref(true)
 const startingRun = ref(false)
+const stoppingRun = ref(false)
 const errorMessage = ref('')
 const agentStatus = ref<SeoAgentStatus | null>(null)
 const pollTimer = ref<ReturnType<typeof setInterval> | null>(null)
@@ -230,11 +294,21 @@ const breadcrumbItems = [
   { label: 'SEO Agent' },
 ]
 
+const SEO_AGENT_STALE_RUN_MS = 20 * 60 * 1000
+
+function isLiveSeoRun(run: { status: string; startedAt: string; updatedAt?: string }, now = Date.now()) {
+  if (run.status !== 'running') return false
+  const lastActivity = new Date(run.updatedAt || run.startedAt).getTime()
+  return Number.isFinite(lastActivity) && now - lastActivity <= SEO_AGENT_STALE_RUN_MS
+}
+
 const activeRun = computed(() =>
-  agentStatus.value?.recentRuns.find((run) => run.status === 'running') || null,
+  agentStatus.value?.recentRuns.find((run) => isLiveSeoRun(run)) || null,
 )
 
 const isLive = computed(() => Boolean(activeRun.value))
+
+const runLimit = computed(() => agentStatus.value?.schedule.dailyLimit || 100)
 
 const activeRunProgress = computed(() => {
   const run = activeRun.value
@@ -308,7 +382,7 @@ async function startSeoBatch() {
     await requestFetch('/api/admin/ai/seo-agent', {
       method: 'POST',
       headers: { Authorization: `Bearer ${await adminToken()}` },
-      body: { limit: 500 },
+      body: { limit: runLimit.value },
     })
     await loadSeoAgentStatus({ silent: true })
   } catch (error: unknown) {
@@ -316,6 +390,24 @@ async function startSeoBatch() {
     errorMessage.value = err?.data?.statusMessage || err?.message || 'Failed to start the SEO agent'
   } finally {
     startingRun.value = false
+  }
+}
+
+async function stopSeoBatch() {
+  stoppingRun.value = true
+  errorMessage.value = ''
+  try {
+    await requestFetch('/api/admin/ai/seo-agent', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${await adminToken()}` },
+      body: { action: 'stop' },
+    })
+    await loadSeoAgentStatus({ silent: true })
+  } catch (error: unknown) {
+    const err = error as { data?: { statusMessage?: string }; message?: string }
+    errorMessage.value = err?.data?.statusMessage || err?.message || 'Failed to stop the SEO agent'
+  } finally {
+    stoppingRun.value = false
   }
 }
 
