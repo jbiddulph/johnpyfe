@@ -1,4 +1,5 @@
 import type { Config } from '@netlify/functions'
+import { parseSeoAgentLimit } from '../../server/utils/ai/seo-agent'
 
 export default async () => {
   const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL
@@ -14,7 +15,7 @@ export default async () => {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      limit: Number.parseInt(process.env.AI_SEO_DAILY_LIMIT || '500', 10) || 500,
+      limit: parseSeoAgentLimit(process.env.AI_SEO_DAILY_LIMIT),
     }),
   })
 

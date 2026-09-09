@@ -5,17 +5,27 @@
       <div class="flex flex-col gap-2">
         <h1 class="text-4xl font-bold">SEO Agent</h1>
         <p class="text-gray-600 dark:text-gray-300">
-          The daily job analyses live listings for thin or missing SEO, whether or not they have been processed before, then writes improvements through the app SEO agent.
+          Each run is capped at {{ runLimit }} listings so it can finish inside Netlify’s 15-minute background limit (about 112 listings was as far as 500 got). 300 would take roughly three separate 15-minute workers, not one.
         </p>
       </div>
-      <button
-        type="button"
-        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
-        :disabled="startingRun || loading || Boolean(activeRun)"
-        @click="startSeoBatch"
-      >
-        {{ startingRun ? 'Starting…' : activeRun ? 'Run in progress' : 'Run 500 now' }}
-      </button>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-60"
+          :disabled="stoppingRun || loading || !activeRun"
+          @click="stopSeoBatch"
+        >
+          {{ stoppingRun ? 'Stopping…' : 'Stop run' }}
+        </button>
+        <button
+          type="button"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+          :disabled="startingRun || stoppingRun || loading || Boolean(activeRun)"
+          @click="startSeoBatch"
+        >
+          {{ startingRun ? 'Starting…' : activeRun ? 'Run in progress' : `Run ${runLimit} now` }}
+        </button>
+      </div>
     </div>
 
     <p v-if="loading && !agentStatus" class="text-gray-600">Loading...</p>
@@ -76,6 +86,10 @@
             <dd>{{ agentStatus?.schedule.ukSummerTime }} BST / {{ agentStatus?.schedule.ukWinterTime }} GMT</dd>
           </div>
           <div>
+            <dt class="text-gray-500 dark:text-gray-400">Per worker</dt>
+            <dd>{{ agentStatus?.schedule.listingsPerWorker }} listings / {{ agentStatus?.schedule.workerMinutes }} min</dd>
+          </div>
+          <div>
             <dt class="text-gray-500 dark:text-gray-400">Daily limit</dt>
             <dd>{{ agentStatus?.schedule.dailyLimit }} listings</dd>
           </div>
@@ -134,6 +148,14 @@
               >
                 View changes
               </NuxtLink>
+              <button
+                type="button"
+                class="font-medium underline"
+                :disabled="stoppingRun"
+                @click="stopSeoBatch"
+              >
+                Stop
+              </button>
             </div>
           </div>
           <div class="h-2 rounded-full bg-blue-200 dark:bg-blue-900 overflow-hidden">
@@ -229,6 +251,8 @@ type SeoAgentStatus = {
     ukSummerTime: string
     ukWinterTime: string
     dailyLimit: number
+    listingsPerWorker?: number
+    workerMinutes?: number
     concurrency: number
     webSearchEnabled: boolean
     openAiConfigured: boolean
@@ -252,12 +276,14 @@ type SeoAgentStatus = {
     errorCount: number
     startedAt: string
     finishedAt: string | null
+    updatedAt?: string
   }>
   migrationReady: boolean
 }
 
 const loading = ref(true)
 const startingRun = ref(false)
+const stoppingRun = ref(false)
 const errorMessage = ref('')
 const agentStatus = ref<SeoAgentStatus | null>(null)
 const pollTimer = ref<ReturnType<typeof setInterval> | null>(null)
@@ -270,10 +296,10 @@ const breadcrumbItems = [
 
 const SEO_AGENT_STALE_RUN_MS = 20 * 60 * 1000
 
-function isLiveSeoRun(run: { status: string; startedAt: string }, now = Date.now()) {
+function isLiveSeoRun(run: { status: string; startedAt: string; updatedAt?: string }, now = Date.now()) {
   if (run.status !== 'running') return false
-  const started = new Date(run.startedAt).getTime()
-  return Number.isFinite(started) && now - started <= SEO_AGENT_STALE_RUN_MS
+  const lastActivity = new Date(run.updatedAt || run.startedAt).getTime()
+  return Number.isFinite(lastActivity) && now - lastActivity <= SEO_AGENT_STALE_RUN_MS
 }
 
 const activeRun = computed(() =>
@@ -281,6 +307,8 @@ const activeRun = computed(() =>
 )
 
 const isLive = computed(() => Boolean(activeRun.value))
+
+const runLimit = computed(() => agentStatus.value?.schedule.dailyLimit || 100)
 
 const activeRunProgress = computed(() => {
   const run = activeRun.value
@@ -354,7 +382,7 @@ async function startSeoBatch() {
     await requestFetch('/api/admin/ai/seo-agent', {
       method: 'POST',
       headers: { Authorization: `Bearer ${await adminToken()}` },
-      body: { limit: 500 },
+      body: { limit: runLimit.value },
     })
     await loadSeoAgentStatus({ silent: true })
   } catch (error: unknown) {
@@ -362,6 +390,24 @@ async function startSeoBatch() {
     errorMessage.value = err?.data?.statusMessage || err?.message || 'Failed to start the SEO agent'
   } finally {
     startingRun.value = false
+  }
+}
+
+async function stopSeoBatch() {
+  stoppingRun.value = true
+  errorMessage.value = ''
+  try {
+    await requestFetch('/api/admin/ai/seo-agent', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${await adminToken()}` },
+      body: { action: 'stop' },
+    })
+    await loadSeoAgentStatus({ silent: true })
+  } catch (error: unknown) {
+    const err = error as { data?: { statusMessage?: string }; message?: string }
+    errorMessage.value = err?.data?.statusMessage || err?.message || 'Failed to stop the SEO agent'
+  } finally {
+    stoppingRun.value = false
   }
 }
 
