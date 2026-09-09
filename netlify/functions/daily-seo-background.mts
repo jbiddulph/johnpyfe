@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { parseSeoAgentLimit, runDailySeoAgent } from '../../server/utils/ai/seo-agent'
+import { parseSeoAgentRunLimit, runDailySeoAgent } from '../../server/utils/ai/seo-agent'
 
 async function continueRun(runId: string, limit: number, secret: string) {
   const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL
@@ -23,8 +23,13 @@ export default async (req: Request) => {
   }
 
   const body = await req.json().catch(() => ({}))
-  const limit = parseSeoAgentLimit(body?.limit || process.env.AI_SEO_DAILY_LIMIT)
+  const limit = parseSeoAgentRunLimit(body?.limit)
   const result = await runDailySeoAgent(limit, { runId: body?.runId ? String(body.runId) : undefined })
+
+  if ('skipped' in result && result.skipped) {
+    console.log('[daily-seo-background] skipped', result.error)
+    return
+  }
 
   if (result.shouldContinue && result.status === 'running') {
     await continueRun(result.id, result.requestedLimit, expectedSecret)

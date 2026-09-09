@@ -5,7 +5,7 @@
       <div class="flex flex-col gap-2">
         <h1 class="text-4xl font-bold">SEO Agent</h1>
         <p class="text-gray-600 dark:text-gray-300">
-          Each run is capped at {{ runLimit }} listings so it can finish inside Netlify’s 15-minute background limit (about 112 listings was as far as 500 got). 300 would take roughly three separate 15-minute workers, not one.
+          Each worker is capped at {{ agentStatus?.schedule.listingsPerWorker || 100 }} listings so it can finish inside Netlify’s 15-minute limit. Five hourly jobs from midnight UTC add up to {{ agentStatus?.schedule.dailyLimit || 500 }} listings a day.
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
@@ -20,10 +20,10 @@
         <button
           type="button"
           class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
-          :disabled="startingRun || stoppingRun || loading || Boolean(activeRun)"
+          :disabled="startingRun || stoppingRun || loading || Boolean(activeRun) || runLimit <= 0"
           @click="startSeoBatch"
         >
-          {{ startingRun ? 'Starting…' : activeRun ? 'Run in progress' : `Run ${runLimit} now` }}
+          {{ startingRun ? 'Starting…' : activeRun ? 'Run in progress' : runLimit <= 0 ? 'Daily cap reached' : `Run ${runLimit} now` }}
         </button>
       </div>
     </div>
@@ -79,11 +79,15 @@
           </div>
           <div>
             <dt class="text-gray-500 dark:text-gray-400">UTC</dt>
-            <dd>{{ agentStatus?.schedule.utcTime }} daily</dd>
+            <dd>{{ agentStatus?.schedule.utcTime }}</dd>
           </div>
           <div>
             <dt class="text-gray-500 dark:text-gray-400">UK time</dt>
-            <dd>{{ agentStatus?.schedule.ukSummerTime }} BST / {{ agentStatus?.schedule.ukWinterTime }} GMT</dd>
+            <dd>{{ agentStatus?.schedule.ukSummerTime }} / {{ agentStatus?.schedule.ukWinterTime }}</dd>
+          </div>
+          <div>
+            <dt class="text-gray-500 dark:text-gray-400">Hourly jobs</dt>
+            <dd>{{ agentStatus?.schedule.hourlyJobs || 5 }} × {{ agentStatus?.schedule.listingsPerWorker }} listings</dd>
           </div>
           <div>
             <dt class="text-gray-500 dark:text-gray-400">Per worker</dt>
@@ -106,8 +110,8 @@
             <dd>{{ agentStatus?.schedule.openAiConfigured ? 'Configured' : 'Missing' }}</dd>
           </div>
           <div>
-            <dt class="text-gray-500 dark:text-gray-400">Latest recommendation</dt>
-            <dd>{{ formatDateTime(agentStatus?.totals.latestRecommendationAt) }}</dd>
+            <dt class="text-gray-500 dark:text-gray-400">Today</dt>
+            <dd>{{ agentStatus?.totals.processedToday || 0 }} / {{ agentStatus?.schedule.dailyLimit }} · {{ agentStatus?.totals.remainingToday || 0 }} left</dd>
           </div>
         </dl>
       </div>
@@ -253,6 +257,7 @@ type SeoAgentStatus = {
     dailyLimit: number
     listingsPerWorker?: number
     workerMinutes?: number
+    hourlyJobs?: number
     concurrency: number
     webSearchEnabled: boolean
     openAiConfigured: boolean
@@ -264,6 +269,8 @@ type SeoAgentStatus = {
     pendingRecommendations: number
     appliedRecommendations: number
     remainingListings: number
+    processedToday?: number
+    remainingToday?: number
     latestRecommendationAt: string | null
   }
   recentRuns: Array<{
@@ -308,7 +315,12 @@ const activeRun = computed(() =>
 
 const isLive = computed(() => Boolean(activeRun.value))
 
-const runLimit = computed(() => agentStatus.value?.schedule.dailyLimit || 100)
+const runLimit = computed(() => {
+  const perWorker = agentStatus.value?.schedule.listingsPerWorker || 100
+  const remaining = agentStatus.value?.totals.remainingToday
+  if (typeof remaining === 'number') return Math.min(perWorker, remaining)
+  return perWorker
+})
 
 const activeRunProgress = computed(() => {
   const run = activeRun.value
@@ -379,11 +391,14 @@ async function startSeoBatch() {
   startingRun.value = true
   errorMessage.value = ''
   try {
-    await requestFetch('/api/admin/ai/seo-agent', {
+    const result = await requestFetch<{ started?: boolean; dailyLimitReached?: boolean; limit?: number }>('/api/admin/ai/seo-agent', {
       method: 'POST',
       headers: { Authorization: `Bearer ${await adminToken()}` },
       body: { limit: runLimit.value },
     })
+    if (result.dailyLimitReached) {
+      errorMessage.value = 'The daily SEO cap has already been reached.'
+    }
     await loadSeoAgentStatus({ silent: true })
   } catch (error: unknown) {
     const err = error as { data?: { statusMessage?: string }; message?: string }

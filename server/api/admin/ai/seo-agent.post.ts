@@ -1,6 +1,6 @@
 import { requireAdmin } from '../../../utils/require-admin'
 import { billingSiteUrl } from '../../../utils/billing-site-url'
-import { getLiveSeoRun, parseSeoAgentLimit, stopSeoRuns } from '../../../utils/ai/seo-agent'
+import { getLiveSeoRun, nextSeoRunLimit, stopSeoRuns } from '../../../utils/ai/seo-agent'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -24,7 +24,14 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const limit = parseSeoAgentLimit(body?.limit || process.env.AI_SEO_DAILY_LIMIT)
+  const limit = await nextSeoRunLimit(body?.limit)
+  if (limit <= 0) {
+    return {
+      started: false,
+      dailyLimitReached: true,
+      limit: 0,
+    }
+  }
 
   const response = await fetch(new URL('/api/ai/daily-seo-background', billingSiteUrl(event)), {
     method: 'POST',
