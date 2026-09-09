@@ -270,12 +270,18 @@
           <p v-if="addingStop" class="text-xs text-gray-500">Adding to crawl…</p>
         </section>
 
-        <section v-if="canEditActiveCrawl && activeCrawl" class="space-y-2">
+        <section
+          v-if="canEditActiveCrawl && activeCrawl"
+          ref="inviteSectionRef"
+          class="space-y-2 rounded-lg transition-shadow duration-500"
+          :class="inviteHighlighted ? 'ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-gray-900' : ''"
+        >
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
             Invite to {{ activeCrawl.name }}
           </h3>
           <p class="text-xs text-gray-500">
             Search by username (3+ characters). Only the creator can invite.
+            Friends you invite can follow the route and chat, but only you can edit it.
           </p>
           <div class="relative">
             <UInput
@@ -483,10 +489,40 @@
 <script setup lang="ts">
 import { formatCrawlStartsAt, toDatetimeLocalValue } from '@/utils/crawl-schedule'
 
+const props = defineProps<{
+  /** When true, scroll to and highlight the invite section once the crawl is ready. */
+  focusInvite?: boolean
+}>()
+
 const emit = defineEmits<{
   close: []
   'crawl-updated': [crawl: { id: string; name: string } | null]
 }>()
+
+const inviteSectionRef = ref<HTMLElement | null>(null)
+const inviteHighlighted = ref(false)
+let inviteHighlightTimeout: ReturnType<typeof setTimeout> | null = null
+
+async function focusInviteSection() {
+  await nextTick()
+  const el = inviteSectionRef.value
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  const input = el.querySelector('input') as HTMLInputElement | null
+  input?.focus({ preventScroll: true })
+  inviteHighlighted.value = true
+  if (inviteHighlightTimeout) clearTimeout(inviteHighlightTimeout)
+  inviteHighlightTimeout = setTimeout(() => {
+    inviteHighlighted.value = false
+  }, 2500)
+}
+
+watch(
+  () => props.focusInvite,
+  (focus) => {
+    if (focus) void focusInviteSection()
+  },
+)
 
 const {
   crawls,
@@ -803,11 +839,13 @@ function onDrop(toIndex: number) {
   reorderStops(fromIndex, toIndex)
 }
 
-onMounted(() => {
-  void initialize()
+onMounted(async () => {
+  await initialize()
+  if (props.focusInvite) void focusInviteSection()
 })
 
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer)
+  if (inviteHighlightTimeout) clearTimeout(inviteHighlightTimeout)
 })
 </script>
