@@ -6,13 +6,15 @@
         :to="`/news/${article.slug}`"
         class="block aspect-[16/9] sm:aspect-[21/9] overflow-hidden bg-amber-100 dark:bg-gray-800"
       >
-        <img
+        <OptimizedImg
           :src="article.imageUrl"
           :alt="`${article.title} — UK pub news`"
-          class="h-full w-full object-cover"
+          img-class="h-full w-full object-cover"
           width="1200"
           height="514"
-        >
+          sizes="100vw"
+          loading="lazy"
+        />
       </NuxtLink>
       <div class="px-6 py-8 sm:px-8 sm:py-10">
         <div class="flex items-center gap-2 mb-4">

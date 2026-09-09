@@ -3,7 +3,6 @@ import {
   cleanDbString,
   formatPlaceName,
   isPlausibleTownName,
-  parseVenueCoord,
   slugifyPlace,
 } from '../../utils/format-venue'
 import { resolveTown } from './place-hub'
@@ -13,7 +12,7 @@ import {
   countyLookupKey,
   isKnownUkCounty,
 } from './uk-counties'
-import { nearestSeasideByCoords, normalizeTownKey, seasideTownByName } from './seaside-towns'
+import { seasideTownByName } from './seaside-towns'
 import { countVenuesNearPoint, NEARBY_VENUE_RADIUS_MILES } from './venue-nearby'
 import { getEventsTopTen } from './events-top-ten'
 import { getCountyImageMap, normalizeCountyImageSlug } from './county-images'
@@ -138,31 +137,28 @@ export async function getTopCounties(prisma: PrismaClient, limit = 10): Promise<
 }
 
 export async function getTopSeasideTowns(prisma: PrismaClient, limit = 20): Promise<RankedPlaceRow[]> {
-  const venues = await prisma.venue.findMany({
+  const rows = await prisma.venue.groupBy({
+    by: ['town'],
     where: { is_live: '1' },
-    select: { town: true, latitude: true, longitude: true },
+    _count: { _all: true },
   })
 
   const counts = new Map<string, { defKey: string; displayName: string; venueCount: number; name: string }>()
 
-  for (const venue of venues) {
-    const townName = cleanDbString(venue.town)
-    const byName = townName ? seasideTownByName(townName) : null
-    const lat = parseVenueCoord(venue.latitude)
-    const lon = parseVenueCoord(venue.longitude)
-    const byCoords = lat != null && lon != null ? nearestSeasideByCoords(lat, lon) : null
-
-    const def = byName ?? byCoords?.def
+  for (const row of rows) {
+    const townName = cleanDbString(row.town)
+    const def = townName ? seasideTownByName(townName) : null
     if (!def) continue
 
+    const count = venueGroupCount(row)
     const existing = counts.get(def.key)
     if (existing) {
-      existing.venueCount++
+      existing.venueCount += count
     } else {
       counts.set(def.key, {
         defKey: def.key,
         displayName: def.displayName,
-        venueCount: 1,
+        venueCount: count,
         name: def.displayName,
       })
     }
@@ -231,20 +227,15 @@ export async function getHomepageStats(prisma: PrismaClient) {
   ])
 
   const [countyImages, townImages, stadiumImages] = await Promise.all([
-    getCountyImageMap(prisma, topCounties.map((row) => normalizeCountyImageSlug(row.slug)), {
-      bypassCache: true,
-    }),
+    getCountyImageMap(prisma, topCounties.map((row) => normalizeCountyImageSlug(row.slug))),
     getTownImageMap(
       prisma,
       [
         ...topCounties.map((row) => normalizeTownImageSlug(row.slug)),
         ...topSeasideTowns.map((row) => normalizeTownImageSlug(row.slug)),
       ],
-      { bypassCache: true },
     ),
-    getStadiumImageMap(prisma, stadiumPubs.map((row) => normalizeStadiumImageSlug(row.slug)), {
-      bypassCache: true,
-    }),
+    getStadiumImageMap(prisma, stadiumPubs.map((row) => normalizeStadiumImageSlug(row.slug))),
   ])
 
   const countiesWithImages = topCounties.map((row) => {

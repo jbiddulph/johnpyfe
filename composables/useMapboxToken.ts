@@ -1,4 +1,4 @@
-/** Shared Mapbox public token from runtime config / nuxt-mapbox module. */
+/** Shared Mapbox public token from runtime config. */
 export function useMapboxToken() {
   const config = useRuntimeConfig()
   return computed(() =>

@@ -17,15 +17,17 @@
             class="home-ranked-photo__media relative min-h-[140px] overflow-hidden"
             :class="{ 'home-ranked-photo__media--fallback': !hasUsableImage(item, index) }"
           >
-            <img
+            <OptimizedImg
               v-if="hasUsableImage(item, index)"
               :src="imageSrc(item, index)"
               :alt="imageAlt(item)"
-              class="absolute inset-0 h-full w-full object-cover"
+              img-class="absolute inset-0 h-full w-full object-cover"
+              width="640"
+              height="360"
+              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
               loading="lazy"
-              decoding="async"
               @error="markImageFailed(item, index)"
-            >
+            />
             <div class="home-ranked-photo__overlay" aria-hidden="true" />
             <div class="home-ranked-photo__content relative z-[1] flex min-h-[140px] flex-col justify-end p-4 text-white">
               <span class="home-ranked__rank home-ranked__rank--photo mb-2 w-fit" aria-hidden="true">

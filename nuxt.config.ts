@@ -62,7 +62,13 @@ export default defineNuxtConfig({
   // Optimize rendering
   ssr: true,
   routeRules: {
-    '/': { isr: 300 },
+    '/': {
+      isr: 3600,
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'Netlify-CDN-Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    },
     '/town/**': { isr: 3600 },
     '/county/**': { isr: 3600 },
     '/counties': { isr: 3600 },
@@ -76,9 +82,10 @@ export default defineNuxtConfig({
     '/api/venues/*/reviews': { cache: false },
     '/api/favorites': { cache: false },
     '/api/favorites/**': { cache: false },
-    '/api/homepage/stats': { cache: false },
-    '/api/news/featured': { cache: false },
-    '/api/news/latest': { cache: false },
+    '/api/homepage/stats': { cache: { maxAge: 300, swr: true } },
+    '/api/news/featured': { cache: { maxAge: 300, swr: true } },
+    '/api/news/latest': { cache: { maxAge: 300, swr: true } },
+    '/api/events/top-ten': { cache: { maxAge: 900, swr: true } },
     '/events/**': { isr: 900 },
     '/news/**': { isr: 1800 },
     '/pubs-near-stadiums/**': { isr: 3600 },
@@ -91,27 +98,16 @@ export default defineNuxtConfig({
     preset: 'netlify',
     compressPublicAssets: true,
     minify: true,
+    prerender: {
+      crawlLinks: false,
+      failOnError: false,
+      routes: ['/'],
+    },
   },
   
-  // Critical CSS inlining (commented out until critical.css file exists)
+  // Analytics is loaded after idle in plugins/analytics.client.ts to keep the first JS payload smaller.
   app: {
-    head: {
-      script: googleAnalyticsId
-        ? [
-            {
-              src: `https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`,
-              async: true,
-            },
-            {
-              type: 'text/javascript',
-              children: `window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${googleAnalyticsId}');`,
-            },
-          ]
-        : [],
-    },
+    head: {},
   },
   // app: {
   //   head: {
@@ -132,7 +128,6 @@ gtag('config', '${googleAnalyticsId}');`,
     "@pinia/nuxt",
     "@nuxt/ui",
     "@nuxtjs/color-mode",
-    "nuxt-mapbox",
     // "@nuxtjs/supabase", // Temporarily disabled due to build issues
     "@nuxt/fonts",
     "@nuxtjs/robots",
@@ -141,9 +136,7 @@ gtag('config', '${googleAnalyticsId}');`,
   ],
   // Image optimization
   image: {
-    // Enable all formats including original formats
-    format: ['webp', 'avif', 'jpg', 'jpeg', 'png', 'svg'],
-    // Optimize for different screen sizes
+    format: ['avif', 'webp'],
     screens: {
       xs: 320,
       sm: 640,
@@ -152,16 +145,13 @@ gtag('config', '${googleAnalyticsId}');`,
       xl: 1280,
       xxl: 1536,
     },
-    // Quality settings
-    quality: 80,
-    // Enable lazy loading
+    quality: 75,
     loading: 'lazy',
-    // Presets for common image sizes
     presets: {
       event: {
         modifiers: {
           format: 'webp',
-          quality: 80,
+          quality: 75,
           width: 400,
           height: 250,
         }
@@ -169,7 +159,7 @@ gtag('config', '${googleAnalyticsId}');`,
       venue: {
         modifiers: {
           format: 'webp',
-          quality: 85,
+          quality: 75,
           width: 300,
           height: 200,
         }
@@ -177,25 +167,38 @@ gtag('config', '${googleAnalyticsId}');`,
       header: {
         modifiers: {
           format: 'webp',
-          quality: 90,
-          width: 1920,
-          height: 400,
+          quality: 75,
+          width: 1280,
+          height: 416,
         }
       }
     },
-    // Allow external domains
     domains: [
       'ukpubs.co.uk',
+      'www.ukpubs.co.uk',
       'localhost',
       '127.0.0.1',
       'isprmebbahzjnrekkvxv.supabase.co',
       'lh3.googleusercontent.com',
+      'images.unsplash.com',
+      'plus.unsplash.com',
+      'upload.wikimedia.org',
+      'ichef.bbci.co.uk',
+      'i.guim.co.uk',
+      'media.guim.co.uk',
+      'static.independent.co.uk',
+      'www.theguardian.com',
+      'images.pexels.com',
+      'res.cloudinary.com',
+      'maps.googleapis.com',
+      'places.googleapis.com',
+      'cdn.pixabay.com',
     ],
   },
   
   fonts: {
     defaults: {
-      weights: [100, 300, 400, 700],
+      weights: [400, 700],
       styles: ['normal'],
       subsets: ['latin'],
     },
@@ -204,7 +207,7 @@ gtag('config', '${googleAnalyticsId}');`,
     ],
     google: {
       families: {
-        Kanit: [100, 300, 400, 700],
+        Kanit: [400, 700],
       },
       display: 'swap',
       download: true,
@@ -240,8 +243,5 @@ gtag('config', '${googleAnalyticsId}');`,
     sources: ['/api/sitemap-urls'],
     exclude: ['/admin/**', '/login', '/register', '/auth/**', '/map/map'],
     cacheMaxAgeSeconds: 600,
-  },
-  mapbox: {
-    accessToken: mapboxToken,
   },
 })

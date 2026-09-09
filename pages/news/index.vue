@@ -22,14 +22,15 @@
         class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
       >
         <NuxtLink :to="`/news/${article.slug}`" class="block aspect-[16/10] overflow-hidden bg-gray-100 dark:bg-gray-800">
-          <img
-            :src="article.imageUrl || '/assets/images/awaiting.jpg'"
+          <OptimizedImg
+            :src="article.imageUrl || '/assets/images/awaiting-640.webp'"
             :alt="`${article.title} — UK pub and bar news`"
-            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            loading="lazy"
+            img-class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             width="640"
             height="400"
-          >
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            loading="lazy"
+          />
         </NuxtLink>
         <div class="flex flex-1 flex-col p-4">
           <time class="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400" :datetime="article.publishedAt">
