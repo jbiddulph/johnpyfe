@@ -4,6 +4,17 @@ import type { PubSeoData, SavedSeoChanges, SeoAnalysis, SeoChanges } from './seo
 
 const MAX_BATCH_LIMIT = 500
 
+function isMissingSeoRecommendationTableError(error: unknown): boolean {
+  const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
+  const message = error instanceof Error ? error.message : String(error)
+  return (
+    code === 'P2021' ||
+    code === 'P2022' ||
+    message.includes('venue_seo_recommendations') ||
+    message.includes('VenueSeoRecommendation')
+  )
+}
+
 function cleanString(value: unknown): string | null {
   const text = String(value ?? '').trim()
   return text.length > 0 ? text : null
@@ -220,21 +231,30 @@ export async function saveSeoChanges(venueId: number, changes: SeoChanges): Prom
   const improvementCount = countImprovements(changes)
   const status = data.isClaimed ? 'pending' : 'applied'
 
-  const recommendation = await prisma.venueSeoRecommendation.create({
-    data: {
-      venueId,
-      status,
-      improvementCount,
-      analysis: {
-        generatedFor: data.name,
-        generatedAt: new Date().toISOString(),
+  let recommendation
+  try {
+    recommendation = await prisma.venueSeoRecommendation.create({
+      data: {
+        venueId,
+        status,
+        improvementCount,
+        analysis: {
+          generatedFor: data.name,
+          generatedAt: new Date().toISOString(),
+        },
+        changes: changes as any,
+        warnings: changes.missingContentWarnings || [],
+        sources: changes.sourceNotes || [],
+        appliedAt: status === 'applied' ? new Date() : null,
       },
-      changes: changes as any,
-      warnings: changes.missingContentWarnings || [],
-      sources: changes.sourceNotes || [],
-      appliedAt: status === 'applied' ? new Date() : null,
-    },
-  })
+    })
+  } catch (error) {
+    if (!isMissingSeoRecommendationTableError(error)) throw error
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'AI SEO database migration has not been applied yet',
+    })
+  }
 
   if (status === 'applied') {
     await prisma.venueProfile.upsert({
