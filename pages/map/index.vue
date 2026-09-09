@@ -197,18 +197,70 @@
               label="Events"
               @click="openSelectedVenueEvents"
             />
-            <UButton
-              v-if="showCrawlToggleButton"
-              :color="selectedVenueOnActiveCrawl ? 'red' : 'blue'"
-              variant="soft"
-              :icon="selectedVenueOnActiveCrawl ? 'i-heroicons-minus-20-solid' : 'i-heroicons-plus-20-solid'"
-              :label="crawlToggleLabel"
-              :loading="crawlAddPending"
-              @click="toggleSelectedVenueOnCrawl"
-            />
           </div>
 
           <div
+            v-if="isLoggedIn"
+            class="rounded-lg border border-gray-200 p-3 dark:border-gray-800"
+          >
+            <label
+              :for="modalCrawlSelectId"
+              class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+            >
+              Add to a pub crawl list
+            </label>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <USelect
+                :id="modalCrawlSelectId"
+                v-model="modalCrawlChoice"
+                size="sm"
+                color="white"
+                class="min-w-[12rem] flex-1"
+                icon="i-heroicons-list-bullet-20-solid"
+                :options="modalCrawlOptions"
+                option-attribute="label"
+                value-attribute="value"
+                :disabled="crawlAddPending || crawlStartPending || crawlSwitching || crawlsLoading"
+                :placeholder="crawlsLoading ? 'Loading your lists…' : 'Choose a crawl list'"
+              />
+              <UButton
+                v-if="showCrawlToggleButton"
+                :color="selectedVenueOnActiveCrawl ? 'red' : 'blue'"
+                variant="soft"
+                :icon="selectedVenueOnActiveCrawl ? 'i-heroicons-minus-20-solid' : 'i-heroicons-plus-20-solid'"
+                :label="selectedVenueOnActiveCrawl ? 'Remove' : 'Add'"
+                :loading="crawlAddPending || crawlSwitching"
+                :disabled="crawlStartPending"
+                @click="toggleSelectedVenueOnCrawl"
+              />
+              <UButton
+                v-else-if="!editableCrawls.length && !crawlsLoading"
+                color="blue"
+                variant="soft"
+                icon="i-heroicons-plus-20-solid"
+                label="Create"
+                :loading="crawlStartPending"
+                :disabled="crawlAddPending"
+                @click="startCrawlFromSelectedVenue"
+              />
+            </div>
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <template v-if="crawlsLoading || crawlSwitching">Loading list…</template>
+              <template v-else-if="!editableCrawls.length">
+                You don’t have a crawl list yet — pick “+ New crawl starting here” (or Create) to make one with this pub as stop 1.
+              </template>
+              <template v-else-if="!canEditActiveCrawl">Only the crawl creator can add pubs to this list.</template>
+              <template v-else-if="selectedVenueOnActiveCrawl">
+                {{ selectedVenue.name }} is stop {{ selectedVenueStopNumber }} of {{ stops.length }} on {{ activeCrawl?.name }}.
+              </template>
+              <template v-else-if="activeCrawl">
+                {{ activeCrawl.name }} has {{ stops.length }} {{ stops.length === 1 ? 'stop' : 'stops' }} so far — {{ selectedVenue.name }} would be stop {{ stops.length + 1 }}.
+              </template>
+            </p>
+          </div>
+
+          <div
+            v-if="!isLoggedIn || selectedVenueOnActiveCrawl"
             class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/60 dark:bg-amber-950/30"
           >
             <div class="flex items-start gap-2">
@@ -223,9 +275,6 @@
                   </template>
                   <template v-else-if="selectedVenueOnActiveCrawl">
                     Add more pubs from the map, then invite mates so they can follow the route and chat.
-                  </template>
-                  <template v-else-if="hasEditableActiveCrawl">
-                    Add it to <strong>{{ activeCrawl?.name }}</strong> above, or begin a brand-new crawl with this pub as stop 1.
                   </template>
                   <template v-else>
                     Make {{ selectedVenue.name }} stop 1 of a new crawl list, then add more pubs and invite others.
@@ -262,7 +311,7 @@
                     size="xs"
                     color="amber"
                     icon="i-heroicons-flag-20-solid"
-                    :label="hasEditableActiveCrawl ? 'New crawl starting here' : 'Start a crawl here'"
+                    label="Start a crawl here"
                     :loading="crawlStartPending"
                     :disabled="crawlAddPending"
                     @click="startCrawlFromSelectedVenue"
@@ -374,6 +423,7 @@ const {
   errorMessage: crawlErrorMessage,
   canEditActiveCrawl,
   createCrawl,
+  loadingList: crawlsLoading,
 } = usePubCrawl()
 
 const route = useRoute()
@@ -419,7 +469,6 @@ const showGettingStarted = computed(() =>
   && (forceGettingStarted.value || !isMapZoomedIn.value),
 )
 
-const hasEditableActiveCrawl = computed(() => Boolean(activeCrawl.value) && canEditActiveCrawl.value)
 const loginRedirectPath = computed(() => `/login?redirect=${encodeURIComponent(route.fullPath || '/map')}`)
 
 const crawlSelectOptions = computed(() =>
@@ -447,17 +496,49 @@ const selectedVenueOnActiveCrawl = computed(() =>
   isVenueOnActiveCrawl(selectedVenue.value?.id),
 )
 
-const crawlToggleLabel = computed(() => {
-  const name = activeCrawl.value?.name
-  if (selectedVenueOnActiveCrawl.value) {
-    return name ? `Remove from ${name}` : 'Remove from crawl'
-  }
-  return name ? `Add to ${name}` : 'Add to crawl'
-})
-
 const showCrawlToggleButton = computed(() =>
   isLoggedIn.value && canEditActiveCrawl.value,
 )
+
+/** Lists the current user can add pubs to (invited lists are view-only). */
+const editableCrawls = computed(() =>
+  crawls.value.filter((crawl) => crawl.role !== 'member' && crawl.canEdit !== false),
+)
+
+const NEW_CRAWL_CHOICE = '__new__'
+const modalCrawlSelectId = 'map-venue-crawl-list'
+const crawlSwitching = ref(false)
+
+const modalCrawlOptions = computed(() => [
+  ...editableCrawls.value.map((crawl) => ({
+    label: `${crawl.name} (${crawl.stopCount} ${crawl.stopCount === 1 ? 'stop' : 'stops'})`,
+    value: crawl.id,
+  })),
+  { label: '+ New crawl starting here', value: NEW_CRAWL_CHOICE },
+])
+
+/** Dropdown in the pub modal: picking a list makes it the active crawl so Add/Remove targets it. */
+const modalCrawlChoice = computed({
+  get: () => {
+    const activeId = activeCrawl.value?.id
+    if (activeId && editableCrawls.value.some((crawl) => crawl.id === activeId)) return activeId
+    return editableCrawls.value[0]?.id || ''
+  },
+  set: (value: string) => {
+    if (value === NEW_CRAWL_CHOICE) {
+      void startCrawlFromSelectedVenue()
+      return
+    }
+    if (value && value !== activeCrawl.value?.id) selectedCrawlId.value = value
+  },
+})
+
+const selectedVenueStopNumber = computed(() => {
+  const id = selectedVenue.value?.id
+  if (!id) return 0
+  const index = stops.value.findIndex((stop) => stop.venueId === id)
+  return index >= 0 ? index + 1 : 0
+})
 
 watch(
   () => activeCrawl.value?.id,
@@ -469,9 +550,15 @@ watch(
 
 watch(selectedCrawlId, async (id, prev) => {
   if (!id || id === activeCrawl.value?.id || id === prev) return
-  await loadCrawl(id)
-  updateCrawlRouteOnMap()
-  fitMapToCrawlStops()
+  crawlSwitching.value = true
+  try {
+    await loadCrawl(id)
+    updateCrawlRouteOnMap()
+    // Don't yank the map away from the pub the user is looking at.
+    if (!isVenueModalOpen.value) fitMapToCrawlStops()
+  } finally {
+    crawlSwitching.value = false
+  }
 })
 
 watch(
@@ -562,8 +649,10 @@ async function toggleSelectedVenueOnCrawl() {
     })
 
     if (ok) {
-      isCrawlBuilderOpen.value = true
-      showCrawlToggleMessage(`Added ${venueName} to ${crawlName}.`)
+      // Stay on the map so the next pin can be added straight away.
+      showCrawlToggleMessage(
+        `Added ${venueName} to ${crawlName} as stop ${stops.value.length}. Pick another pin or invite friends below.`,
+      )
     } else {
       isCrawlBuilderOpen.value = true
       showCrawlToggleMessage(

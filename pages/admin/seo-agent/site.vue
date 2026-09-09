@@ -26,7 +26,28 @@
         v-if="!overview.migrationReady"
         class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100"
       >
-        The site SEO database migration (<code>20260909180000_add_site_seo_management</code>) has not been applied yet.
+        <p class="font-semibold">
+          The site SEO database migration has not been applied yet.
+        </p>
+        <p class="mt-2 text-sm">
+          Tables for site-wide audits and proposals are missing from the production database.
+          Apply migration <code class="rounded bg-amber-100 px-1 dark:bg-amber-900">20260909180000_add_site_seo_management</code>
+          against the live Postgres (same <code>DATABASE_URL</code> Netlify uses), then refresh this page.
+        </p>
+        <ol class="mt-3 list-decimal space-y-1 pl-5 text-sm">
+          <li>
+            Locally (with production <code>DATABASE_URL</code> set):
+            <pre class="mt-1 overflow-x-auto rounded bg-amber-100/80 p-2 text-xs dark:bg-amber-900/60">npx prisma migrate deploy</pre>
+          </li>
+          <li>
+            Or paste
+            <code>prisma/migrations/20260909180000_add_site_seo_management/migration.sql</code>
+            into the Supabase SQL editor and run it.
+          </li>
+        </ol>
+        <p class="mt-2 text-xs opacity-80">
+          Until this is done the public site is unchanged; only this admin tool is blocked.
+        </p>
       </div>
 
       <!-- Run audit -->
