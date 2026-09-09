@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../prisma'
 import { generateJsonWithOpenAI } from './openai'
 import { seoExpertPrompt } from './seo-expert-prompt'
@@ -351,6 +352,55 @@ export async function getPendingSeoImprovementCount(venueId: number): Promise<nu
   return aggregate._sum.improvementCount || 0
 }
 
+/** Live listings with thin, missing, or fallback SEO — processed or not. */
+const venuesNeedingSeoFromSql = Prisma.sql`
+  FROM "Venue" v
+  LEFT JOIN venue_profiles p ON p.venue_id = v.id
+  LEFT JOIN LATERAL (
+    SELECT r.generated_at, r.sources
+    FROM venue_seo_recommendations r
+    WHERE r.venue_id = v.id
+    ORDER BY r.generated_at DESC
+    LIMIT 1
+  ) latest ON true
+  WHERE v.is_live = '1'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM venue_seo_recommendations pending
+      WHERE pending.venue_id = v.id
+        AND pending.status = 'pending'
+    )
+    AND (
+      p.venue_id IS NULL
+      OR NULLIF(BTRIM(COALESCE(p.page_title, '')), '') IS NULL
+      OR length(BTRIM(p.page_title)) < 15
+      OR NULLIF(BTRIM(COALESCE(p.meta_description, '')), '') IS NULL
+      OR length(BTRIM(p.meta_description)) < 70
+      OR NULLIF(BTRIM(COALESCE(p.seo_keywords, '')), '') IS NULL
+      OR length(BTRIM(COALESCE(p.custom_description, v.description, ''))) < 160
+      OR COALESCE(latest.sources::text, '') LIKE '%Generated from existing UK Pubs listing data%'
+    )
+    AND (latest.generated_at IS NULL OR latest.generated_at < NOW() - INTERVAL '12 hours')
+`
+
+export async function countVenuesNeedingSeoImprovement(): Promise<number> {
+  const rows = await prisma.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS count
+    ${venuesNeedingSeoFromSql}
+  `
+  return rows[0]?.count || 0
+}
+
+export async function findVenuesNeedingSeoImprovement(limit: number): Promise<Array<{ id: number }>> {
+  const requestedLimit = Math.min(Math.max(1, limit), MAX_BATCH_LIMIT)
+  return prisma.$queryRaw<Array<{ id: number }>>`
+    SELECT v.id
+    ${venuesNeedingSeoFromSql}
+    ORDER BY latest.generated_at ASC NULLS FIRST, v.updated_at ASC, v.id ASC
+    LIMIT ${requestedLimit}
+  `
+}
+
 export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
   const requestedLimit = Math.min(Math.max(1, limit), MAX_BATCH_LIMIT)
   const concurrency = Math.min(
@@ -367,12 +417,7 @@ export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
   let errorCount = 0
 
   try {
-    const venues = await prisma.venue.findMany({
-      where: { is_live: '1' },
-      select: { id: true },
-      orderBy: { updated_at: 'asc' },
-      take: requestedLimit,
-    })
+    const venues = await findVenuesNeedingSeoImprovement(requestedLimit)
 
     let nextIndex = 0
     async function worker() {

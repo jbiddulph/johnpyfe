@@ -1,17 +1,27 @@
 <template>
   <div class="container mx-auto p-4 my-8">
     <Breadcrumbs :items="breadcrumbItems" />
-    <div class="flex flex-col gap-2 mb-6">
-      <h1 class="text-4xl font-bold">SEO Agent</h1>
-      <p class="text-gray-600 dark:text-gray-300">
-        Monitor the daily AI SEO job, generated recommendations, and rollout readiness.
-      </p>
+    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+      <div class="flex flex-col gap-2">
+        <h1 class="text-4xl font-bold">SEO Agent</h1>
+        <p class="text-gray-600 dark:text-gray-300">
+          The daily job analyses live listings for thin or missing SEO, whether or not they have been processed before, then writes improvements through the app SEO agent.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+        :disabled="startingRun || loading"
+        @click="startSeoBatch"
+      >
+        {{ startingRun ? 'Starting…' : 'Run 500 now' }}
+      </button>
     </div>
 
-    <p v-if="loading" class="text-gray-600">Loading...</p>
-    <p v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</p>
+    <p v-if="loading && !agentStatus" class="text-gray-600">Loading...</p>
+    <p v-if="errorMessage" class="text-red-600 mb-4">{{ errorMessage }}</p>
 
-    <div v-else class="space-y-8">
+    <div v-if="agentStatus" class="space-y-8">
       <div
         v-if="!agentStatus?.migrationReady"
         class="border border-amber-200 bg-amber-50 text-amber-900 rounded-lg p-4 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100"
@@ -19,7 +29,7 @@
         The AI SEO database migration has not been applied yet.
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
           <p class="text-sm text-gray-500 dark:text-gray-400">Pending improvements</p>
           <p class="text-3xl font-bold text-amber-600">{{ agentStatus?.totals.pendingRecommendations }}</p>
@@ -31,6 +41,10 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
           <p class="text-sm text-gray-500 dark:text-gray-400">Completed runs</p>
           <p class="text-3xl font-bold text-blue-600">{{ agentStatus?.totals.completedRuns }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+          <p class="text-sm text-gray-500 dark:text-gray-400">Need SEO improvement</p>
+          <p class="text-3xl font-bold text-slate-700 dark:text-slate-200">{{ agentStatus?.totals.remainingListings }}</p>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
           <p class="text-sm text-gray-500 dark:text-gray-400">Failed runs</p>
@@ -138,6 +152,7 @@ type SeoAgentStatus = {
     failedRuns: number
     pendingRecommendations: number
     appliedRecommendations: number
+    remainingListings: number
     latestRecommendationAt: string | null
   }
   recentRuns: Array<{
@@ -155,6 +170,7 @@ type SeoAgentStatus = {
 }
 
 const loading = ref(true)
+const startingRun = ref(false)
 const errorMessage = ref('')
 const agentStatus = ref<SeoAgentStatus | null>(null)
 
@@ -172,22 +188,43 @@ function formatDateTime(value?: string | null) {
   })
 }
 
+async function adminToken() {
+  const { data } = await $supabase.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new Error('Not authenticated')
+  return token
+}
+
 async function loadSeoAgentStatus() {
   loading.value = true
   errorMessage.value = ''
   try {
-    const { data } = await $supabase.auth.getSession()
-    const token = data.session?.access_token
-    if (!token) throw new Error('Not authenticated')
-
     agentStatus.value = await requestFetch('/api/admin/ai/seo-agent', {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${await adminToken()}` },
     })
   } catch (error: unknown) {
     const err = error as { data?: { statusMessage?: string }; message?: string }
     errorMessage.value = err?.data?.statusMessage || err?.message || 'Failed to load SEO agent status'
   } finally {
     loading.value = false
+  }
+}
+
+async function startSeoBatch() {
+  startingRun.value = true
+  errorMessage.value = ''
+  try {
+    await requestFetch('/api/admin/ai/seo-agent', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${await adminToken()}` },
+      body: { limit: 500 },
+    })
+    await loadSeoAgentStatus()
+  } catch (error: unknown) {
+    const err = error as { data?: { statusMessage?: string }; message?: string }
+    errorMessage.value = err?.data?.statusMessage || err?.message || 'Failed to start the SEO agent'
+  } finally {
+    startingRun.value = false
   }
 }
 

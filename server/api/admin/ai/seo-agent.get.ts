@@ -1,5 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAdmin } from '../../../utils/require-admin'
+import { countVenuesNeedingSeoImprovement } from '../../../utils/ai/seo-agent'
 
 function isMissingSeoTableError(error: unknown): boolean {
   const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
@@ -35,6 +36,7 @@ export default defineEventHandler(async (event) => {
       pendingRecommendations,
       appliedRecommendations,
       latestRecommendation,
+      remainingListings,
     ] = await Promise.all([
       prisma.aiSeoRun.count(),
       prisma.aiSeoRun.count({ where: { status: { in: ['completed', 'completed_with_errors'] } } }),
@@ -49,6 +51,7 @@ export default defineEventHandler(async (event) => {
         orderBy: { generatedAt: 'desc' },
         select: { generatedAt: true },
       }),
+      countVenuesNeedingSeoImprovement(),
     ])
 
     return {
@@ -68,6 +71,7 @@ export default defineEventHandler(async (event) => {
         failedRuns,
         pendingRecommendations,
         appliedRecommendations,
+        remainingListings,
         latestRecommendationAt: latestRecommendation?.generatedAt || null,
       },
       recentRuns,
@@ -93,6 +97,7 @@ export default defineEventHandler(async (event) => {
         failedRuns: 0,
         pendingRecommendations: 0,
         appliedRecommendations: 0,
+        remainingListings: 0,
         latestRecommendationAt: null,
       },
       recentRuns: [],
