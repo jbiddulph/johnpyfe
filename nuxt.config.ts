@@ -104,25 +104,9 @@ export default defineNuxtConfig({
     },
   },
   
-  // Critical CSS inlining (commented out until critical.css file exists)
+  // Analytics is loaded after idle in plugins/analytics.client.ts to keep the first JS payload smaller.
   app: {
-    head: {
-      script: googleAnalyticsId
-        ? [
-            {
-              src: `https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`,
-              async: true,
-            },
-            {
-              type: 'text/javascript',
-              children: `window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${googleAnalyticsId}');`,
-            },
-          ]
-        : [],
-    },
+    head: {},
   },
   // app: {
   //   head: {
@@ -143,7 +127,6 @@ gtag('config', '${googleAnalyticsId}');`,
     "@pinia/nuxt",
     "@nuxt/ui",
     "@nuxtjs/color-mode",
-    "nuxt-mapbox",
     // "@nuxtjs/supabase", // Temporarily disabled due to build issues
     "@nuxt/fonts",
     "@nuxtjs/robots",
@@ -214,7 +197,7 @@ gtag('config', '${googleAnalyticsId}');`,
   
   fonts: {
     defaults: {
-      weights: [100, 300, 400, 700],
+      weights: [400, 700],
       styles: ['normal'],
       subsets: ['latin'],
     },
@@ -223,7 +206,7 @@ gtag('config', '${googleAnalyticsId}');`,
     ],
     google: {
       families: {
-        Kanit: [100, 300, 400, 700],
+        Kanit: [400, 700],
       },
       display: 'swap',
       download: true,
@@ -259,8 +242,5 @@ gtag('config', '${googleAnalyticsId}');`,
     sources: ['/api/sitemap-urls'],
     exclude: ['/admin/**', '/login', '/register', '/auth/**', '/map/map'],
     cacheMaxAgeSeconds: 600,
-  },
-  mapbox: {
-    accessToken: mapboxToken,
   },
 })

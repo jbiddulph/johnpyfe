@@ -1,33 +1,29 @@
-// MapStore.ts
-import { defineStore } from 'pinia';
-import mapboxgl from 'mapbox-gl';
-import { ref } from 'vue';
+import { defineStore } from 'pinia'
 
 export const useMapStore = defineStore({
   id: 'map',
 
   state: () => ({
-    map: null as mapboxgl.Map | null,
+    map: null as { remove?: () => void } | null,
   }),
 
   actions: {
-    initializeMap(mapContainer: HTMLDivElement | null): void {
-      if (!mapContainer) return;
+    async initializeMap(mapContainer: HTMLDivElement | null): Promise<void> {
+      if (!mapContainer) return
 
-      const mapboxToken = useRuntimeConfig().public.mapbox_token;
+      const mapboxgl = (await import('mapbox-gl')).default
+      const mapboxToken = useRuntimeConfig().public.mapbox_token
 
-      // Initialize the Mapbox map
       const map = new mapboxgl.Map({
         container: mapContainer,
         style: 'mapbox://styles/mapbox/streets-v11',
         center: [-0.376854, 50.8143273],
         zoom: 14,
         accessToken: mapboxToken,
-      });
+      })
 
-      this.map = map;
+      this.map = map
 
-      // Add the pubs1 data layer
       map.on('load', () => {
         map.addLayer({
           id: 'pubs1',
@@ -38,38 +34,27 @@ export const useMapStore = defineStore({
           },
           'source-layer': 'pubs1',
           paint: {
-            "fill-color": "red",
+            'fill-color': 'red',
             'fill-opacity': 0.5,
           },
-        });
-
-        // Add markers for each location
-        // map.addSource('pubs1-markers', {
-        //   type: 'geojson',
-        //   data: {
-        //     type: 'FeatureCollection',
-        //     features: [] // Empty for now, replace with your actual GeoJSON features
-        //   }
-        // });
-      });
+        })
+      })
     },
-    initializeSingleMap(mapContainer: HTMLDivElement | null, latLng): void {
-      if (!mapContainer) return;
+    async initializeSingleMap(mapContainer: HTMLDivElement | null, latLng): Promise<void> {
+      if (!mapContainer) return
 
-      const mapboxToken = useRuntimeConfig().public.mapbox_token;
-      console.log("latLng: ", latLng)
-      // Initialize the Mapbox map
+      const mapboxgl = (await import('mapbox-gl')).default
+      const mapboxToken = useRuntimeConfig().public.mapbox_token
       const map = new mapboxgl.Map({
         container: mapContainer,
         style: 'mapbox://styles/mapbox/streets-v11',
         center: latLng,
         zoom: 16,
         accessToken: mapboxToken,
-      });
+      })
 
-      this.map = map;
+      this.map = map
 
-      // Add the pubs1 data layer
       map.on('load', () => {
         map.addLayer({
           id: 'pubs1',
@@ -80,16 +65,11 @@ export const useMapStore = defineStore({
           },
           'source-layer': 'pubs1',
           paint: {
-            "fill-color": "red",
+            'fill-color': 'red',
             'fill-opacity': 0.5,
           },
-        });
-      });
+        })
+      })
     },
   },
-});
-
-
-
-    
-
+})
