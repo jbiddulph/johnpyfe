@@ -3,6 +3,8 @@ type GenerateJsonOptions = {
   user: unknown
   fallback?: unknown
   webSearch?: boolean
+  /** Override the default request timeout (long site-wide audits need more than a listing). */
+  timeoutMs?: number
 }
 
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
@@ -41,7 +43,7 @@ export async function generateJsonWithOpenAI<T>(options: GenerateJsonOptions): P
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), getTimeoutMs())
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : getTimeoutMs())
 
   try {
     const response = await fetch(OPENAI_RESPONSES_URL, {
