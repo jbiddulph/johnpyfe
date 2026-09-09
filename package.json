@@ -39,6 +39,7 @@
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
+    "@netlify/functions": "^5.3.0",
     "@nuxtjs/robots": "^4.1.11",
     "@nuxtjs/supabase": "0.3.0",
     "cypress": "^13.7.1",

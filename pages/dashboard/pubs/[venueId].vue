@@ -66,6 +66,49 @@
 
       <section class="space-y-4">
         <h2 class="text-xl font-semibold border-b border-gray-200 pb-2 dark:border-gray-700">Search &amp; SEO</h2>
+        <div class="rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="font-medium text-gray-900 dark:text-gray-100">AI SEO assistant</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ seoSummaryLabel }}</p>
+            </div>
+            <UButton
+              color="blue"
+              label="Improve SEO with AI"
+              :loading="seoGenerating"
+              @click="generateSeoDraft"
+            />
+          </div>
+
+          <div v-if="latestSeoChanges" class="mt-4 space-y-3 border-t border-blue-100 pt-4 text-sm dark:border-blue-900">
+            <div v-if="latestSeoChanges.pageTitle">
+              <p class="font-medium text-gray-700 dark:text-gray-200">Suggested title</p>
+              <p class="text-gray-600 dark:text-gray-400">{{ latestSeoChanges.pageTitle }}</p>
+            </div>
+            <div v-if="latestSeoChanges.metaDescription">
+              <p class="font-medium text-gray-700 dark:text-gray-200">Suggested meta description</p>
+              <p class="text-gray-600 dark:text-gray-400">{{ latestSeoChanges.metaDescription }}</p>
+            </div>
+            <div v-if="latestSeoChanges.description">
+              <p class="font-medium text-gray-700 dark:text-gray-200">Suggested description</p>
+              <p class="text-gray-600 dark:text-gray-400">{{ latestSeoChanges.description }}</p>
+            </div>
+            <div v-if="latestSeoChanges.missingContentWarnings?.length">
+              <p class="font-medium text-gray-700 dark:text-gray-200">Missing content</p>
+              <ul class="mt-1 list-disc space-y-1 pl-5 text-gray-600 dark:text-gray-400">
+                <li v-for="warning in latestSeoChanges.missingContentWarnings" :key="warning">{{ warning }}</li>
+              </ul>
+            </div>
+            <UButton
+              v-if="latestSeoRecommendationId"
+              color="emerald"
+              variant="outline"
+              label="Approve AI changes"
+              :loading="seoApproving"
+              @click="approveSeoDraft"
+            />
+          </div>
+        </div>
         <div>
           <label class="block text-sm font-medium mb-1" for="pageTitle">Page title</label>
           <input
@@ -201,6 +244,16 @@ const errorMessage = ref('')
 const savedMessage = ref('')
 const venueSlug = ref('')
 const originalVenuePhotoUrl = ref('')
+const seoGenerating = ref(false)
+const seoApproving = ref(false)
+const seoImprovementCount = ref(0)
+const latestSeoRecommendationId = ref('')
+const latestSeoChanges = ref<{
+  pageTitle?: string
+  metaDescription?: string
+  description?: string
+  missingContentWarnings?: string[]
+} | null>(null)
 
 const listing = reactive({
   venuename: '',
@@ -239,6 +292,12 @@ const breadcrumbItems = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Edit pub' },
 ]
+
+const seoSummaryLabel = computed(() =>
+  seoImprovementCount.value > 0
+    ? `${seoImprovementCount.value} SEO improvement${seoImprovementCount.value === 1 ? '' : 's'} available`
+    : 'Generate search titles, descriptions, FAQs, keywords, and missing-content checks.',
+)
 
 function applyListing(data: {
   venuename: string
@@ -317,6 +376,7 @@ async function loadProfile() {
 
     applyListing(listingData)
     applyProfile(profile)
+    await loadSeoSummary()
 
     try {
       const venue = await $fetch<{ photo?: string }>(`/api/venues/${venueId.value}`)
@@ -333,6 +393,72 @@ async function loadProfile() {
     errorMessage.value = err?.data?.statusMessage || err?.statusMessage || 'Could not load profile'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadSeoSummary() {
+  try {
+    const summary = await useAuthFetch<{
+      improvementCount: number
+      latestRecommendation?: {
+        id: string
+        changes: typeof latestSeoChanges.value
+      } | null
+    }>(`/api/ai/venues/${venueId.value}/seo-summary`)
+
+    seoImprovementCount.value = summary.improvementCount || 0
+    latestSeoRecommendationId.value = summary.latestRecommendation?.id || ''
+    latestSeoChanges.value = summary.latestRecommendation?.changes || null
+  } catch {
+    seoImprovementCount.value = 0
+    latestSeoRecommendationId.value = ''
+    latestSeoChanges.value = null
+  }
+}
+
+async function generateSeoDraft() {
+  seoGenerating.value = true
+  savedMessage.value = ''
+  errorMessage.value = ''
+  try {
+    await useAuthFetch('/api/ai', {
+      method: 'POST',
+      body: {
+        venueId: venueId.value,
+        action: 'analyseSeo',
+      },
+    })
+    await loadSeoSummary()
+    savedMessage.value = 'AI SEO draft generated.'
+  } catch (error: unknown) {
+    const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
+    errorMessage.value = err?.data?.statusMessage || err?.statusMessage || 'Could not generate SEO draft'
+  } finally {
+    seoGenerating.value = false
+  }
+}
+
+async function approveSeoDraft() {
+  if (!latestSeoRecommendationId.value) return
+  seoApproving.value = true
+  savedMessage.value = ''
+  errorMessage.value = ''
+  try {
+    await useAuthFetch('/api/ai', {
+      method: 'POST',
+      body: {
+        venueId: venueId.value,
+        action: 'approveSeoRecommendation',
+        recommendationId: latestSeoRecommendationId.value,
+      },
+    })
+    await loadProfile()
+    savedMessage.value = 'AI SEO changes approved.'
+  } catch (error: unknown) {
+    const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
+    errorMessage.value = err?.data?.statusMessage || err?.statusMessage || 'Could not approve SEO changes'
+  } finally {
+    seoApproving.value = false
   }
 }
 

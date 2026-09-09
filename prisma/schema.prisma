@@ -42,6 +42,7 @@ model Venue {
   events              Event[]
   claim               VenueClaim?
   profile             VenueProfile?
+  seoRecommendations  VenueSeoRecommendation[]
   crawlStops          UkpubsCrawlStop[]
   favorites           UkpubsFavorite[]
   reviews             UkpubsReview[]
@@ -109,6 +110,43 @@ model VenueProfile {
   venue            Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
 
   @@map("venue_profiles")
+}
+
+model VenueSeoRecommendation {
+  id               String   @id @default(uuid())
+  venueId          Int      @map("venue_id")
+  status           String   @default("pending")
+  improvementCount Int      @default(0) @map("improvement_count")
+  analysis         Json
+  changes          Json
+  warnings         Json?
+  sources          Json?
+  generatedAt      DateTime @default(now()) @map("generated_at")
+  reviewedAt       DateTime? @map("reviewed_at")
+  appliedAt        DateTime? @map("applied_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  venue            Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, status])
+  @@index([status, generatedAt(sort: Desc)])
+  @@map("venue_seo_recommendations")
+}
+
+model AiSeoRun {
+  id             String    @id @default(uuid())
+  status         String    @default("running")
+  requestedLimit Int       @map("requested_limit")
+  processedCount Int       @default(0) @map("processed_count")
+  appliedCount   Int       @default(0) @map("applied_count")
+  draftedCount   Int       @default(0) @map("drafted_count")
+  errorCount     Int       @default(0) @map("error_count")
+  error          Json?
+  startedAt      DateTime  @default(now()) @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+
+  @@index([status, startedAt(sort: Desc)])
+  @@map("ai_seo_runs")
 }
 
 model City {
