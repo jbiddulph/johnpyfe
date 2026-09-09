@@ -38,6 +38,6 @@ const mediaStyle = computed(() =>
 .county-hero__overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, rgba(5, 46, 43, 0.35) 0%, rgba(0, 0, 0, 0.45) 100%);
 }
 </style>

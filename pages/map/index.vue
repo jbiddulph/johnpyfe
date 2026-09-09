@@ -70,7 +70,7 @@
             <button
               v-if="selectedVenueDetails && !isDesktopViewport"
               type="button"
-              class="mt-1 text-sm font-medium text-blue-700 hover:text-blue-800"
+              class="mt-1 text-sm font-medium text-primary-700 hover:text-primary-800"
               @click="reopenVenueDetails"
             >
               Back to pub details
@@ -127,7 +127,7 @@
           <div class="flex flex-wrap items-center justify-center gap-2">
             <UButton
               v-if="selectedVenue.id"
-              color="blue"
+              color="primary"
               variant="solid"
               :to="selectedVenueUrl"
               label="View venue"
@@ -178,7 +178,7 @@
                 :href="selectedVenueWebsiteHref"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                class="text-primary-700 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
               >
                 {{ selectedVenueWebsiteLabel }}
               </a>
@@ -752,13 +752,13 @@ function ensureClusterLayers() {
       'circle-color': [
         'step',
         ['get', 'point_count'],
-        '#3b82f6',
+        '#16A394',
         25,
-        '#2563eb',
+        '#0E8579',
         100,
-        '#b45309',
+        '#F5B301',
         500,
-        '#92400e',
+        '#E53935',
       ],
       'circle-radius': [
         'step',
@@ -798,7 +798,7 @@ function ensureClusterLayers() {
     source: SOURCE_ID,
     filter: ['!', ['has', 'point_count']],
     paint: {
-      'circle-color': '#2563eb',
+      'circle-color': '#E53935',
       'circle-radius': [
         'interpolate',
         ['linear'],
@@ -1061,7 +1061,7 @@ function ensureCrawlRouteLayers() {
           'case',
           ['==', ['get', 'isCurrent'], 1],
           '#059669',
-          '#2563eb',
+          '#0E8579',
         ],
         'circle-stroke-width': 2,
         'circle-stroke-color': '#ffffff',

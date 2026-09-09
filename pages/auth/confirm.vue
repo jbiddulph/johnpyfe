@@ -14,7 +14,7 @@
         placeholder="you@example.com"
         class="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2"
       />
-      <UButton label="Confirm email" color="blue" block @click="confirmEmail" />
+      <UButton label="Confirm email" color="primary" block @click="confirmEmail" />
     </template>
   </div>
 </template>

@@ -1,0 +1,17 @@
+:root {
+  --ukpubs-surface: #F6F3EE;
+  --ukpubs-teal: #0E8579;
+  --ukpubs-gold: #F5B301;
+  --ukpubs-pin: #E53935;
+}
+
+html,
+body {
+  background-color: var(--ukpubs-surface);
+  color: #1c1917;
+}
+
+.dark body {
+  background-color: #111827;
+  color: #f5f5f4;
+}

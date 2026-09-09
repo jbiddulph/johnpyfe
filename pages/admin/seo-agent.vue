@@ -10,7 +10,7 @@
       </div>
       <button
         type="button"
-        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+        class="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700 disabled:opacity-60"
         :disabled="startingRun || loading || Boolean(activeRun)"
         @click="startSeoBatch"
       >
@@ -40,7 +40,7 @@
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
           <p class="text-sm text-gray-500 dark:text-gray-400">Completed runs</p>
-          <p class="text-3xl font-bold text-blue-600">{{ agentStatus?.totals.completedRuns }}</p>
+          <p class="text-3xl font-bold text-primary-600">{{ agentStatus?.totals.completedRuns }}</p>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
           <p class="text-sm text-gray-500 dark:text-gray-400">Need SEO improvement</p>
@@ -109,7 +109,7 @@
 
         <div
           v-if="activeRun"
-          class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100"
+          class="mb-4 rounded-lg border border-primary-200 bg-primary-50 p-4 text-sm text-primary-950 dark:border-primary-900 dark:bg-primary-950 dark:text-primary-100"
         >
           <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
             <p class="font-semibold">Current run in progress</p>
@@ -120,9 +120,9 @@
               {{ activeRun.errorCount }} errors
             </p>
           </div>
-          <div class="h-2 rounded-full bg-blue-200 dark:bg-blue-900 overflow-hidden">
+          <div class="h-2 rounded-full bg-primary-200 dark:bg-primary-900 overflow-hidden">
             <div
-              class="h-2 rounded-full bg-blue-600 transition-all duration-500"
+              class="h-2 rounded-full bg-primary-600 transition-all duration-500"
               :style="{ width: `${activeRunProgress}%` }"
             />
           </div>
@@ -149,17 +149,17 @@
                 v-for="run in agentStatus?.recentRuns"
                 :key="run.id"
                 class="border-t border-gray-200 dark:border-gray-700"
-                :class="run.status === 'running' ? 'bg-blue-50 dark:bg-blue-950/40' : ''"
+                :class="run.status === 'running' ? 'bg-primary-50 dark:bg-primary-950/40' : ''"
               >
                 <td class="p-3">{{ formatDateTime(run.startedAt) }}</td>
                 <td class="p-3">
                   <span
                     v-if="run.status === 'running'"
-                    class="inline-flex items-center gap-2 font-medium text-blue-700 dark:text-blue-300"
+                    class="inline-flex items-center gap-2 font-medium text-primary-700 dark:text-primary-300"
                   >
                     <span class="relative flex h-2 w-2">
-                      <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
-                      <span class="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+                      <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-75" />
+                      <span class="relative inline-flex h-2 w-2 rounded-full bg-primary-500" />
                     </span>
                     Running
                   </span>

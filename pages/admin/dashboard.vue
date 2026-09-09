@@ -102,7 +102,7 @@
       <div v-if="isCreating" class="mt-4">
         <div class="bg-gray-200 rounded-full h-2.5">
           <div 
-            class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+            class="bg-primary-600 h-2.5 rounded-full transition-all duration-300" 
             :style="{ width: `${progress}%` }"
           ></div>
         </div>
@@ -170,7 +170,7 @@
         <p class="text-gray-600">No untitled events found matching the selected filters.</p>
         <UButton 
           label="Clear Filters" 
-          color="blue" 
+          color="primary" 
           variant="outline"
           @click="clearUntitledFilters"
           class="mt-2"
@@ -193,7 +193,7 @@
             <UButton 
               label="Edit" 
               size="sm" 
-              color="blue"
+              color="primary"
               @click="editEvent(event)"
             />
           </div>
@@ -205,7 +205,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <h3 class="text-lg font-semibold mb-2">Total Events</h3>
-        <p class="text-3xl font-bold text-blue-600">{{ stats.totalEvents }}</p>
+        <p class="text-3xl font-bold text-primary-600">{{ stats.totalEvents }}</p>
       </div>
       
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
