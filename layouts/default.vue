@@ -2,9 +2,9 @@
   <div>
     <nav class="sticky top-0 z-50 border-b border-stone-200/80 bg-white/90 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/90">
       <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-        <NuxtLink to="/" class="h-12 flex items-center space-x-3 rtl:space-x-reverse">
+        <NuxtLink to="/" class="brand-logo h-12 flex items-center space-x-3 rtl:space-x-reverse">
             <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" />
-            <span class="self-center text-2xl font-semibold tracking-tight whitespace-nowrap dark:text-white" title="Pubs in the UK">UK <span class="text-primary-600 dark:text-primary-400">Pubs</span></span>
+            <span class="self-center text-2xl font-semibold tracking-tight whitespace-nowrap text-stone-900 dark:text-white" title="Pubs in the UK">UK <span class="brand-logo__pubs">Pubs</span></span>
         </NuxtLink>
         <button
           @click="toggleMenu"
@@ -243,6 +243,12 @@ h1 {
 }
 .router-link-active {
   @apply text-primary-500 !important;
+}
+a.brand-logo.router-link-active {
+  color: inherit !important;
+}
+.brand-logo__pubs {
+  @apply text-primary-600 dark:text-primary-400;
 }
 @media (min-width: 768px) {
   :is(.dark .md\:dark\:text-white) {
