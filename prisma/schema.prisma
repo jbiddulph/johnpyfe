@@ -144,6 +144,7 @@ model AiSeoRun {
   error          Json?
   startedAt      DateTime  @default(now()) @map("started_at")
   finishedAt     DateTime? @map("finished_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@index([status, startedAt(sort: Desc)])
   @@map("ai_seo_runs")

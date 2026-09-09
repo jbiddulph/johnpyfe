@@ -5,9 +5,19 @@ import { seoExpertPrompt } from './seo-expert-prompt'
 import type { PubSeoData, SavedSeoChanges, SaveSeoChangesOptions, SeoAnalysis, SeoChanges } from './seo-types'
 import { snapshotFromSeoData } from './seo-snapshot'
 
-const MAX_BATCH_LIMIT = 500
-/** Netlify background functions stop after ~15 minutes; treat leftover running rows as dead after this. */
+export const SEO_AGENT_DAILY_LIMIT_DEFAULT = 100
+export const MAX_BATCH_LIMIT = 100
+/** One Netlify background worker gets about 112 listings in 15 minutes, so keep each job under that. */
+export const SEO_AGENT_CHUNK_LIMIT = 100
+export const SEO_AGENT_WORKER_TIME_BUDGET_MS = 12 * 60 * 1000
+/** Treat leftover running rows as dead if they have not written progress within this window. */
 export const SEO_AGENT_STALE_RUN_MS = 20 * 60 * 1000
+
+export function parseSeoAgentLimit(value: unknown, fallback = SEO_AGENT_DAILY_LIMIT_DEFAULT) {
+  const parsed = Number.parseInt(String(value ?? fallback), 10)
+  const limit = Number.isFinite(parsed) ? parsed : fallback
+  return Math.min(MAX_BATCH_LIMIT, Math.max(1, limit))
+}
 
 function isMissingSeoRecommendationTableError(error: unknown): boolean {
   const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
@@ -415,55 +425,95 @@ export async function findVenuesNeedingSeoImprovement(limit: number): Promise<Ar
 
 export async function expireStaleSeoRuns(now = new Date()) {
   const cutoff = new Date(now.getTime() - SEO_AGENT_STALE_RUN_MS)
-  const staleWhere = {
-    status: 'running',
-    startedAt: { lt: cutoff },
-  } as const
-
-  const [completed, completedWithErrors, failed] = await Promise.all([
-    prisma.aiSeoRun.updateMany({
-      where: { ...staleWhere, processedCount: { gt: 0 }, errorCount: 0 },
-      data: { status: 'completed', finishedAt: now },
-    }),
-    prisma.aiSeoRun.updateMany({
-      where: { ...staleWhere, processedCount: { gt: 0 }, errorCount: { gt: 0 } },
-      data: { status: 'completed_with_errors', finishedAt: now },
-    }),
-    prisma.aiSeoRun.updateMany({
-      where: { ...staleWhere, processedCount: 0 },
-      data: {
-        status: 'failed',
-        finishedAt: now,
-        error: { message: 'Run stopped without finishing (worker timeout).' },
-      },
-    }),
-  ])
-
-  return completed.count + completedWithErrors.count + failed.count
+  const result = await prisma.aiSeoRun.updateMany({
+    where: {
+      status: 'running',
+      updatedAt: { lt: cutoff },
+    },
+    data: {
+      status: 'stopped',
+      finishedAt: now,
+      error: { message: 'Stopped: background worker timed out before finishing.' },
+    },
+  })
+  return result.count
 }
 
-export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
-  const requestedLimit = Math.min(Math.max(1, limit), MAX_BATCH_LIMIT)
+export async function getLiveSeoRun() {
+  await expireStaleSeoRuns()
+  return prisma.aiSeoRun.findFirst({
+    where: { status: 'running' },
+    orderBy: { startedAt: 'desc' },
+  })
+}
+
+export async function stopSeoRuns(reason = 'Stopped by admin') {
+  const now = new Date()
+  const result = await prisma.aiSeoRun.updateMany({
+    where: { status: 'running' },
+    data: {
+      status: 'stopped',
+      finishedAt: now,
+      error: { message: reason },
+    },
+  })
+  return { stopped: result.count }
+}
+
+async function venueProcessedRecently(venueId: number) {
+  const latest = await prisma.venueSeoRecommendation.findFirst({
+    where: { venueId },
+    orderBy: { generatedAt: 'desc' },
+    select: { generatedAt: true },
+  })
+  return Boolean(latest && Date.now() - latest.generatedAt.getTime() < 12 * 60 * 60 * 1000)
+}
+
+export async function runDailySeoAgent(
+  limit = SEO_AGENT_DAILY_LIMIT_DEFAULT,
+  options: { runId?: string } = {},
+) {
+  const requestedLimit = parseSeoAgentLimit(limit)
   const concurrency = Math.min(
     Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '2', 10) || 2),
     5,
   )
+  const chunkLimit = Math.min(SEO_AGENT_CHUNK_LIMIT, requestedLimit)
   await expireStaleSeoRuns()
-  const run = await prisma.aiSeoRun.create({
-    data: { requestedLimit },
-  })
 
-  let processedCount = 0
-  let appliedCount = 0
-  let draftedCount = 0
-  let errorCount = 0
+  let run = options.runId
+    ? await prisma.aiSeoRun.findUnique({ where: { id: options.runId } })
+    : await prisma.aiSeoRun.findFirst({
+        where: { status: 'running' },
+        orderBy: { startedAt: 'desc' },
+      })
+
+  if (options.runId && !run) {
+    throw new Error(`SEO run ${options.runId} was not found`)
+  }
+
+  if (run && run.status !== 'running') {
+    return { ...run, shouldContinue: false }
+  }
+
+  if (!run) {
+    run = await prisma.aiSeoRun.create({
+      data: { requestedLimit },
+    })
+  }
+
+  const activeRun = run
+  let processedCount = activeRun.processedCount
+  let appliedCount = activeRun.appliedCount
+  let draftedCount = activeRun.draftedCount
+  let errorCount = activeRun.errorCount
   let persistChain = Promise.resolve()
 
   function persistProgress(extra: { status?: string; finishedAt?: Date; error?: { message: string } } = {}) {
     persistChain = persistChain
       .then(() =>
         prisma.aiSeoRun.update({
-          where: { id: run.id },
+          where: { id: activeRun.id },
           data: {
             processedCount,
             appliedCount,
@@ -474,22 +524,64 @@ export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
         }),
       )
       .catch((error) => {
-        console.warn('[seo-agent] failed to persist run progress', run.id, (error as Error).message)
+        console.warn('[seo-agent] failed to persist run progress', activeRun.id, (error as Error).message)
       })
     return persistChain
   }
 
+  async function isRunStillLive() {
+    const latest = await prisma.aiSeoRun.findUnique({
+      where: { id: activeRun.id },
+      select: { status: true },
+    })
+    return latest?.status === 'running'
+  }
+
   try {
-    const venues = await findVenuesNeedingSeoImprovement(requestedLimit)
+    if (processedCount >= activeRun.requestedLimit) {
+      return prisma.aiSeoRun.update({
+        where: { id: activeRun.id },
+        data: {
+          status: errorCount > 0 ? 'completed_with_errors' : 'completed',
+          finishedAt: new Date(),
+        },
+      }).then((saved) => ({ ...saved, shouldContinue: false }))
+    }
+
+    const remaining = Math.max(0, activeRun.requestedLimit - processedCount)
+    const venues = await findVenuesNeedingSeoImprovement(Math.min(chunkLimit, remaining))
     await persistProgress()
 
+    if (venues.length === 0) {
+      const saved = await prisma.aiSeoRun.update({
+        where: { id: activeRun.id },
+        data: {
+          status: errorCount > 0 ? 'completed_with_errors' : 'completed',
+          processedCount,
+          appliedCount,
+          draftedCount,
+          errorCount,
+          finishedAt: new Date(),
+        },
+      })
+      return { ...saved, shouldContinue: false }
+    }
+
+    const deadline = Date.now() + SEO_AGENT_WORKER_TIME_BUDGET_MS
     let nextIndex = 0
+
     async function worker() {
+      if (Date.now() >= deadline) return
+      if (!(await isRunStillLive())) return
       const venue = venues[nextIndex]
       nextIndex += 1
       if (!venue) return
+      if (await venueProcessedRecently(venue.id)) {
+        await worker()
+        return
+      }
       try {
-        const result = await runSeoForVenue(venue.id, { runId: run.id })
+        const result = await runSeoForVenue(venue.id, { runId: activeRun.id })
         processedCount += 1
         if (result.status === 'applied') appliedCount += 1
         if (result.status === 'pending') draftedCount += 1
@@ -504,17 +596,38 @@ export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
     await Promise.all(Array.from({ length: Math.min(concurrency, venues.length) }, () => worker()))
     await persistProgress()
 
-    return prisma.aiSeoRun.update({
-      where: { id: run.id },
-      data: {
-        status: errorCount > 0 ? 'completed_with_errors' : 'completed',
-        processedCount,
-        appliedCount,
-        draftedCount,
-        errorCount,
-        finishedAt: new Date(),
-      },
-    })
+    const latest = await prisma.aiSeoRun.findUnique({ where: { id: activeRun.id } })
+    if (!latest || latest.status !== 'running') {
+      return { ...(latest || activeRun), shouldContinue: false }
+    }
+
+    const hitLimit = processedCount >= activeRun.requestedLimit
+    const moreListingsLikely = venues.length >= Math.min(chunkLimit, remaining)
+    const shouldContinue = !hitLimit && moreListingsLikely
+
+    if (!shouldContinue) {
+      const saved = await prisma.aiSeoRun.update({
+        where: { id: activeRun.id },
+        data: {
+          status: errorCount > 0 ? 'completed_with_errors' : 'completed',
+          processedCount,
+          appliedCount,
+          draftedCount,
+          errorCount,
+          finishedAt: new Date(),
+        },
+      })
+      return { ...saved, shouldContinue: false }
+    }
+
+    return {
+      ...latest,
+      processedCount,
+      appliedCount,
+      draftedCount,
+      errorCount,
+      shouldContinue: true,
+    }
   } catch (error) {
     await persistProgress({
       status: 'failed',
