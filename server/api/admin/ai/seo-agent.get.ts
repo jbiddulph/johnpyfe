@@ -1,6 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAdmin } from '../../../utils/require-admin'
-import { countVenuesNeedingSeoImprovement } from '../../../utils/ai/seo-agent'
+import { countVenuesNeedingSeoImprovement, expireStaleSeoRuns, parseSeoAgentLimit, SEO_AGENT_CHUNK_LIMIT } from '../../../utils/ai/seo-agent'
 
 function isMissingSeoTableError(error: unknown): boolean {
   const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
@@ -18,10 +18,7 @@ function isMissingSeoTableError(error: unknown): boolean {
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const dailyLimit = Math.min(
-    Math.max(1, Number.parseInt(process.env.AI_SEO_DAILY_LIMIT || '500', 10) || 500),
-    500,
-  )
+  const dailyLimit = parseSeoAgentLimit(process.env.AI_SEO_DAILY_LIMIT)
   const concurrency = Math.min(
     Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '2', 10) || 2),
     5,
@@ -30,6 +27,7 @@ export default defineEventHandler(async (event) => {
 
   if (live) {
     try {
+      await expireStaleSeoRuns()
       const recentRuns = await prisma.aiSeoRun.findMany({
         orderBy: { startedAt: 'desc' },
         take: 10,
@@ -42,6 +40,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    await expireStaleSeoRuns()
     const [
       totalRuns,
       completedRuns,
@@ -75,6 +74,8 @@ export default defineEventHandler(async (event) => {
         ukSummerTime: '03:00',
         ukWinterTime: '02:00',
         dailyLimit,
+        listingsPerWorker: SEO_AGENT_CHUNK_LIMIT,
+        workerMinutes: 15,
         concurrency,
         webSearchEnabled: process.env.AI_SEO_ENABLE_WEB_SEARCH === 'true',
         openAiConfigured: Boolean(process.env.OPENAI_API_KEY),
@@ -101,6 +102,8 @@ export default defineEventHandler(async (event) => {
         ukSummerTime: '03:00',
         ukWinterTime: '02:00',
         dailyLimit,
+        listingsPerWorker: SEO_AGENT_CHUNK_LIMIT,
+        workerMinutes: 15,
         concurrency,
         webSearchEnabled: process.env.AI_SEO_ENABLE_WEB_SEARCH === 'true',
         openAiConfigured: Boolean(process.env.OPENAI_API_KEY),
