@@ -22,7 +22,7 @@ export default {
     './pages/**/*.{vue,js}',
     './layouts/**/*.{vue,js}',
     './app.config.ts',
-    './assets/css/**/*.{css}',
+    './assets/css/**/*.css',
   ],
   theme: {
     extend: {
