@@ -2,7 +2,8 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../prisma'
 import { generateJsonWithOpenAI } from './openai'
 import { seoExpertPrompt } from './seo-expert-prompt'
-import type { PubSeoData, SavedSeoChanges, SeoAnalysis, SeoChanges } from './seo-types'
+import type { PubSeoData, SavedSeoChanges, SaveSeoChangesOptions, SeoAnalysis, SeoChanges } from './seo-types'
+import { snapshotFromSeoData } from './seo-snapshot'
 
 const MAX_BATCH_LIMIT = 500
 /** Netlify background functions stop after ~15 minutes; treat leftover running rows as dead after this. */
@@ -247,7 +248,11 @@ export async function findMissingSeoContent(venueId: number): Promise<string[]> 
   return findMissingSeoContentFromData(await getPubSeoData(venueId))
 }
 
-export async function saveSeoChanges(venueId: number, changes: SeoChanges): Promise<SavedSeoChanges> {
+export async function saveSeoChanges(
+  venueId: number,
+  changes: SeoChanges,
+  options: SaveSeoChangesOptions = {},
+): Promise<SavedSeoChanges> {
   const data = await getPubSeoData(venueId)
   const improvementCount = countImprovements(changes)
   const status = data.isClaimed ? 'pending' : 'applied'
@@ -262,6 +267,8 @@ export async function saveSeoChanges(venueId: number, changes: SeoChanges): Prom
         analysis: {
           generatedFor: data.name,
           generatedAt: new Date().toISOString(),
+          runId: options.runId || null,
+          previous: snapshotFromSeoData(data),
         },
         changes: changes as any,
         warnings: changes.missingContentWarnings || [],
@@ -341,9 +348,12 @@ export async function approveSeoRecommendation(venueId: number, recommendationId
   }
 }
 
-export async function runSeoForVenue(venueId: number): Promise<SavedSeoChanges> {
+export async function runSeoForVenue(
+  venueId: number,
+  options: SaveSeoChangesOptions = {},
+): Promise<SavedSeoChanges> {
   const analysis = await analyseSeo(venueId)
-  return saveSeoChanges(venueId, analysis.changes)
+  return saveSeoChanges(venueId, analysis.changes, options)
 }
 
 export async function getPendingSeoImprovementCount(venueId: number): Promise<number> {
@@ -479,7 +489,7 @@ export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
       nextIndex += 1
       if (!venue) return
       try {
-        const result = await runSeoForVenue(venue.id)
+        const result = await runSeoForVenue(venue.id, { runId: run.id })
         processedCount += 1
         if (result.status === 'applied') appliedCount += 1
         if (result.status === 'pending') draftedCount += 1
