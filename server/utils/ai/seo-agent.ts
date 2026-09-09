@@ -1,5 +1,6 @@
 import { prisma } from '../prisma'
 import { generateJsonWithOpenAI } from './openai'
+import { seoExpertPrompt } from './seo-expert-prompt'
 import type { PubSeoData, SavedSeoChanges, SeoAnalysis, SeoChanges } from './seo-types'
 
 const MAX_BATCH_LIMIT = 500
@@ -135,8 +136,13 @@ export function findMissingSeoContentFromData(data: PubSeoData): string[] {
 export async function analyseSeo(venueId: number): Promise<SeoAnalysis> {
   const data = await getPubSeoData(venueId)
   return generateJsonWithOpenAI<SeoAnalysis>({
-    system:
-      'You are a UK pub SEO specialist. Analyse the listing and generate practical owner-reviewable improvements. Keep page titles under 60 characters and meta descriptions under 155 characters. If web search is available, use the pub name and address to verify missing factual amenities such as outdoor seating, dog friendliness, food, sport, accessibility, or live music. Never invent facts; put unverifiable gaps in missingContentWarnings and sourceNotes.',
+    system: seoExpertPrompt(`
+Analyse this UK pub listing and generate practical, owner-reviewable SEO improvements.
+
+Assess every area that can reasonably be inferred from the supplied data, including title quality, meta description quality, local relevance, duplicate/thin content risk, internal-link opportunities, heading/HTML structure opportunities, canonicalisation, robots/indexability, structured data, Open Graph metadata, image alt text, crawlability, CTR opportunities and Nuxt SEO implementation considerations.
+
+Keep page titles under 60 characters and meta descriptions under 155 characters. If web search is available, use the pub name and address only to verify missing factual amenities such as outdoor seating, dog friendliness, food, sport, accessibility or live music. Never invent facts. Put unverifiable gaps in missingContentWarnings and relevant evidence or caveats in sourceNotes.
+`),
     user: { task: 'analyse_pub_seo', venue: data },
     fallback: fallbackAnalysis(data),
     webSearch: process.env.AI_SEO_ENABLE_WEB_SEARCH === 'true',
@@ -151,8 +157,11 @@ export function generateSeoTitleFromData(data: PubSeoData): string {
 export async function generateSeoTitle(venueId: number): Promise<string> {
   const data = await getPubSeoData(venueId)
   const result = await generateJsonWithOpenAI<{ pageTitle: string }>({
-    system: 'Create one SEO page title for a UK pub. Keep it under 60 characters.',
-    user: { venue: data },
+    system: seoExpertPrompt(`
+Create exactly one SEO page title for this UK pub listing.
+Keep it under 60 characters, naturally include the pub name and strongest useful local context, avoid keyword stuffing, avoid boilerplate where possible, and optimise for relevance and CTR without being misleading.
+`),
+    user: { task: 'generate_pub_page_title', venue: data },
     fallback: { pageTitle: generateSeoTitleFromData(data) },
   })
   return result.pageTitle
@@ -168,8 +177,11 @@ export function generateMetaDescriptionFromData(data: PubSeoData): string {
 export async function generateMetaDescription(venueId: number): Promise<string> {
   const data = await getPubSeoData(venueId)
   const result = await generateJsonWithOpenAI<{ metaDescription: string }>({
-    system: 'Create one search-friendly meta description for a UK pub. Keep it under 155 characters.',
-    user: { venue: data },
+    system: seoExpertPrompt(`
+Create exactly one search-friendly meta description for this UK pub listing.
+Keep it under 155 characters, make it specific and useful, use factual local context, improve likely search-result CTR without clickbait, and avoid repetitive programmatic wording or keyword stuffing.
+`),
+    user: { task: 'generate_pub_meta_description', venue: data },
     fallback: { metaDescription: generateMetaDescriptionFromData(data) },
   })
   return result.metaDescription
@@ -184,8 +196,11 @@ export function rewriteVenueDescriptionFromData(data: PubSeoData): string {
 export async function rewriteVenueDescription(venueId: number): Promise<string> {
   const data = await getPubSeoData(venueId)
   const result = await generateJsonWithOpenAI<{ description: string }>({
-    system: 'Rewrite this UK pub listing description. Be factual, local, useful, and avoid invented claims.',
-    user: { venue: data },
+    system: seoExpertPrompt(`
+Rewrite this UK pub listing description to be factual, locally useful, naturally written and suitable for a large-scale directory.
+Avoid invented claims, keyword stuffing, generic filler and near-duplicate programmatic wording. Use supplied facts only. Prefer genuinely helpful detail for visitors and natural British English.
+`),
+    user: { task: 'rewrite_pub_description', venue: data },
     fallback: { description: rewriteVenueDescriptionFromData(data) },
   })
   return result.description
@@ -215,8 +230,11 @@ export function suggestFaqsFromData(data: PubSeoData): Array<{ question: string;
 export async function suggestFaqs(venueId: number): Promise<Array<{ question: string; answer: string }>> {
   const data = await getPubSeoData(venueId)
   const result = await generateJsonWithOpenAI<{ faqs: Array<{ question: string; answer: string }> }>({
-    system: 'Suggest 3 to 6 useful FAQs for a UK pub listing. Answers must only use supplied facts.',
-    user: { venue: data },
+    system: seoExpertPrompt(`
+Suggest 3 to 6 useful FAQs for this UK pub listing based only on supplied facts.
+Prioritise real visitor intent such as location, facilities and other supported practical information. Do not manufacture FAQ content merely for SEO, do not invent answers, and avoid repetitive questions that would create thin or duplicate content across the directory.
+`),
+    user: { task: 'suggest_pub_faqs', venue: data },
     fallback: { faqs: suggestFaqsFromData(data) },
   })
   return result.faqs
