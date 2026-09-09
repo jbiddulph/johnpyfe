@@ -40,7 +40,7 @@
       <HomeRankedList
         class="mb-12"
         title="Top 20 seaside towns for pubs"
-        description="Coastal towns ranked by pub listings — matched by town name and venue locations near the coast."
+        description="Coastal towns ranked by pub listings, matched by town name."
         :items="stats.topSeasideTowns"
       />
 
@@ -75,20 +75,11 @@
 <script lang="ts" setup>
 const requestFetch = useRequestFetch()
 
-const { data: stats, pending: statsPending } = await useAsyncData(
-  'homepage-stats',
-  () => requestFetch('/api/homepage/stats'),
-)
-
-const { data: featuredNews } = await useAsyncData(
-  'featured-news',
-  () => requestFetch('/api/news/featured'),
-)
-
-const { data: latestNewsData } = await useAsyncData(
-  'latest-news',
-  () => requestFetch('/api/news/latest?limit=12'),
-)
+const [{ data: stats, pending: statsPending }, { data: featuredNews }, { data: latestNewsData }] = await Promise.all([
+  useAsyncData('homepage-stats', () => requestFetch('/api/homepage/stats')),
+  useAsyncData('featured-news', () => requestFetch('/api/news/featured')),
+  useAsyncData('latest-news', () => requestFetch('/api/news/latest?limit=12')),
+])
 
 const latestNews = computed(() => latestNewsData.value?.articles ?? [])
 

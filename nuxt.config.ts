@@ -61,7 +61,13 @@ export default defineNuxtConfig({
   // Optimize rendering
   ssr: true,
   routeRules: {
-    '/': { isr: 300 },
+    '/': {
+      isr: 3600,
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'Netlify-CDN-Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    },
     '/town/**': { isr: 3600 },
     '/county/**': { isr: 3600 },
     '/counties': { isr: 3600 },
@@ -75,9 +81,10 @@ export default defineNuxtConfig({
     '/api/venues/*/reviews': { cache: false },
     '/api/favorites': { cache: false },
     '/api/favorites/**': { cache: false },
-    '/api/homepage/stats': { cache: false },
-    '/api/news/featured': { cache: false },
-    '/api/news/latest': { cache: false },
+    '/api/homepage/stats': { cache: { maxAge: 300, swr: true } },
+    '/api/news/featured': { cache: { maxAge: 300, swr: true } },
+    '/api/news/latest': { cache: { maxAge: 300, swr: true } },
+    '/api/events/top-ten': { cache: { maxAge: 900, swr: true } },
     '/events/**': { isr: 900 },
     '/news/**': { isr: 1800 },
     '/pubs-near-stadiums/**': { isr: 3600 },
@@ -90,6 +97,11 @@ export default defineNuxtConfig({
     preset: 'netlify',
     compressPublicAssets: true,
     minify: true,
+    prerender: {
+      crawlLinks: false,
+      failOnError: false,
+      routes: ['/'],
+    },
   },
   
   // Critical CSS inlining (commented out until critical.css file exists)

@@ -116,6 +116,7 @@ const requestFetch = useRequestFetch()
 const { data: eventsTopTen } = await useAsyncData(
   'events-top-ten',
   () => requestFetch('/api/events/top-ten'),
+  { lazy: true, server: false },
 )
 
 const topVenues = computed(() => eventsTopTen.value?.limitedVenues ?? [])
