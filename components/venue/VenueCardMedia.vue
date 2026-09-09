@@ -6,7 +6,7 @@
       img-class="venue-card-media__img"
       width="400"
       height="180"
-      sizes="(min-width: 768px) 25vw, (min-width: 640px) 50vw, 100vw"
+      sizes="sm:50vw md:25vw"
       loading="lazy"
     />
   </NuxtLink>

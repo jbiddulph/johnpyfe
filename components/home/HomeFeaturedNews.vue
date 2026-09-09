@@ -12,7 +12,7 @@
           img-class="h-full w-full object-cover"
           width="1200"
           height="514"
-          sizes="100vw"
+          sizes="sm:100vw"
           loading="lazy"
         />
       </NuxtLink>

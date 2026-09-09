@@ -1,10 +1,23 @@
 <template>
-  <NuxtImg
+  <img
+    v-if="useOriginalSrc"
     :src="src"
     :alt="alt"
     :width="width"
     :height="height"
-    :sizes="sizes"
+    :loading="loading"
+    :fetchpriority="fetchpriority || undefined"
+    decoding="async"
+    :class="imgClass"
+    @error="$emit('error', $event)"
+  >
+  <NuxtImg
+    v-else
+    :src="src"
+    :alt="alt"
+    :width="width"
+    :height="height"
+    :sizes="parsedSizes"
     :preload="preload"
     :loading="loading"
     :fetchpriority="fetchpriority || undefined"
@@ -18,7 +31,9 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{
+import { isRemoteImageSrc, nuxtImageSizes } from '@/utils/optimized-img'
+
+const props = withDefaults(defineProps<{
   src: string
   alt?: string
   width?: number | string
@@ -31,7 +46,6 @@ withDefaults(defineProps<{
   imgClass?: string
 }>(), {
   alt: '',
-  sizes: '100vw',
   preload: false,
   loading: 'lazy',
   densities: '1',
@@ -41,4 +55,7 @@ withDefaults(defineProps<{
 defineEmits<{
   error: [event: Event]
 }>()
+
+const useOriginalSrc = computed(() => isRemoteImageSrc(props.src))
+const parsedSizes = computed(() => nuxtImageSizes(props.sizes))
 </script>
