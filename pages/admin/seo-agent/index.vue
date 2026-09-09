@@ -39,6 +39,22 @@
         The AI SEO database migration has not been applied yet.
       </div>
 
+      <NuxtLink
+        to="/admin/seo-agent/site"
+        class="flex flex-col gap-3 rounded-lg border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white p-5 shadow transition hover:ring-2 hover:ring-indigo-400 dark:border-indigo-900 dark:from-indigo-950 dark:to-gray-800 md:flex-row md:items-center md:justify-between"
+      >
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Site-wide SEO</p>
+          <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+            Let the agent audit the whole site and propose title, description, keyword, link, image and content changes
+          </p>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            Every proposal waits for your approval — apply them one by one or approve a whole batch.
+          </p>
+        </div>
+        <span class="shrink-0 rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white">Open site SEO</span>
+      </NuxtLink>
+
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <NuxtLink
           to="/admin/seo-agent/improvements?status=pending"
