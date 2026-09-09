@@ -1,129 +1,66 @@
 <template>
   <div>
-    <div
-      v-if="isAdmin"
-      class="bg-blue-50 border-b border-blue-200 text-sm dark:bg-blue-950 dark:border-blue-900"
-    >
-      <div class="max-w-screen-xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2">
-        <span class="font-medium text-blue-900 dark:text-blue-100">Admin</span>
-        <div class="flex flex-wrap gap-4">
-          <NuxtLink to="/admin/reports" class="font-semibold text-blue-700 hover:underline dark:text-blue-300">
-            Reports
-          </NuxtLink>
-          <NuxtLink to="/admin/claims" class="text-blue-700 hover:underline dark:text-blue-300">
-            Pub claims
-          </NuxtLink>
-          <NuxtLink to="/admin/seo-agent" class="text-blue-700 hover:underline dark:text-blue-300">
-            SEO Agent
-          </NuxtLink>
-          <NuxtLink to="/admin/dashboard" class="text-blue-700 hover:underline dark:text-blue-300">
-            Dashboard
-          </NuxtLink>
-          <NuxtLink to="/admin/past-events" class="text-blue-700 hover:underline dark:text-blue-300">
-            Past events
-          </NuxtLink>
-        </div>
-      </div>
-    </div>
     <nav class="bg-white border-gray-200 dark:bg-gray-900">
       <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 sticky">
         <NuxtLink to="/" class="h-12 flex items-center space-x-3 rtl:space-x-reverse">
             <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" />
             <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white" title="Pubs in the UK">UK Pubs</span>
         </NuxtLink>
-        <button @click="toggleMenu" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="navbar-default" aria-expanded="false">
+        <button
+          @click="toggleMenu"
+          type="button"
+          class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
+          aria-controls="navbar-default"
+          :aria-expanded="showMenu"
+        >
             <span class="sr-only">Open main menu</span>
             <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h15M1 7h15M1 13h15"/>
             </svg>
         </button>
-        <div v-if="user">
-          <p>Welcome, {{ user.user_metadata.name }}</p>
-        </div>
-        <!-- <div v-if="authStore.user">
-          Welcome {{ authStore.user.username }}, you are logged in
-        </div> -->
         <div :class="{ 'hidden': !showMenu, 'block': showMenu }" class="w-full md:block md:w-auto" id="navbar-default">
-          <!-- <ul v-if="loggedIn" class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700"> -->
-            <ul v-if="user" class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
+            <ul class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:items-center md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
               <li>
-                <NuxtLink @click="toggleMenu" to="/" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent" aria-current="page">Home</NuxtLink>
+                <NuxtLink @click="closeMenus" to="/" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent" aria-current="page">Home</NuxtLink>
               </li>
-              <li>
-                <NuxtLink @click="toggleMenu" to="/map" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Map</NuxtLink>
+              <NavDropdown
+                v-model="openGroup"
+                name="explore"
+                label="Explore"
+                :items="exploreItems"
+                @navigate="closeMenus"
+              />
+              <NavDropdown
+                v-if="user"
+                v-model="openGroup"
+                name="account"
+                label="Account"
+                align="right"
+                :caption="accountCaption"
+                :items="accountItems"
+                @navigate="closeMenus"
+              />
+              <li v-else>
+                <NuxtLink @click="closeMenus" to="/favorites" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Favourites</NuxtLink>
               </li>
-              <li>
-                <NuxtLink @click="toggleMenu" to="/pub-crawls" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Pub Crawls</NuxtLink>
-              </li>
-              <li>
-                <NuxtLink @click="toggleMenu" to="/favorites" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Favourites</NuxtLink>
-              </li>
-              <!-- <li>
-                <NuxtLink @click="toggleMenu" to="/map/map" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Map</NuxtLink>
-              </li> -->
-              <li>
-                <NuxtLink @click="toggleMenu" to="/venues" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Venues</NuxtLink>
-              </li>
-              <li>
-                <NuxtLink @click="toggleMenu" to="/events" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Events</NuxtLink>
-              </li>
-              <li>
-                <NuxtLink @click="toggleMenu" to="/counties" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Counties</NuxtLink>
-              </li>
-              <li>
-                <NuxtLink @click="toggleMenu" to="/dashboard" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">My pubs</NuxtLink>
-              </li>
-              <li v-if="isAdmin">
-                <NuxtLink @click="toggleMenu" to="/admin/reports" class="block py-2 px-3 text-blue-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-800 md:p-0 dark:text-blue-400 md:dark:hover:text-blue-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Reports</NuxtLink>
-              </li>
-              <li v-if="isAdmin">
-                <NuxtLink @click="toggleMenu" to="/admin/claims" class="block py-2 px-3 text-blue-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-800 md:p-0 dark:text-blue-400 md:dark:hover:text-blue-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Pub claims</NuxtLink>
-              </li>
-              <li v-if="isAdmin">
-                <NuxtLink @click="toggleMenu" to="/admin/seo-agent" class="block py-2 px-3 text-blue-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-800 md:p-0 dark:text-blue-400 md:dark:hover:text-blue-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">SEO Agent</NuxtLink>
-              </li>
-              <li v-if="isAdmin">
-                <NuxtLink @click="toggleMenu" to="/admin/past-events" class="block py-2 px-3 text-red-600 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-red-700 md:p-0 dark:text-red-400 md:dark:hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Past Events (Admin)</NuxtLink>
-              </li>
-              <li v-if="isAdmin">
-                <NuxtLink @click="toggleMenu" to="/admin/dashboard" class="block py-2 px-3 text-blue-600 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-blue-400 md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Admin Dashboard</NuxtLink>
-              </li>
-              <li>
+              <NavDropdown
+                v-if="isAdmin"
+                v-model="openGroup"
+                name="admin"
+                label="Admin"
+                variant="admin"
+                align="right"
+                :items="adminItems"
+                @navigate="closeMenus"
+              />
+              <li v-if="user">
                 <a @click="logout" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent cursor-pointer">Logout</a>
               </li>
+              <li v-else>
+                <NuxtLink @click="closeMenus" to="/login" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Login</NuxtLink>
+              </li>
             </ul>
-
-          <!-- <ul v-else-if="!loggedIn" class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700"> -->
-            <ul v-else-if="!user" class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
-            <li>
-              <NuxtLink @click="toggleMenu" to="/" class="block py-2 px-3 text-white bg-primary-700 rounded md:bg-transparent md:text-primary-700 md:p-0 dark:text-white md:dark:text-primary-500" aria-current="page">Home</NuxtLink>
-            </li>
-            <li>
-              <NuxtLink @click="toggleMenu" to="/login" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Login</NuxtLink>
-            </li>
-            <li>
-              <NuxtLink @click="toggleMenu" to="/favorites" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Favourites</NuxtLink>
-            </li>
-            <li>
-              <NuxtLink @click="toggleMenu" to="/events" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Events</NuxtLink>
-            </li>
-            <li>
-              <NuxtLink @click="toggleMenu" to="/counties" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Counties</NuxtLink>
-            </li>
-            <li>
-              <NuxtLink @click="toggleMenu" to="/venues" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Venues</NuxtLink>
-            </li>
-            <!-- <li>
-              <NuxtLink @click="toggleMenu" to="/register" class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Register</NuxtLink>
-            </li> -->
-          </ul>
         </div>
-      </div>
-    </nav>
-    <nav class="bg-white border-gray-200 dark:bg-gray-900">
-      <!-- Show the menu items -->
-      <div :class="{ 'hidden': !showMenu, 'block': showMenu }" class="w-full md:block md:w-auto" id="navbar-default">
-        <!-- Your menu items here -->
       </div>
     </nav>
     <main class="bg-primary-100 dark:bg-gray-800">
@@ -208,6 +145,38 @@ const config = useRuntimeConfig();
 const { user, isAdmin, isLoggedIn, initializeAuth } = useAuth();
 const loggedIn = ref(false);
 const showMenu = ref(false);
+const openGroup = ref<string | null>(null)
+
+const exploreItems = [
+  { label: 'Map', to: '/map' },
+  { label: 'Pub Crawls', to: '/pub-crawls' },
+  { label: 'Venues', to: '/venues' },
+  { label: 'Events', to: '/events' },
+  { label: 'Counties', to: '/counties' },
+]
+
+const accountItems = [
+  { label: 'Favourites', to: '/favorites' },
+  { label: 'My pubs', to: '/dashboard' },
+]
+
+const adminItems = [
+  { label: 'Dashboard', to: '/admin/dashboard' },
+  { label: 'Reports', to: '/admin/reports' },
+  { label: 'Pub claims', to: '/admin/claims' },
+  { label: 'SEO Agent', to: '/admin/seo-agent' },
+  { label: 'Past events', to: '/admin/past-events' },
+]
+
+const accountCaption = computed(() => {
+  const name = user.value?.user_metadata?.name
+  return name ? `Signed in as ${name}` : ''
+})
+
+const route = useRoute()
+watch(() => route.path, () => {
+  closeMenus()
+})
 
 const checkUserAuthentication = async () => {
   if (localStorage.getItem("userToken")) {
@@ -237,13 +206,19 @@ const logout = async () => {
   }
   
   //logout JWT
-  toggleMenu()
+  closeMenus()
   await authStore.logoutUser();
   navigateTo("/")
 } 
 
+const closeMenus = () => {
+  showMenu.value = false
+  openGroup.value = null
+}
+
 const toggleMenu = () => {
-  showMenu.value = !showMenu.value; // Toggle the visibility of the menu
+  showMenu.value = !showMenu.value
+  openGroup.value = null
 }
 
 watch(authStore, (newValue: { user: any; }) => {
