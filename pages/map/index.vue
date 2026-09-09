@@ -200,7 +200,7 @@
           </div>
 
           <div
-            v-if="isLoggedIn && editableCrawls.length"
+            v-if="isLoggedIn"
             class="rounded-lg border border-gray-200 p-3 dark:border-gray-800"
           >
             <label
@@ -220,7 +220,8 @@
                 :options="modalCrawlOptions"
                 option-attribute="label"
                 value-attribute="value"
-                :disabled="crawlAddPending || crawlStartPending || crawlSwitching"
+                :disabled="crawlAddPending || crawlStartPending || crawlSwitching || crawlsLoading"
+                :placeholder="crawlsLoading ? 'Loading your lists…' : 'Choose a crawl list'"
               />
               <UButton
                 v-if="showCrawlToggleButton"
@@ -232,9 +233,22 @@
                 :disabled="crawlStartPending"
                 @click="toggleSelectedVenueOnCrawl"
               />
+              <UButton
+                v-else-if="!editableCrawls.length && !crawlsLoading"
+                color="blue"
+                variant="soft"
+                icon="i-heroicons-plus-20-solid"
+                label="Create"
+                :loading="crawlStartPending"
+                :disabled="crawlAddPending"
+                @click="startCrawlFromSelectedVenue"
+              />
             </div>
             <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-              <template v-if="crawlSwitching">Loading list…</template>
+              <template v-if="crawlsLoading || crawlSwitching">Loading list…</template>
+              <template v-else-if="!editableCrawls.length">
+                You don’t have a crawl list yet — pick “+ New crawl starting here” (or Create) to make one with this pub as stop 1.
+              </template>
               <template v-else-if="!canEditActiveCrawl">Only the crawl creator can add pubs to this list.</template>
               <template v-else-if="selectedVenueOnActiveCrawl">
                 {{ selectedVenue.name }} is stop {{ selectedVenueStopNumber }} of {{ stops.length }} on {{ activeCrawl?.name }}.
@@ -246,7 +260,7 @@
           </div>
 
           <div
-            v-if="!isLoggedIn || selectedVenueOnActiveCrawl || !editableCrawls.length"
+            v-if="!isLoggedIn || selectedVenueOnActiveCrawl"
             class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/60 dark:bg-amber-950/30"
           >
             <div class="flex items-start gap-2">
@@ -409,6 +423,7 @@ const {
   errorMessage: crawlErrorMessage,
   canEditActiveCrawl,
   createCrawl,
+  loadingList: crawlsLoading,
 } = usePubCrawl()
 
 const route = useRoute()
