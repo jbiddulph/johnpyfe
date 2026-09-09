@@ -37,13 +37,13 @@
           v-model="formComment"
           rows="4"
           maxlength="2000"
-          class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none ring-blue-500 focus:border-blue-500 focus:ring-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none ring-primary-500 focus:border-primary-500 focus:ring-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           placeholder="What was the pint like? Atmosphere, staff, food…"
         />
         <p class="mt-1 text-right text-xs text-gray-500">{{ formComment.length }}/2000</p>
         <div class="mt-3 flex flex-wrap gap-2">
           <UButton
-            color="blue"
+            color="primary"
             :label="myReview ? 'Save review' : 'Post review'"
             :loading="saving"
             :disabled="!formRating"
@@ -64,7 +64,7 @@
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Sign in to leave a five-star review and save this pub to your favourites.
         </p>
-        <UButton class="mt-3" color="blue" label="Sign in to review" :to="loginRedirect" />
+        <UButton class="mt-3" color="primary" label="Sign in to review" :to="loginRedirect" />
       </template>
       <p v-if="message" class="mt-3 text-sm" :class="messageIsError ? 'text-red-600' : 'text-emerald-700 dark:text-emerald-400'">
         {{ message }}

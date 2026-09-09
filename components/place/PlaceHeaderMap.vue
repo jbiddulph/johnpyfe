@@ -244,7 +244,7 @@ function ensureClusterLayers(map) {
     source: SOURCE_ID,
     filter: ['has', 'point_count'],
     paint: {
-      'circle-color': '#2563eb',
+      'circle-color': '#0E8579',
       'circle-radius': [
         'step',
         ['get', 'point_count'],
@@ -283,7 +283,7 @@ function ensureClusterLayers(map) {
     source: SOURCE_ID,
     filter: ['!', ['has', 'point_count']],
     paint: {
-      'circle-color': '#2563eb',
+      'circle-color': '#E53935',
       'circle-radius': 8,
       'circle-stroke-width': 2,
       'circle-stroke-color': '#ffffff',
@@ -308,7 +308,7 @@ function ensureHighlightLayer(map) {
     type: 'circle',
     source: HIGHLIGHT_SOURCE_ID,
     paint: {
-      'circle-color': '#2563eb',
+      'circle-color': '#E53935',
       'circle-radius': [
         'interpolate',
         ['linear'],
@@ -527,7 +527,7 @@ onBeforeUnmount(() => {
 }
 
 .place-map-popup .place-map-popup__link {
-  color: #2563eb !important;
+  color: #0E8579 !important;
   font-weight: 600;
   text-decoration: none;
 }

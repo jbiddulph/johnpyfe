@@ -5,18 +5,53 @@ import { seoExpertPrompt } from './seo-expert-prompt'
 import type { PubSeoData, SavedSeoChanges, SaveSeoChangesOptions, SeoAnalysis, SeoChanges } from './seo-types'
 import { snapshotFromSeoData } from './seo-snapshot'
 
-export const SEO_AGENT_DAILY_LIMIT_DEFAULT = 100
-export const MAX_BATCH_LIMIT = 100
+/** Daily cap across all workers. AI_SEO_DAILY_LIMIT=500 with five hourly jobs of 100. */
+export const SEO_AGENT_DAILY_LIMIT_DEFAULT = 500
 /** One Netlify background worker gets about 112 listings in 15 minutes, so keep each job under that. */
 export const SEO_AGENT_CHUNK_LIMIT = 100
+export const MAX_BATCH_LIMIT = SEO_AGENT_CHUNK_LIMIT
 export const SEO_AGENT_WORKER_TIME_BUDGET_MS = 12 * 60 * 1000
 /** Treat leftover running rows as dead if they have not written progress within this window. */
 export const SEO_AGENT_STALE_RUN_MS = 20 * 60 * 1000
+/** Five hourly jobs from midnight UTC: 00:00, 01:00, 02:00, 03:00, 04:00. */
+export const SEO_AGENT_CRON = '0 0,1,2,3,4 * * *'
+export const SEO_AGENT_CRON_UTC_HOURS = '00:00, 01:00, 02:00, 03:00, 04:00'
+export const SEO_AGENT_CRON_UK_SUMMER = '01:00–05:00 BST'
+export const SEO_AGENT_CRON_UK_WINTER = '00:00–04:00 GMT'
 
-export function parseSeoAgentLimit(value: unknown, fallback = SEO_AGENT_DAILY_LIMIT_DEFAULT) {
+export function parseSeoAgentDailyLimit(value: unknown = process.env.AI_SEO_DAILY_LIMIT) {
+  const parsed = Number.parseInt(String(value ?? SEO_AGENT_DAILY_LIMIT_DEFAULT), 10)
+  const limit = Number.isFinite(parsed) ? parsed : SEO_AGENT_DAILY_LIMIT_DEFAULT
+  return Math.min(5000, Math.max(1, limit))
+}
+
+export function parseSeoAgentRunLimit(value: unknown, fallback = SEO_AGENT_CHUNK_LIMIT) {
   const parsed = Number.parseInt(String(value ?? fallback), 10)
   const limit = Number.isFinite(parsed) ? parsed : fallback
   return Math.min(MAX_BATCH_LIMIT, Math.max(1, limit))
+}
+
+/** Per-run cap. Kept for callers that still pass a requested batch size. */
+export function parseSeoAgentLimit(value: unknown, fallback = SEO_AGENT_CHUNK_LIMIT) {
+  return parseSeoAgentRunLimit(value, fallback)
+}
+
+export function utcDayStart(now = new Date()) {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+}
+
+export async function countSeoRecommendationsToday(now = new Date()) {
+  return prisma.venueSeoRecommendation.count({
+    where: { generatedAt: { gte: utcDayStart(now) } },
+  })
+}
+
+export async function nextSeoRunLimit(requested?: unknown) {
+  const dailyLimit = parseSeoAgentDailyLimit()
+  const processedToday = await countSeoRecommendationsToday()
+  const remaining = Math.max(0, dailyLimit - processedToday)
+  if (remaining <= 0) return 0
+  return Math.min(parseSeoAgentRunLimit(requested ?? remaining), remaining)
 }
 
 function isMissingSeoRecommendationTableError(error: unknown): boolean {
@@ -470,15 +505,13 @@ async function venueProcessedRecently(venueId: number) {
 }
 
 export async function runDailySeoAgent(
-  limit = SEO_AGENT_DAILY_LIMIT_DEFAULT,
+  limit = SEO_AGENT_CHUNK_LIMIT,
   options: { runId?: string } = {},
 ) {
-  const requestedLimit = parseSeoAgentLimit(limit)
   const concurrency = Math.min(
     Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '2', 10) || 2),
     5,
   )
-  const chunkLimit = Math.min(SEO_AGENT_CHUNK_LIMIT, requestedLimit)
   await expireStaleSeoRuns()
 
   let run = options.runId
@@ -496,11 +529,32 @@ export async function runDailySeoAgent(
     return { ...run, shouldContinue: false }
   }
 
+  let requestedLimit = run?.requestedLimit ?? parseSeoAgentRunLimit(limit)
   if (!run) {
+    requestedLimit = await nextSeoRunLimit(limit)
+    if (requestedLimit <= 0) {
+      return {
+        skipped: true,
+        shouldContinue: false,
+        status: 'skipped',
+        id: '',
+        requestedLimit: 0,
+        processedCount: 0,
+        appliedCount: 0,
+        draftedCount: 0,
+        errorCount: 0,
+        error: { message: 'Daily SEO limit already reached' },
+        startedAt: new Date(),
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+      }
+    }
     run = await prisma.aiSeoRun.create({
       data: { requestedLimit },
     })
   }
+
+  const chunkLimit = Math.min(SEO_AGENT_CHUNK_LIMIT, requestedLimit)
 
   const activeRun = run
   let processedCount = activeRun.processedCount

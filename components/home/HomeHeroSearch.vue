@@ -23,11 +23,11 @@
         aria-hidden="true"
       >
     </picture>
-    <div class="home-hero__overlay absolute inset-0 bg-black/45" aria-hidden="true" />
+    <div class="home-hero__overlay absolute inset-0 bg-gradient-to-b from-primary-950/55 via-black/35 to-primary-950/70" aria-hidden="true" />
 
     <div class="relative z-[1] flex min-h-[320px] max-h-[520px] flex-col items-center justify-center px-4 py-10 md:py-14">
-      <p class="mb-2 text-sm font-medium uppercase tracking-widest text-white/80">UK Pubs</p>
-      <h1 class="mb-8 max-w-3xl text-center text-3xl font-light text-white drop-shadow-md md:text-5xl">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-[0.22em] text-pint">UK Pubs</p>
+      <h1 class="mb-8 max-w-3xl text-center text-3xl font-semibold tracking-tight text-white drop-shadow-md md:text-5xl">
         Find pubs and venues across the UK
       </h1>
 
@@ -49,7 +49,7 @@
           />
           <button
             type="submit"
-            class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
+            class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-pint text-stone-900 transition hover:bg-pint-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
             :disabled="!canSearch"
             aria-label="Search"
           >

@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     defaultLocale: 'en-GB',
   },
   css: [
+    '~/assets/css/theme.css',
     '~/assets/css/hub-cards.css',
     '~/assets/css/spinner.css',
   ],

@@ -4,7 +4,7 @@
     <h1 class="text-4xl font-bold mb-6">Edit pub profile</h1>
 
     <p v-if="!isLoggedIn" class="text-gray-600">
-      <NuxtLink to="/login" class="text-blue-600 hover:underline">Sign in</NuxtLink> to edit this pub.
+      <NuxtLink to="/login" class="text-primary-600 hover:underline">Sign in</NuxtLink> to edit this pub.
     </p>
     <p v-else-if="loading" class="text-gray-600">Loading…</p>
     <p v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</p>
@@ -66,21 +66,21 @@
 
       <section class="space-y-4">
         <h2 class="text-xl font-semibold border-b border-gray-200 pb-2 dark:border-gray-700">Search &amp; SEO</h2>
-        <div class="rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
+        <div class="rounded-lg border border-primary-100 bg-primary-50 p-4 dark:border-primary-900 dark:bg-primary-950/30">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p class="font-medium text-gray-900 dark:text-gray-100">AI SEO assistant</p>
               <p class="text-sm text-gray-600 dark:text-gray-400">{{ seoSummaryLabel }}</p>
             </div>
             <UButton
-              color="blue"
+              color="primary"
               label="Improve SEO with AI"
               :loading="seoGenerating"
               @click="generateSeoDraft"
             />
           </div>
 
-          <div v-if="latestSeoChanges" class="mt-4 space-y-3 border-t border-blue-100 pt-4 text-sm dark:border-blue-900">
+          <div v-if="latestSeoChanges" class="mt-4 space-y-3 border-t border-primary-100 pt-4 text-sm dark:border-primary-900">
             <div v-if="latestSeoChanges.pageTitle">
               <p class="font-medium text-gray-700 dark:text-gray-200">Suggested title</p>
               <p class="text-gray-600 dark:text-gray-400">{{ latestSeoChanges.pageTitle }}</p>
@@ -162,7 +162,7 @@
           <input
             v-model="form.showOriginalVenueImage"
             type="checkbox"
-            class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
           />
           <span class="text-sm">
             <span class="font-medium text-gray-900 dark:text-gray-100">Show original venue image</span>
@@ -214,7 +214,7 @@
       </section>
 
       <div class="flex flex-wrap gap-3">
-        <UButton type="submit" color="blue" label="Save changes" :loading="saving" />
+        <UButton type="submit" color="primary" label="Save changes" :loading="saving" />
         <UButton to="/dashboard" label="Back" variant="outline" />
       </div>
       <p v-if="savedMessage" class="text-sm text-emerald-700">
@@ -222,7 +222,7 @@
         <NuxtLink
           v-if="venueSlug"
           :to="venuePath(venueId, venueSlug)"
-          class="ml-2 font-medium text-blue-700 hover:underline"
+          class="ml-2 font-medium text-primary-700 hover:underline"
         >
           View your pub page
         </NuxtLink>

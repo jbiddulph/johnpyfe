@@ -149,7 +149,7 @@ function imageAttribution(item: HomeRankedItem, index: number) {
 
 <style scoped>
 .home-ranked__rank {
-  @apply flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-800 dark:bg-blue-900/40 dark:text-blue-200;
+  @apply flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-800 dark:bg-primary-900/40 dark:text-primary-200;
 }
 
 .home-ranked__rank--photo {
