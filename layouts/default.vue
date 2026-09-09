@@ -1,6 +1,6 @@
 <template>
   <div>
-    <nav class="bg-white border-gray-200 dark:bg-gray-900">
+    <nav class="relative z-50 bg-white border-gray-200 dark:bg-gray-900">
       <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 sticky">
         <NuxtLink to="/" class="h-12 flex items-center space-x-3 rtl:space-x-reverse">
             <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" />
