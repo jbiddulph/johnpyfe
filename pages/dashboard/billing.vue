@@ -17,7 +17,7 @@
 
     <UAlert
       v-if="status?.stripeTestMode && status?.stripeTestPaymentConfigured"
-      color="blue"
+      color="primary"
       variant="soft"
       title="Stripe test mode"
       description="Checkout uses your £4.99 test price (STRIPE_TEST_PAYMENT) for every plan. Use card 4242 4242 4242 4242."
@@ -26,7 +26,7 @@
 
     <UAlert
       v-if="route.query.checkout === 'canceled'"
-      color="blue"
+      color="primary"
       variant="soft"
       title="Checkout canceled"
       description="No payment was taken. You can choose a plan below when you are ready."
@@ -34,7 +34,7 @@
     />
 
     <p v-if="!isLoggedIn" class="text-gray-600">
-      <NuxtLink to="/login" class="text-blue-600 hover:underline">Sign in</NuxtLink> to manage billing.
+      <NuxtLink to="/login" class="text-primary-600 hover:underline">Sign in</NuxtLink> to manage billing.
     </p>
     <p v-else-if="loading" class="text-gray-600">Loading…</p>
 
@@ -49,7 +49,7 @@
 
     <UAlert
       v-if="status && !status.hasOrganisation"
-      color="blue"
+      color="primary"
       variant="soft"
       title="Claim a venue when you are ready"
       description="You can subscribe now. After payment, claim a venue from its page and we will verify ownership before editing goes live."
@@ -100,7 +100,7 @@
             <p class="text-sm text-gray-600 mt-1">Up to {{ plan.pubLimit }} {{ plan.pubLimit === 1 ? 'pub' : 'pubs' }}</p>
             <UButton
               class="mt-4"
-              color="blue"
+              color="primary"
               :label="status.organisation?.plan === plan.id ? 'Current plan' : `Choose ${plan.label}`"
               :disabled="status.organisation?.plan === plan.id && status.organisation?.hasProAccess"
               :loading="checkoutPlan === plan.id"

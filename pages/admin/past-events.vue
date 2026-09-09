@@ -4,7 +4,7 @@
       <h1 class="text-4xl font-bold my-8">Past Events (Admin Only)</h1>
       <div class="flex items-center gap-4">
         <span class="text-sm text-gray-600">Total: {{ totalItems }}</span>
-        <NuxtLink to="/events" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+        <NuxtLink to="/events" class="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600">
           View Upcoming Events
         </NuxtLink>
       </div>
@@ -76,19 +76,19 @@
           <!-- Admin controls -->
           <div class="flex justify-center mb-2">
             <UButton label="Delete" class="mr-2 text-xs" color="red" @click="openDeleteModal(event)" />
-            <UButton label="Edit" class="text-xs" color="blue" @click="openEditEventModal(event)" />
+            <UButton label="Edit" class="text-xs" color="primary" @click="openEditEventModal(event)" />
           </div>
           
           <div class="w-full items-center bg-white dark:bg-gray-900 rounded-md border border-gray-200">
             <div class="p-4">
               <h2 class="font-bold text-2xl">{{ event.event_title }}</h2>
               <h3 class="text-gray-600">{{ event.category.name }} at 
-                <NuxtLink :to="`/venues/${event.listing.id}/${event.listing.slug}`" class="text-blue-600 hover:underline">
+                <NuxtLink :to="`/venues/${event.listing.id}/${event.listing.slug}`" class="text-primary-600 hover:underline">
                   {{ event.listing.venuename }}
                 </NuxtLink>
               </h3>
               <span class="text-gray-500">
-                <NuxtLink :to="`/town/${event.city.slug}`" class="text-blue-600 hover:underline">
+                <NuxtLink :to="`/town/${event.city.slug}`" class="text-primary-600 hover:underline">
                   {{ event.city.name }}
                 </NuxtLink>
               </span>

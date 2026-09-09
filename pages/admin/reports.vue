@@ -38,7 +38,7 @@
         </div>
       </div>
 
-      <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 mb-8 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
+      <div class="rounded-lg border border-primary-200 bg-primary-50 p-4 mb-8 text-sm text-primary-900 dark:border-primary-900 dark:bg-primary-950 dark:text-primary-100">
         <p v-for="(note, index) in report.notes" :key="index">{{ note }}</p>
       </div>
 
@@ -221,6 +221,6 @@ useSiteSeo({
 
 <style scoped>
 .reports-rank {
-  @apply flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-800 dark:bg-blue-900/40 dark:text-blue-200;
+  @apply flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-800 dark:bg-primary-900/40 dark:text-primary-200;
 }
 </style>

@@ -1,10 +1,10 @@
 <template>
   <div>
-    <nav class="relative z-50 bg-white border-gray-200 dark:bg-gray-900">
-      <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 sticky">
-        <NuxtLink to="/" class="h-12 flex items-center space-x-3 rtl:space-x-reverse">
+    <nav class="sticky top-0 z-50 border-b border-stone-200/80 bg-white/90 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/90">
+      <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+        <NuxtLink to="/" class="brand-logo h-12 flex items-center space-x-3 rtl:space-x-reverse">
             <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" />
-            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white" title="Pubs in the UK">UK Pubs</span>
+            <span class="self-center text-2xl font-semibold tracking-tight whitespace-nowrap text-stone-900 dark:text-white" title="Pubs in the UK">UK <span class="brand-logo__pubs">Pubs</span></span>
         </NuxtLink>
         <button
           @click="toggleMenu"
@@ -63,21 +63,23 @@
         </div>
       </div>
     </nav>
-    <main class="bg-primary-100 dark:bg-gray-800">
+    <main class="bg-surface dark:bg-gray-900">
       <!-- <Nuxt /> -->
       <slot />
     </main>
     <footer>
-      <div class="bg-gray-800 text-white p-4">
+      <div class="border-t-4 border-primary-500 bg-slate-900 text-stone-200 p-4">
         <div class="container mx-auto py-12">
-          <ul>
-            <li><NuxtLink to="/">Home</NuxtLink></li>
-            <li><NuxtLink to="/favorites">Favourite pubs</NuxtLink></li>
+          <ul class="flex flex-wrap gap-x-6 gap-y-2 mb-4">
+            <li><NuxtLink to="/" class="hover:text-pint">Home</NuxtLink></li>
+            <li><NuxtLink to="/favorites" class="hover:text-pint">Favourite pubs</NuxtLink></li>
+            <li><NuxtLink to="/venues" class="hover:text-pint">Venues</NuxtLink></li>
+            <li><NuxtLink to="/events" class="hover:text-pint">Events</NuxtLink></li>
           </ul>
           <p>
-            <i><NuxtLink to="/" title="UK Pubs">ukpubs.co.uk</NuxtLink></i> is an events listings website for pubs and venues  around the UK
+            <i><NuxtLink to="/" title="UK Pubs" class="text-white hover:text-pint">ukpubs.co.uk</NuxtLink></i> is an events listings website for pubs and venues  around the UK
           </p>
-          <p>More events at the following venues</p>
+          <p class="text-stone-400">More events at the following venues</p>
           <div v-if="topVenues.length || topTowns.length" class="footer-top-lists mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
             <!-- Venue Section -->
             <div class="border-b-2 sm:border-b-0">
@@ -101,8 +103,8 @@
           </div>
         </div>
       </div>
-      <div class="bg-gray-900 text-white text-xs text-center py-4 px-4">
-        &copy; {{ currentYear }} <NuxtLink to="/" title="UK Pubs listing">UK Pubs</NuxtLink> - events listings for pubs and venues in the UK
+      <div class="bg-slate-950 text-stone-400 text-xs text-center py-4 px-4">
+        &copy; {{ currentYear }} <NuxtLink to="/" title="UK Pubs listing" class="text-stone-200 hover:text-pint">UK Pubs</NuxtLink> - events listings for pubs and venues in the UK
       </div>
     </footer>
   </div>
@@ -236,10 +238,17 @@ body {
   font-family: 'Kanit', sans-serif;
 }
 h1 {
-  font-weight: 100;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 .router-link-active {
   @apply text-primary-500 !important;
+}
+a.brand-logo.router-link-active {
+  color: inherit !important;
+}
+.brand-logo__pubs {
+  @apply text-primary-600 dark:text-primary-400;
 }
 @media (min-width: 768px) {
   :is(.dark .md\:dark\:text-white) {
