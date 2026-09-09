@@ -1,18 +1,14 @@
 import { getMapPoints } from '../../utils/map-points'
 
-/**
- * Lightweight venue points for clustered hub maps. Keep this response below
- * Netlify payload limits: type is an index into /api/venues/map-legend and
- * amenities are a bitmask (see utils/map-filters.ts).
- */
+/** Venue type legend for /api/venues/map (`point.t` indexes `types`). */
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
 
   try {
-    const { points } = await getMapPoints()
-    return points
+    const { types, points, generatedAt } = await getMapPoints()
+    return { types, total: points.length, generatedAt }
   } catch (error) {
-    console.error('[api/venues/map] failed:', error)
+    console.error('[api/venues/map-legend] failed:', error)
     throw createError({
       statusCode: 503,
       statusMessage: 'Venue map data temporarily unavailable',
