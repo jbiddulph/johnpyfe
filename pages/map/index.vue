@@ -21,10 +21,11 @@
             variant="soft"
             :icon="canEditActiveCrawl ? 'i-heroicons-map-20-solid' : 'i-heroicons-eye-20-solid'"
             :label="crawlButtonLabel"
-            @click="openCrawlBuilder"
+            @click="openCrawlBuilder()"
           />
         </template>
         <USelect
+          ref="citySelectRef"
           class="content-center"
           icon="i-heroicons-map-pin-20-solid"
           color="white"
@@ -45,11 +46,51 @@
     <div class="bg-gray-100 border-t">
       <venue-namesList class="h-full" :venuenames="venueStore.names" @venue-name="venueNameSelected" />
     </div>
+    <MapFilterBar
+      v-model="filters"
+      :types="mapTypes"
+      :has-location="Boolean(userLocation)"
+      :locating="isLocating"
+      :shown="visibleVenueCount"
+      :total="mapVenues.length"
+      @locate="requestUserLocation"
+      @clear="clearFilters"
+    />
+    <p
+      v-if="locationError"
+      class="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-900"
+    >
+      {{ locationError }}
+    </p>
     <ClientOnly>
       <div v-if="mapError" class="flex items-center justify-center bg-gray-100 text-gray-600 px-4 py-16 text-center">
         {{ mapError }}
       </div>
-      <div id="mainmap" />
+      <div v-else class="relative">
+        <div id="mainmap" />
+        <MapGettingStarted
+          :visible="showGettingStarted"
+          :locating="isLocating"
+          @dismiss="dismissGettingStarted"
+          @locate="requestUserLocation"
+          @search-town="focusCitySearch"
+        />
+        <button
+          v-if="!showGettingStarted && isMapZoomedIn"
+          type="button"
+          class="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-xs font-medium text-gray-700 shadow backdrop-blur hover:bg-white dark:border-gray-700 dark:bg-gray-900/95 dark:text-gray-200"
+          @click="reopenGettingStarted"
+        >
+          <UIcon name="i-heroicons-information-circle-20-solid" class="h-4 w-4 text-primary-600" />
+          How it works
+        </button>
+        <div
+          v-else-if="!showGettingStarted && !isMapZoomedIn"
+          class="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-gray-900/80 px-3 py-1.5 text-xs font-medium text-white shadow"
+        >
+          Zoom in or pick a town to see individual pubs
+        </div>
+      </div>
       <template #fallback>
         <div id="mainmap" class="bg-gray-100" aria-hidden="true" />
       </template>
@@ -96,6 +137,7 @@
     <USlideover v-model="isCrawlBuilderOpen" side="left" :ui="{ width: 'w-screen max-w-md' }">
       <MapPubCrawlBuilder
         v-if="isLoggedIn"
+        :focus-invite="crawlBuilderFocusInvite"
         @close="isCrawlBuilderOpen = false"
         @crawl-updated="onCrawlUpdated"
       />
@@ -108,6 +150,23 @@
               <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
                 {{ selectedVenue.name }}
               </h3>
+              <p
+                v-if="selectedVenueDistanceLabel"
+                class="mt-1 inline-flex items-center gap-1 text-sm text-primary-700 dark:text-primary-400"
+              >
+                <UIcon name="i-heroicons-map-pin-20-solid" class="h-4 w-4" />
+                {{ selectedVenueDistanceLabel }}
+              </p>
+              <button
+                v-else-if="!userLocation"
+                type="button"
+                class="mt-1 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-primary-700 dark:text-gray-400"
+                :disabled="isLocating"
+                @click="requestUserLocation"
+              >
+                <UIcon name="i-heroicons-viewfinder-circle-20-solid" class="h-4 w-4" />
+                {{ isLocating ? 'Finding your location…' : 'Share location to see how far away this is' }}
+              </button>
             </div>
             <UButton color="gray" variant="ghost" icon="i-heroicons-x-mark-20-solid" class="-my-1" @click="closeVenueModal" />
           </div>
@@ -148,6 +207,71 @@
               @click="toggleSelectedVenueOnCrawl"
             />
           </div>
+
+          <div
+            class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/60 dark:bg-amber-950/30"
+          >
+            <div class="flex items-start gap-2">
+              <UIcon name="i-heroicons-map-20-solid" class="mt-0.5 h-5 w-5 flex-none text-amber-700 dark:text-amber-400" />
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-amber-900 dark:text-amber-200">
+                  {{ selectedVenueOnActiveCrawl ? 'On your crawl — now invite friends' : 'Start a pub crawl from here' }}
+                </p>
+                <p class="mt-0.5 text-xs text-amber-800/90 dark:text-amber-300/90">
+                  <template v-if="!isLoggedIn">
+                    Log in to make {{ selectedVenue.name }} your first stop, add more pubs and invite others by username.
+                  </template>
+                  <template v-else-if="selectedVenueOnActiveCrawl">
+                    Add more pubs from the map, then invite mates so they can follow the route and chat.
+                  </template>
+                  <template v-else-if="hasEditableActiveCrawl">
+                    Add it to <strong>{{ activeCrawl?.name }}</strong> above, or begin a brand-new crawl with this pub as stop 1.
+                  </template>
+                  <template v-else>
+                    Make {{ selectedVenue.name }} stop 1 of a new crawl list, then add more pubs and invite others.
+                  </template>
+                </p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <UButton
+                    v-if="!isLoggedIn"
+                    size="xs"
+                    color="amber"
+                    :to="loginRedirectPath"
+                    icon="i-heroicons-arrow-right-on-rectangle-20-solid"
+                    label="Log in to start a crawl"
+                  />
+                  <template v-else-if="selectedVenueOnActiveCrawl">
+                    <UButton
+                      size="xs"
+                      color="amber"
+                      icon="i-heroicons-user-plus-20-solid"
+                      label="Invite friends"
+                      @click="openCrawlBuilder(true)"
+                    />
+                    <UButton
+                      size="xs"
+                      color="gray"
+                      variant="soft"
+                      icon="i-heroicons-list-bullet-20-solid"
+                      label="View crawl"
+                      @click="openCrawlBuilder()"
+                    />
+                  </template>
+                  <UButton
+                    v-else
+                    size="xs"
+                    color="amber"
+                    icon="i-heroicons-flag-20-solid"
+                    :label="hasEditableActiveCrawl ? 'New crawl starting here' : 'Start a crawl here'"
+                    :loading="crawlStartPending"
+                    :disabled="crawlAddPending"
+                    @click="startCrawlFromSelectedVenue"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <p
             v-if="crawlAddMessage"
             class="text-center text-sm"
@@ -212,7 +336,17 @@ import { venueStaticMapUrl } from '@/utils/format-venue'
 import {
   CRAWL_ARRIVAL_RADIUS_METERS,
   findNearestStopIndex,
+  haversineMiles,
 } from '@/utils/crawl-distance'
+import {
+  EMPTY_MAP_FILTERS,
+  MAP_FEATURE_FLAGS,
+  MAP_META_FLAGS,
+  flagBit,
+  formatDistanceFromYou,
+  type MapVenueFilters,
+  type MapVenuePoint,
+} from '@/utils/map-filters'
 
 useSiteSeo({
   title: 'Map of UK pubs and venues',
@@ -239,21 +373,54 @@ const {
   initialize: initializePubCrawl,
   errorMessage: crawlErrorMessage,
   canEditActiveCrawl,
+  createCrawl,
 } = usePubCrawl()
 
+const route = useRoute()
 const selectedCity = ref('')
+const citySelectRef = ref<{ $el?: HTMLElement } | null>(null)
 const cityNames = computed(() => eventStore.cities.map((city) => city.name))
 
 const isCrawlBuilderOpen = ref(false)
+const crawlBuilderFocusInvite = ref(false)
 const crawlAddMessage = ref('')
 const crawlAddMessageIsError = ref(false)
 const crawlAddPending = ref(false)
+const crawlStartPending = ref(false)
 const arrivalMessage = ref('')
 const selectedCrawlId = ref('')
 let crawlAddMessageTimeout: ReturnType<typeof setTimeout> | null = null
 let arrivalMessageTimeout: ReturnType<typeof setTimeout> | null = null
 let geoWatchId: number | null = null
 let lastArrivalIndex: number | null = null
+
+// ---- Filters -------------------------------------------------------------
+const filters = ref<MapVenueFilters>({ ...EMPTY_MAP_FILTERS, features: [] })
+const mapTypes = ref<string[]>([])
+const visibleVenueCount = ref(0)
+
+// ---- User location (distance labels, near-me filter, crawl auto check-in) --
+const userLocation = ref<{ lat: number; lng: number } | null>(null)
+const isLocating = ref(false)
+const locationError = ref('')
+let locationErrorTimeout: ReturnType<typeof setTimeout> | null = null
+let geolocateControl: InstanceType<typeof import('mapbox-gl').default.GeolocateControl> | null = null
+
+// ---- Getting-started overlay ---------------------------------------------
+const GETTING_STARTED_STORAGE_KEY = 'ukpubs-map-getting-started-dismissed'
+const GETTING_STARTED_MAX_ZOOM = 10
+const mapZoom = ref(5)
+const gettingStartedDismissed = ref(false)
+const forceGettingStarted = ref(false)
+const isMapZoomedIn = computed(() => mapZoom.value >= GETTING_STARTED_MAX_ZOOM)
+const showGettingStarted = computed(() =>
+  !mapError.value
+  && !gettingStartedDismissed.value
+  && (forceGettingStarted.value || !isMapZoomedIn.value),
+)
+
+const hasEditableActiveCrawl = computed(() => Boolean(activeCrawl.value) && canEditActiveCrawl.value)
+const loginRedirectPath = computed(() => `/login?redirect=${encodeURIComponent(route.fullPath || '/map')}`)
 
 const crawlSelectOptions = computed(() =>
   crawls.value.map((crawl) => ({
@@ -325,14 +492,20 @@ watch(
 )
 
 watch(isLoggedIn, (loggedIn) => {
-  if (loggedIn) startCrawlGeolocation()
-  else stopCrawlGeolocation()
+  if (loggedIn) startLocationWatch()
+  // Logging out keeps the watch alive for distance labels; just forget crawl arrival state.
+  else lastArrivalIndex = null
 })
 
-function openCrawlBuilder() {
+function openCrawlBuilder(focusInvite = false) {
+  crawlBuilderFocusInvite.value = focusInvite
   isCrawlBuilderOpen.value = true
-  crawlAddMessage.value = ''
-  crawlAddMessageIsError.value = false
+  if (!focusInvite) {
+    crawlAddMessage.value = ''
+    crawlAddMessageIsError.value = false
+  }
+  // On small screens the modal and slideover would stack; hand over to the builder.
+  if (focusInvite && !isDesktopViewport.value) isVenueModalOpen.value = false
 }
 
 function onCrawlUpdated(_crawl: { id: string; name: string } | null) {
@@ -444,14 +617,6 @@ const CRAWL_STOPS_CIRCLE = 'crawl-stops-circle'
 const CRAWL_STOPS_NUMBER = 'crawl-stops-number'
 const CRAWL_DISTANCE_LAYER = 'crawl-distance-label'
 
-type MapVenuePoint = {
-  id: number
-  fsaId: number
-  name: string
-  lat: number
-  lng: number
-}
-
 type SelectedMapVenue = MapVenuePoint
 type VenueDetails = Record<string, unknown> & {
   id?: number
@@ -488,12 +653,168 @@ onMounted(async () => {
   void initializePubCrawl()
   void eventStore.fetchCities()
   void loadFilterData()
+  void loadMapLegend()
+  try {
+    gettingStartedDismissed.value = localStorage.getItem(GETTING_STARTED_STORAGE_KEY) === '1'
+  } catch {
+    gettingStartedDismissed.value = false
+  }
+  void startLocationWatchIfPermitted()
   await createMap()
 })
 
+watch(filters, () => applyMapFilters(), { deep: true })
+
+function clearFilters() {
+  filters.value = { ...EMPTY_MAP_FILTERS, features: [] }
+  venueName.value = 'VENUES'
+}
+
+function dismissGettingStarted() {
+  gettingStartedDismissed.value = true
+  forceGettingStarted.value = false
+  try {
+    localStorage.setItem(GETTING_STARTED_STORAGE_KEY, '1')
+  } catch {
+    // ignore storage failures (private mode etc.)
+  }
+}
+
+function reopenGettingStarted() {
+  gettingStartedDismissed.value = false
+  forceGettingStarted.value = true
+}
+
+function focusCitySearch() {
+  const el = citySelectRef.value?.$el
+  const select = el?.querySelector?.('select') as HTMLSelectElement | null | undefined
+  ;(select || el)?.focus?.()
+  el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+}
+
+async function loadMapLegend() {
+  try {
+    const legend = await $fetch<{ types: string[] }>('/api/venues/map-legend')
+    mapTypes.value = legend.types || []
+  } catch (err) {
+    console.warn('Map legend unavailable:', err)
+  }
+}
+
+function showLocationError(message: string) {
+  locationError.value = message
+  if (locationErrorTimeout) clearTimeout(locationErrorTimeout)
+  locationErrorTimeout = setTimeout(() => {
+    locationError.value = ''
+  }, 6000)
+}
+
+/** Silently start tracking if the browser has already granted geolocation. */
+async function startLocationWatchIfPermitted() {
+  if (!import.meta.client || !navigator.geolocation || !navigator.permissions?.query) return
+  try {
+    const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
+    if (status.state === 'granted') startLocationWatch()
+    status.onchange = () => {
+      if (status.state === 'granted') startLocationWatch()
+    }
+  } catch {
+    // Permissions API unsupported — wait for an explicit user action instead
+  }
+}
+
+/** Explicit "use my location" action: prompts, centres the map and enables distance labels. */
+function requestUserLocation() {
+  if (!import.meta.client || !navigator.geolocation) {
+    showLocationError('Your browser does not support location.')
+    return
+  }
+  if (isLocating.value) return
+  isLocating.value = true
+  locationError.value = ''
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      isLocating.value = false
+      setUserLocation(position.coords.latitude, position.coords.longitude)
+      startLocationWatch()
+      if (map.value) {
+        map.value.flyTo({ center: [position.coords.longitude, position.coords.latitude], zoom: 14 })
+      }
+      if (!gettingStartedDismissed.value) dismissGettingStarted()
+    },
+    (err) => {
+      isLocating.value = false
+      showLocationError(
+        err.code === err.PERMISSION_DENIED
+          ? 'Location access was blocked. Allow location for this site to see distances and pubs near you.'
+          : 'Could not work out your location right now. Try again in a moment.',
+      )
+    },
+    { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 },
+  )
+}
+
+function setUserLocation(lat: number, lng: number) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+  const prev = userLocation.value
+  userLocation.value = { lat, lng }
+  // Re-run the near-me filter only when we have moved a meaningful distance.
+  if (filters.value.nearMeMiles > 0 && (!prev || haversineMiles(prev.lat, prev.lng, lat, lng) > 0.05)) {
+    applyMapFilters()
+  }
+  if (popup && activePopupVenueId) refreshActivePopupDistance()
+}
+
+function distanceMilesTo(lat: number, lng: number) {
+  const here = userLocation.value
+  if (!here) return null
+  return haversineMiles(here.lat, here.lng, lat, lng)
+}
+
+const selectedVenueDistanceLabel = computed(() => {
+  const venue = selectedVenue.value
+  if (!venue || !userLocation.value) return ''
+  const miles = distanceMilesTo(venue.lat, venue.lng)
+  return miles == null ? '' : formatDistanceFromYou(miles)
+})
+
+async function startCrawlFromSelectedVenue() {
+  const venue = selectedVenue.value
+  if (!venue || crawlStartPending.value || !isLoggedIn.value) return
+  crawlStartPending.value = true
+  crawlAddMessage.value = ''
+  crawlAddMessageIsError.value = false
+
+  try {
+    await initializePubCrawl()
+    const crawl = await createCrawl(`${venue.name} crawl`)
+    if (!crawl) {
+      showCrawlToggleMessage(crawlErrorMessage.value || 'Could not start a crawl right now.', true)
+      return
+    }
+    const ok = await addVenueStop({ id: venue.id, name: venue.name, lat: venue.lat, lng: venue.lng })
+    selectedCrawlId.value = crawl.id
+    updateCrawlRouteOnMap()
+    if (ok) {
+      showCrawlToggleMessage(`Started "${crawl.name}" with ${venue.name} as stop 1. Add more pubs, then invite friends.`)
+    } else {
+      showCrawlToggleMessage(crawlErrorMessage.value || `Created "${crawl.name}" but could not add ${venue.name}.`, true)
+    }
+    openCrawlBuilder(true)
+  } catch (err: any) {
+    showCrawlToggleMessage(err?.data?.statusMessage || err?.message || 'Could not start a crawl right now.', true)
+  } finally {
+    crawlStartPending.value = false
+  }
+}
+
 const venueNameSelected = (name: string) => {
   venueName.value = name.toString().toUpperCase()
-  updateMapLayer(venueName.value)
+  filters.value = {
+    ...filters.value,
+    venueName: venueName.value === 'VENUES' ? '' : venueName.value,
+  }
 }
 
 const showVenueEvents = () => {
@@ -621,14 +942,29 @@ async function createMap() {
     })
 
     map.value.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
-    map.value.addControl(
-      new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: true,
-        showUserHeading: true,
-      }),
-      'bottom-right',
-    )
+    geolocateControl = new mapboxgl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: true,
+      showUserHeading: true,
+    })
+    map.value.addControl(geolocateControl, 'bottom-right')
+    geolocateControl.on('geolocate', (e: { coords?: { latitude: number; longitude: number } }) => {
+      if (!e?.coords) return
+      setUserLocation(e.coords.latitude, e.coords.longitude)
+      startLocationWatch()
+    })
+    geolocateControl.on('error', (e: { code?: number }) => {
+      if (e?.code === 1) {
+        showLocationError('Location access was blocked. Allow location for this site to see distances and pubs near you.')
+      }
+    })
+
+    mapZoom.value = map.value.getZoom()
+    map.value.on('zoomend', () => {
+      mapZoom.value = map.value?.getZoom?.() ?? mapZoom.value
+      // Once the user has zoomed in far enough the intro has done its job.
+      if (forceGettingStarted.value && isMapZoomedIn.value) forceGettingStarted.value = false
+    })
 
     map.value.on('load', () => {
       map.value.resize()
@@ -638,7 +974,7 @@ async function createMap() {
       updateMapLayer(venueName.value)
       void loadVenueClusters()
       updateCrawlRouteOnMap()
-      if (isLoggedIn.value) startCrawlGeolocation()
+      if (isLoggedIn.value) startLocationWatch()
     })
   } catch (err) {
     console.error('Failed to create map:', err)
@@ -663,6 +999,10 @@ async function loadVenueClusters() {
   }
 }
 
+function applyMapFilters() {
+  updateMapLayer(venueName.value)
+}
+
 function updateMapLayer(layerId: string) {
   isOpenRight.slideover = false
   if (!map.value) {
@@ -672,8 +1012,10 @@ function updateMapLayer(layerId: string) {
 
   hideLegacyVenueLayers(layerId)
 
+  const points = filteredVenuePoints(layerId)
+  visibleVenueCount.value = points.length
   const source = map.value.getSource(SOURCE_ID)
-  source?.setData(buildVenueGeoJson(filteredVenuePoints(layerId)))
+  source?.setData(buildVenueGeoJson(points))
 }
 
 function hideLegacyVenueLayers(activeLayerId: string) {
@@ -695,9 +1037,32 @@ function hideLegacyVenueLayers(activeLayerId: string) {
 
 function filteredVenuePoints(layerId: string) {
   const selected = layerId.trim().toUpperCase()
-  if (!selected || selected === 'VENUES') return mapVenues.value
+  const byName = !selected || selected === 'VENUES' ? null : selected
+  const active = filters.value
+  const typeIndex = active.venueType ? mapTypes.value.indexOf(active.venueType) : -1
+  const featureMask = active.features.reduce((mask, key) => {
+    const flag = MAP_FEATURE_FLAGS.find((f) => f.key === key)
+    return flag ? mask | flagBit(flag.bit) : mask
+  }, 0)
+  const eventsBit = active.hasEvents ? flagBit(MAP_META_FLAGS.hasEvents) : 0
+  const photoBit = active.hasPhoto ? flagBit(MAP_META_FLAGS.hasPhoto) : 0
+  const here = active.nearMeMiles > 0 ? userLocation.value : null
+  const radius = active.nearMeMiles
 
-  return mapVenues.value.filter((venue) => venue.name?.toUpperCase() === selected)
+  if (!byName && typeIndex < 0 && !active.venueType && !featureMask && !eventsBit && !photoBit && !here) {
+    return mapVenues.value
+  }
+
+  return mapVenues.value.filter((venue) => {
+    if (byName && venue.name?.toUpperCase() !== byName) return false
+    if (active.venueType && (venue.t ?? 0) !== typeIndex) return false
+    const mask = venue.f ?? 0
+    if (featureMask && (mask & featureMask) !== featureMask) return false
+    if (eventsBit && !(mask & eventsBit)) return false
+    if (photoBit && !(mask & photoBit)) return false
+    if (here && haversineMiles(here.lat, here.lng, venue.lat, venue.lng) > radius) return false
+    return true
+  })
 }
 
 function parseCoord(value: string | number | null | undefined) {
@@ -847,11 +1212,12 @@ function bindClusterHandlers() {
     const { venuename } = feature.properties
     const venueId = Number(feature.properties?.id || 0)
     activePopupVenueId = venueId || null
+    activePopupState = { venuename, coordinates }
 
     popup?.remove()
     popup = new mapboxgl.Popup({ closeButton: false })
       .setLngLat(coordinates)
-      .setHTML(renderVenuePopupHtml(venuename, popupAddressForVenue(venueId)))
+      .setHTML(renderVenuePopupHtml(venuename, popupAddressForVenue(venueId), popupDistanceLabel(coordinates)))
       .addTo(map.value)
 
     if (venueId && !venueDetailsCache.has(venueId)) {
@@ -864,6 +1230,7 @@ function bindClusterHandlers() {
       popup?.remove()
       popup = null
       activePopupVenueId = null
+      activePopupState = null
     }, 500)
   })
 
@@ -968,18 +1335,36 @@ function popupAddressForVenue(id: number) {
   return details ? formatAddress(details) : ''
 }
 
-function renderVenuePopupHtml(venuename: unknown, address = '') {
+function renderVenuePopupHtml(venuename: unknown, address = '', distance = '') {
   return `<div class="p-2">
     <h1 class="text-lg font-semibold">${escapeHtml(venuename)}</h1>
     ${address ? `<p class="mt-1 text-sm leading-snug">${escapeHtml(address)}</p>` : '<p class="mt-1 text-sm leading-snug text-gray-500">Loading address...</p>'}
+    ${distance ? `<p class="mt-1 text-xs font-medium text-emerald-700">📍 ${escapeHtml(distance)}</p>` : ''}
+    <p class="mt-1 text-xs text-gray-500">Click for details &amp; to start a crawl</p>
   </div>`
+}
+
+function popupDistanceLabel(coordinates: [number, number]) {
+  const [lng, lat] = coordinates
+  const miles = distanceMilesTo(lat, lng)
+  return miles == null ? '' : formatDistanceFromYou(miles)
+}
+
+let activePopupState: { venuename: unknown; coordinates: [number, number] } | null = null
+
+function refreshActivePopupDistance() {
+  if (!popup || !activePopupVenueId || !activePopupState) return
+  const { venuename, coordinates } = activePopupState
+  popup.setHTML(renderVenuePopupHtml(venuename, popupAddressForVenue(activePopupVenueId), popupDistanceLabel(coordinates)))
 }
 
 async function fetchVenueDetailsForPopup(id: number, venuename: unknown, coordinates: [number, number]) {
   try {
     const details = await fetchVenueDetailsCached(id)
     if (!popup || !map.value || activePopupVenueId !== id) return
-    popup.setLngLat(coordinates).setHTML(renderVenuePopupHtml(venuename, formatAddress(details)))
+    popup
+      .setLngLat(coordinates)
+      .setHTML(renderVenuePopupHtml(venuename, formatAddress(details), popupDistanceLabel(coordinates)))
   } catch (err) {
     console.error('Failed to load venue popup details:', err)
   }
@@ -1245,16 +1630,24 @@ function fitMapToCrawlStops() {
   map.value.fitBounds(bounds, { padding: 64, maxZoom: 15, duration: 800 })
 }
 
-function startCrawlGeolocation() {
+/**
+ * Single position watch shared by the distance labels, the near-me filter and
+ * crawl auto check-in. Safe to call repeatedly.
+ */
+function startLocationWatch() {
   if (!import.meta.client || !navigator.geolocation) return
   if (geoWatchId != null) return
 
   geoWatchId = navigator.geolocation.watchPosition(
     (position) => {
-      void handleCrawlGeolocation(position.coords.latitude, position.coords.longitude)
+      setUserLocation(position.coords.latitude, position.coords.longitude)
+      if (isLoggedIn.value) {
+        void handleCrawlGeolocation(position.coords.latitude, position.coords.longitude)
+      }
     },
     (err) => {
-      console.warn('Crawl geolocation unavailable:', err.message)
+      console.warn('Geolocation unavailable:', err.message)
+      if (err.code === err.PERMISSION_DENIED) stopLocationWatch()
     },
     {
       enableHighAccuracy: true,
@@ -1264,7 +1657,7 @@ function startCrawlGeolocation() {
   )
 }
 
-function stopCrawlGeolocation() {
+function stopLocationWatch() {
   if (geoWatchId != null && navigator.geolocation) {
     navigator.geolocation.clearWatch(geoWatchId)
   }
@@ -1299,7 +1692,8 @@ onBeforeUnmount(() => {
   if (popupTimeout) clearTimeout(popupTimeout)
   if (crawlAddMessageTimeout) clearTimeout(crawlAddMessageTimeout)
   if (arrivalMessageTimeout) clearTimeout(arrivalMessageTimeout)
-  stopCrawlGeolocation()
+  if (locationErrorTimeout) clearTimeout(locationErrorTimeout)
+  stopLocationWatch()
   desktopMediaQuery?.removeEventListener('change', updateDesktopViewport)
   popup?.remove()
   map.value?.remove()
