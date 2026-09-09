@@ -9,6 +9,8 @@
 </template>
 
 <script setup>
+await loadSiteSeoConfigIntoState()
+
 useHead({
   meta: [
     {

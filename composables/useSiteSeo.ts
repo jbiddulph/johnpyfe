@@ -1,6 +1,16 @@
 import { cleanDbString, isValidWebsite } from '../utils/format-venue'
 import { siteSeoTitle, venueImageAlt } from '../utils/site-seo-copy'
+import { applyKeywordStrategy, renderSeoTemplate, type SiteSeoPageKey } from '../utils/site-seo-pages'
 import { canonicalSiteUrl } from '../utils/site-url'
+
+type SiteSeoPageContext = {
+  /** Page type in the site SEO registry; lets approved AI templates override title/description. */
+  key: SiteSeoPageKey
+  /** Values for `{placeholders}` in approved templates. */
+  vars?: Record<string, unknown>
+  /** Set false when the page already has hand-written copy (e.g. owner-set pub title). */
+  useTemplates?: boolean
+}
 
 type SiteSeoOptions = {
   title: string
@@ -10,6 +20,7 @@ type SiteSeoOptions = {
   image?: string
   type?: 'website' | 'article'
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
+  page?: SiteSeoPageContext
 }
 
 type SiteSeoInput = SiteSeoOptions | (() => SiteSeoOptions)
@@ -52,7 +63,27 @@ export function useSiteSeo(input: SiteSeoInput) {
   const route = useRoute()
   const siteUrl = siteBaseUrl()
 
-  const options = computed(() => (typeof input === 'function' ? input() : input))
+  const siteConfig = useSiteSeoConfig()
+
+  const rawOptions = computed(() => (typeof input === 'function' ? input() : input))
+
+  /** Page-supplied copy, replaced by approved site-wide templates when one exists. */
+  const options = computed(() => {
+    const base = rawOptions.value
+    const page = base.page
+    const settings = siteConfig.value.settings
+    const templates = page && page.useTemplates !== false ? siteConfig.value.pages[page.key] : undefined
+    const vars = page?.vars ?? {}
+
+    const title = templates?.titleTemplate ? renderSeoTemplate(templates.titleTemplate, vars) || base.title : base.title
+    const description = templates?.descriptionTemplate
+      ? renderSeoTemplate(templates.descriptionTemplate, vars) || base.description
+      : base.description
+    const templateKeywords = templates?.keywords ? renderSeoTemplate(templates.keywords, vars) : ''
+    const keywords = applyKeywordStrategy(templateKeywords || base.keywords || '', settings) || undefined
+
+    return { ...base, title, description, keywords }
+  })
 
   const path = computed(() => options.value.path ?? route.path)
   const canonical = computed(() => {
@@ -63,7 +94,9 @@ export function useSiteSeo(input: SiteSeoInput) {
     const img = options.value.image
     return img?.startsWith('http') ? img : `${siteUrl}${img ?? '/ukpubs-logo.png'}`
   })
-  const brandedTitle = computed(() => siteSeoTitle(options.value.title))
+  const brandedTitle = computed(() =>
+    siteSeoTitle(options.value.title, siteConfig.value.settings.titleSuffix || undefined),
+  )
 
   useSeoMeta({
     title: computed(() => options.value.title),

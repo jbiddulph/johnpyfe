@@ -5,7 +5,7 @@
         UK pub and bar news
       </h1>
       <p class="mt-3 text-lg text-gray-600 dark:text-gray-400">
-        Latest openings, closures, festivals and industry stories from pubs and bars across England, Scotland and Wales.
+        {{ seoIntro || 'Latest openings, closures, festivals and industry stories from pubs and bars across England, Scotland and Wales.' }}
       </p>
     </header>
 
@@ -68,6 +68,8 @@ function formatDate(dateString: string) {
   })
 }
 
+const seoIntro = useSiteSeoIntro('news')
+
 useSiteSeo({
   title: 'UK Pub and Bar News — Openings, Closures and Industry Updates',
   description:
@@ -75,6 +77,7 @@ useSiteSeo({
   keywords:
     'UK pub news, bar news UK, pub openings, pub closures, Wetherspoon news, CAMRA, British pubs, hospitality news',
   path: '/news',
+  page: { key: 'news' },
   type: 'website',
   jsonLd: [
     {

@@ -1,7 +1,10 @@
 <template>
   <div class="container mx-auto p-4">
     <div class="flex w-full justify-between items-center">
-      <h1 class="text-4xl font-bold my-8">Events</h1>
+      <div class="my-8">
+        <h1 class="text-4xl font-bold">Events</h1>
+        <p v-if="seoIntro" class="mt-2 max-w-3xl text-lg text-gray-600 dark:text-gray-400">{{ seoIntro }}</p>
+      </div>
       <UButton v-if="user" icon="i-heroicons-plus-circle" label="Add" @click="openAddEventModal()" />
     </div>
     <div class="pb-12">
@@ -65,12 +68,14 @@
 </template>
 
 <script lang="ts" setup>
-useHead({
-  title: 'Events in Pubs and Venues around the UK', // Optional: Set the page title
-  meta: [
-    { name: 'keywords', content: 'Events, Pubs, venues, UK' },
-    { name: 'description', content: 'Venues and pubs for events in the UK' }
-  ]
+const seoIntro = useSiteSeoIntro('events')
+
+useSiteSeo({
+  title: 'Events in Pubs and Venues around the UK',
+  description: 'Upcoming events at pubs and venues across the UK: live music, comedy, quizzes, sport on the big screen and more.',
+  keywords: 'pub events, events UK, live music pubs, pub quiz, comedy nights, venues',
+  path: '/events',
+  page: { key: 'events' },
 });
 const toast = useToast();
 import { useEventStore } from "@/store/event.js";

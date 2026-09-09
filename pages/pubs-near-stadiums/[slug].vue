@@ -88,5 +88,13 @@ useSiteSeo({
   title: `Pubs near ${stadiumData.value.club} — ${stadiumData.value.stadiumName}`,
   description: `Find pubs and venues within ${stadiumData.value.radiusMiles} mile of ${stadiumData.value.stadiumName}, home of ${stadiumData.value.club}.`,
   path: canonicalPath.value,
+  page: {
+    key: 'stadium',
+    vars: {
+      club: stadiumData.value.club,
+      stadium: stadiumData.value.stadiumName,
+      radiusMiles: stadiumData.value.radiusMiles,
+    },
+  },
 })
 </script>

@@ -1,7 +1,7 @@
 <template>
   <article class="venue-hub-card overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
     <div class="venue-hub-card__header px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-      <NuxtLink :to="venuePath(venue.id, venue.slug)" class="hub-card__title hover:underline">
+      <NuxtLink :to="venuePath(venue.id, venue.slug)" class="hub-card__title hover:underline" :title="linkTitle">
         {{ venue.venuename }}
       </NuxtLink>
     </div>
@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { cleanDbString, normalizeWebsiteHref } from '@/utils/format-venue'
+import { cleanDbString, formatPlaceName, normalizeWebsiteHref } from '@/utils/format-venue'
 
 const props = defineProps({
   venue: {
@@ -45,6 +45,22 @@ const addressLine = computed(() =>
 const websiteHref = computed(() => normalizeWebsiteHref(props.venue.website))
 
 const websiteLabel = computed(() => cleanDbString(props.venue.website) || websiteHref.value)
+
+const linkTitle = useSiteSeoTemplateText(
+  'venue',
+  'linkTitleTemplate',
+  () => ({
+    venue: formatPlaceName(props.venue.venuename),
+    town: formatPlaceName(props.venue.town),
+    county: formatPlaceName(props.venue.county),
+    postcode: cleanDbString(props.venue.postcode) ?? '',
+    venueType: cleanDbString(props.venue.venuetype) ?? '',
+  }),
+  () => {
+    const town = formatPlaceName(props.venue.town)
+    return town ? `${props.venue.venuename} — pub in ${town}` : String(props.venue.venuename ?? '')
+  },
+)
 </script>
 
 <style scoped>

@@ -70,7 +70,7 @@ Returns a specific article by its slug.
 
 ## Components
 
-### HomeFeaturedNews
+### NewsFeaturedArticle (`components/news/NewsFeaturedArticle.vue`)
 Displays the featured article on the homepage with:
 - Eye-catching amber/orange gradient design
 - Article title, excerpt, author, and date
@@ -78,7 +78,7 @@ Displays the featured article on the homepage with:
 
 **Usage:**
 ```vue
-<HomeFeaturedNews :article="featuredNews" />
+<NewsFeaturedArticle :article="featuredNews" />
 ```
 
 ## Adding New Articles

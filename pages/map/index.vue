@@ -218,6 +218,7 @@ useSiteSeo({
   title: 'Map of UK pubs and venues',
   description: 'Explore pubs and venues on an interactive map. Find events and listings near you.',
   path: '/map',
+  page: { key: 'map' },
 })
 
 const venueStore = useVenueStore()
