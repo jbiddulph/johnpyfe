@@ -18,6 +18,13 @@
           to="/admin/news"
           icon="i-heroicons-newspaper"
         />
+        <UButton
+          label="SEO Agent"
+          color="gray"
+          variant="soft"
+          to="/admin/seo-agent"
+          icon="i-heroicons-sparkles"
+        />
       </nav>
     </div>
     
