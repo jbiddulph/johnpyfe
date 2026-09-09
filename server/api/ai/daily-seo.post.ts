@@ -1,4 +1,4 @@
-import { parseSeoAgentLimit, runDailySeoAgent } from '../../utils/ai/seo-agent'
+import { parseSeoAgentRunLimit, runDailySeoAgent } from '../../utils/ai/seo-agent'
 
 export default defineEventHandler(async (event) => {
   const expectedSecret = process.env.AI_SEO_CRON_SECRET
@@ -12,5 +12,5 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event).catch(() => ({}))
-  return runDailySeoAgent(parseSeoAgentLimit(body?.limit || process.env.AI_SEO_DAILY_LIMIT))
+  return runDailySeoAgent(parseSeoAgentRunLimit(body?.limit))
 })

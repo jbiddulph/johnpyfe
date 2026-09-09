@@ -1,6 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAdmin } from '../../../utils/require-admin'
-import { countVenuesNeedingSeoImprovement, expireStaleSeoRuns, parseSeoAgentLimit, SEO_AGENT_CHUNK_LIMIT } from '../../../utils/ai/seo-agent'
+import { countSeoRecommendationsToday, countVenuesNeedingSeoImprovement, expireStaleSeoRuns, parseSeoAgentDailyLimit, SEO_AGENT_CHUNK_LIMIT, SEO_AGENT_CRON, SEO_AGENT_CRON_UK_SUMMER, SEO_AGENT_CRON_UK_WINTER, SEO_AGENT_CRON_UTC_HOURS } from '../../../utils/ai/seo-agent'
 
 function isMissingSeoTableError(error: unknown): boolean {
   const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
@@ -18,7 +18,7 @@ function isMissingSeoTableError(error: unknown): boolean {
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const dailyLimit = parseSeoAgentLimit(process.env.AI_SEO_DAILY_LIMIT)
+  const dailyLimit = parseSeoAgentDailyLimit()
   const concurrency = Math.min(
     Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '2', 10) || 2),
     5,
@@ -50,6 +50,7 @@ export default defineEventHandler(async (event) => {
       appliedRecommendations,
       latestRecommendation,
       remainingListings,
+      processedToday,
     ] = await Promise.all([
       prisma.aiSeoRun.count(),
       prisma.aiSeoRun.count({ where: { status: { in: ['completed', 'completed_with_errors'] } } }),
@@ -65,16 +66,18 @@ export default defineEventHandler(async (event) => {
         select: { generatedAt: true },
       }),
       countVenuesNeedingSeoImprovement(),
+      countSeoRecommendationsToday(),
     ])
 
     return {
       schedule: {
-        cron: '0 2 * * *',
-        utcTime: '02:00',
-        ukSummerTime: '03:00',
-        ukWinterTime: '02:00',
+        cron: SEO_AGENT_CRON,
+        utcTime: SEO_AGENT_CRON_UTC_HOURS,
+        ukSummerTime: SEO_AGENT_CRON_UK_SUMMER,
+        ukWinterTime: SEO_AGENT_CRON_UK_WINTER,
         dailyLimit,
         listingsPerWorker: SEO_AGENT_CHUNK_LIMIT,
+        hourlyJobs: 5,
         workerMinutes: 15,
         concurrency,
         webSearchEnabled: process.env.AI_SEO_ENABLE_WEB_SEARCH === 'true',
@@ -87,6 +90,8 @@ export default defineEventHandler(async (event) => {
         pendingRecommendations,
         appliedRecommendations,
         remainingListings,
+        processedToday,
+        remainingToday: Math.max(0, dailyLimit - processedToday),
         latestRecommendationAt: latestRecommendation?.generatedAt || null,
       },
       recentRuns,
@@ -97,12 +102,13 @@ export default defineEventHandler(async (event) => {
 
     return {
       schedule: {
-        cron: '0 2 * * *',
-        utcTime: '02:00',
-        ukSummerTime: '03:00',
-        ukWinterTime: '02:00',
+        cron: SEO_AGENT_CRON,
+        utcTime: SEO_AGENT_CRON_UTC_HOURS,
+        ukSummerTime: SEO_AGENT_CRON_UK_SUMMER,
+        ukWinterTime: SEO_AGENT_CRON_UK_WINTER,
         dailyLimit,
         listingsPerWorker: SEO_AGENT_CHUNK_LIMIT,
+        hourlyJobs: 5,
         workerMinutes: 15,
         concurrency,
         webSearchEnabled: process.env.AI_SEO_ENABLE_WEB_SEARCH === 'true',
@@ -115,6 +121,8 @@ export default defineEventHandler(async (event) => {
         pendingRecommendations: 0,
         appliedRecommendations: 0,
         remainingListings: 0,
+        processedToday: 0,
+        remainingToday: dailyLimit,
         latestRecommendationAt: null,
       },
       recentRuns: [],
