@@ -1,16 +1,28 @@
 <template>
   <section class="home-hero relative w-full min-h-[320px] max-h-[520px] overflow-hidden bg-gray-900">
-    <img
-      src="/assets/images/filip-andrejevic-QmX5lw8StoQ-unsplash.jpg"
-      alt=""
-      width="1920"
-      height="480"
-      fetchpriority="high"
-      loading="eager"
-      decoding="async"
-      class="absolute inset-0 h-full w-full object-cover"
-      aria-hidden="true"
-    />
+    <picture>
+      <source
+        type="image/avif"
+        srcset="/assets/images/hero-home-640.avif 640w, /assets/images/hero-home-960.avif 960w, /assets/images/hero-home-1280.avif 1280w, /assets/images/hero-home-1600.avif 1600w"
+        sizes="100vw"
+      >
+      <source
+        type="image/webp"
+        srcset="/assets/images/hero-home-640.webp 640w, /assets/images/hero-home-960.webp 960w, /assets/images/hero-home-1280.webp 1280w, /assets/images/hero-home-1600.webp 1600w"
+        sizes="100vw"
+      >
+      <img
+        src="/assets/images/hero-home-1280.jpg"
+        alt=""
+        width="1280"
+        height="416"
+        fetchpriority="high"
+        loading="eager"
+        decoding="async"
+        class="absolute inset-0 h-full w-full object-cover"
+        aria-hidden="true"
+      >
+    </picture>
     <div class="home-hero__overlay absolute inset-0 bg-black/45" aria-hidden="true" />
 
     <div class="relative z-[1] flex min-h-[320px] max-h-[520px] flex-col items-center justify-center px-4 py-10 md:py-14">
