@@ -415,9 +415,31 @@ export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
   let appliedCount = 0
   let draftedCount = 0
   let errorCount = 0
+  let persistChain = Promise.resolve()
+
+  function persistProgress(extra: { status?: string; finishedAt?: Date; error?: { message: string } } = {}) {
+    persistChain = persistChain
+      .then(() =>
+        prisma.aiSeoRun.update({
+          where: { id: run.id },
+          data: {
+            processedCount,
+            appliedCount,
+            draftedCount,
+            errorCount,
+            ...extra,
+          },
+        }),
+      )
+      .catch((error) => {
+        console.warn('[seo-agent] failed to persist run progress', run.id, (error as Error).message)
+      })
+    return persistChain
+  }
 
   try {
     const venues = await findVenuesNeedingSeoImprovement(requestedLimit)
+    await persistProgress()
 
     let nextIndex = 0
     async function worker() {
@@ -433,10 +455,12 @@ export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
         errorCount += 1
         console.warn('[seo-agent] venue failed', venue.id, (error as Error).message)
       }
+      void persistProgress()
       await worker()
     }
 
     await Promise.all(Array.from({ length: Math.min(concurrency, venues.length) }, () => worker()))
+    await persistProgress()
 
     return prisma.aiSeoRun.update({
       where: { id: run.id },
@@ -450,17 +474,10 @@ export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
       },
     })
   } catch (error) {
-    await prisma.aiSeoRun.update({
-      where: { id: run.id },
-      data: {
-        status: 'failed',
-        processedCount,
-        appliedCount,
-        draftedCount,
-        errorCount,
-        error: { message: (error as Error).message },
-        finishedAt: new Date(),
-      },
+    await persistProgress({
+      status: 'failed',
+      error: { message: (error as Error).message },
+      finishedAt: new Date(),
     })
     throw error
   }

@@ -26,6 +26,20 @@ export default defineEventHandler(async (event) => {
     Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '2', 10) || 2),
     5,
   )
+  const live = String(getQuery(event).live || '') === '1'
+
+  if (live) {
+    try {
+      const recentRuns = await prisma.aiSeoRun.findMany({
+        orderBy: { startedAt: 'desc' },
+        take: 10,
+      })
+      return { recentRuns }
+    } catch (error) {
+      if (!isMissingSeoTableError(error)) throw error
+      return { recentRuns: [] }
+    }
+  }
 
   try {
     const [
