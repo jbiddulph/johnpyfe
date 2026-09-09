@@ -149,12 +149,12 @@
                 v-for="run in agentStatus?.recentRuns"
                 :key="run.id"
                 class="border-t border-gray-200 dark:border-gray-700"
-                :class="run.status === 'running' ? 'bg-blue-50 dark:bg-blue-950/40' : ''"
+                :class="isLiveSeoRun(run) ? 'bg-blue-50 dark:bg-blue-950/40' : ''"
               >
                 <td class="p-3">{{ formatDateTime(run.startedAt) }}</td>
                 <td class="p-3">
                   <span
-                    v-if="run.status === 'running'"
+                    v-if="isLiveSeoRun(run)"
                     class="inline-flex items-center gap-2 font-medium text-blue-700 dark:text-blue-300"
                   >
                     <span class="relative flex h-2 w-2">
@@ -163,6 +163,7 @@
                     </span>
                     Running
                   </span>
+                  <span v-else-if="run.status === 'running'" class="capitalize">Timed out</span>
                   <span v-else class="capitalize">{{ run.status.replaceAll('_', ' ') }}</span>
                 </td>
                 <td class="p-3">{{ run.requestedLimit }}</td>
@@ -230,8 +231,16 @@ const breadcrumbItems = [
   { label: 'SEO Agent' },
 ]
 
+const SEO_AGENT_STALE_RUN_MS = 20 * 60 * 1000
+
+function isLiveSeoRun(run: { status: string; startedAt: string }, now = Date.now()) {
+  if (run.status !== 'running') return false
+  const started = new Date(run.startedAt).getTime()
+  return Number.isFinite(started) && now - started <= SEO_AGENT_STALE_RUN_MS
+}
+
 const activeRun = computed(() =>
-  agentStatus.value?.recentRuns.find((run) => run.status === 'running') || null,
+  agentStatus.value?.recentRuns.find((run) => isLiveSeoRun(run)) || null,
 )
 
 const isLive = computed(() => Boolean(activeRun.value))

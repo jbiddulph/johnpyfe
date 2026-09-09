@@ -5,6 +5,8 @@ import { seoExpertPrompt } from './seo-expert-prompt'
 import type { PubSeoData, SavedSeoChanges, SeoAnalysis, SeoChanges } from './seo-types'
 
 const MAX_BATCH_LIMIT = 500
+/** Netlify background functions stop after ~15 minutes; treat leftover running rows as dead after this. */
+export const SEO_AGENT_STALE_RUN_MS = 20 * 60 * 1000
 
 function isMissingSeoRecommendationTableError(error: unknown): boolean {
   const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
@@ -401,12 +403,42 @@ export async function findVenuesNeedingSeoImprovement(limit: number): Promise<Ar
   `
 }
 
+export async function expireStaleSeoRuns(now = new Date()) {
+  const cutoff = new Date(now.getTime() - SEO_AGENT_STALE_RUN_MS)
+  const staleWhere = {
+    status: 'running',
+    startedAt: { lt: cutoff },
+  } as const
+
+  const [completed, completedWithErrors, failed] = await Promise.all([
+    prisma.aiSeoRun.updateMany({
+      where: { ...staleWhere, processedCount: { gt: 0 }, errorCount: 0 },
+      data: { status: 'completed', finishedAt: now },
+    }),
+    prisma.aiSeoRun.updateMany({
+      where: { ...staleWhere, processedCount: { gt: 0 }, errorCount: { gt: 0 } },
+      data: { status: 'completed_with_errors', finishedAt: now },
+    }),
+    prisma.aiSeoRun.updateMany({
+      where: { ...staleWhere, processedCount: 0 },
+      data: {
+        status: 'failed',
+        finishedAt: now,
+        error: { message: 'Run stopped without finishing (worker timeout).' },
+      },
+    }),
+  ])
+
+  return completed.count + completedWithErrors.count + failed.count
+}
+
 export async function runDailySeoAgent(limit = MAX_BATCH_LIMIT) {
   const requestedLimit = Math.min(Math.max(1, limit), MAX_BATCH_LIMIT)
   const concurrency = Math.min(
     Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '2', 10) || 2),
     5,
   )
+  await expireStaleSeoRuns()
   const run = await prisma.aiSeoRun.create({
     data: { requestedLimit },
   })
