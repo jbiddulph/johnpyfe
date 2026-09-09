@@ -1,5 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAdmin } from '../../../utils/require-admin'
+import { countVenuesNeedingSeoImprovement } from '../../../utils/ai/seo-agent'
 
 function isMissingSeoTableError(error: unknown): boolean {
   const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
@@ -25,6 +26,20 @@ export default defineEventHandler(async (event) => {
     Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '2', 10) || 2),
     5,
   )
+  const live = String(getQuery(event).live || '') === '1'
+
+  if (live) {
+    try {
+      const recentRuns = await prisma.aiSeoRun.findMany({
+        orderBy: { startedAt: 'desc' },
+        take: 10,
+      })
+      return { recentRuns }
+    } catch (error) {
+      if (!isMissingSeoTableError(error)) throw error
+      return { recentRuns: [] }
+    }
+  }
 
   try {
     const [
@@ -35,6 +50,7 @@ export default defineEventHandler(async (event) => {
       pendingRecommendations,
       appliedRecommendations,
       latestRecommendation,
+      remainingListings,
     ] = await Promise.all([
       prisma.aiSeoRun.count(),
       prisma.aiSeoRun.count({ where: { status: { in: ['completed', 'completed_with_errors'] } } }),
@@ -49,6 +65,7 @@ export default defineEventHandler(async (event) => {
         orderBy: { generatedAt: 'desc' },
         select: { generatedAt: true },
       }),
+      countVenuesNeedingSeoImprovement(),
     ])
 
     return {
@@ -68,6 +85,7 @@ export default defineEventHandler(async (event) => {
         failedRuns,
         pendingRecommendations,
         appliedRecommendations,
+        remainingListings,
         latestRecommendationAt: latestRecommendation?.generatedAt || null,
       },
       recentRuns,
@@ -93,6 +111,7 @@ export default defineEventHandler(async (event) => {
         failedRuns: 0,
         pendingRecommendations: 0,
         appliedRecommendations: 0,
+        remainingListings: 0,
         latestRecommendationAt: null,
       },
       recentRuns: [],
