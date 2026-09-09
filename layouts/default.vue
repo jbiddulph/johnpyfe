@@ -13,6 +13,9 @@
           <NuxtLink to="/admin/claims" class="text-blue-700 hover:underline dark:text-blue-300">
             Pub claims
           </NuxtLink>
+          <NuxtLink to="/admin/seo-agent" class="text-blue-700 hover:underline dark:text-blue-300">
+            SEO Agent
+          </NuxtLink>
           <NuxtLink to="/admin/dashboard" class="text-blue-700 hover:underline dark:text-blue-300">
             Dashboard
           </NuxtLink>
@@ -75,6 +78,9 @@
               </li>
               <li v-if="isAdmin">
                 <NuxtLink @click="toggleMenu" to="/admin/claims" class="block py-2 px-3 text-blue-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-800 md:p-0 dark:text-blue-400 md:dark:hover:text-blue-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Pub claims</NuxtLink>
+              </li>
+              <li v-if="isAdmin">
+                <NuxtLink @click="toggleMenu" to="/admin/seo-agent" class="block py-2 px-3 text-blue-700 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-800 md:p-0 dark:text-blue-400 md:dark:hover:text-blue-300 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">SEO Agent</NuxtLink>
               </li>
               <li v-if="isAdmin">
                 <NuxtLink @click="toggleMenu" to="/admin/past-events" class="block py-2 px-3 text-red-600 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-red-700 md:p-0 dark:text-red-400 md:dark:hover:text-red-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Past Events (Admin)</NuxtLink>
