@@ -1,6 +1,19 @@
 <template>
   <section v-if="article" class="home-featured-news mb-12">
     <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-lg overflow-hidden border border-amber-200 dark:border-gray-700">
+      <NuxtLink
+        v-if="article.imageUrl"
+        :to="`/news/${article.slug}`"
+        class="block aspect-[16/9] sm:aspect-[21/9] overflow-hidden bg-amber-100 dark:bg-gray-800"
+      >
+        <img
+          :src="article.imageUrl"
+          :alt="`${article.title} — UK pub news`"
+          class="h-full w-full object-cover"
+          width="1200"
+          height="514"
+        >
+      </NuxtLink>
       <div class="px-6 py-8 sm:px-8 sm:py-10">
         <div class="flex items-center gap-2 mb-4">
           <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/40 rounded-full">
