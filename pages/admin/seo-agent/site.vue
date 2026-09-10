@@ -710,7 +710,11 @@ async function startAudit() {
     await loadOverview({ silent: true })
     startPolling()
   } catch (error) {
-    errorMessage.value = describeError(error, 'Failed to start the site audit')
+    const message = describeError(error, 'Failed to start the site audit')
+    // Browsers surface aborted/timed-out gateway responses as a generic Failed to fetch.
+    errorMessage.value = /failed to fetch|networkerror|load failed/i.test(message)
+      ? 'The audit starter did not get a response (often a gateway timeout). Refresh the page — if a run is listed as in progress it may still be working; otherwise try again after the latest deploy.'
+      : message
   } finally {
     startingAudit.value = false
   }

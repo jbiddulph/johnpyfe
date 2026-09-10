@@ -11,12 +11,18 @@ export default async (req: Request) => {
   const auditId = String(body?.auditId || '').trim()
   if (!auditId) return new Response('auditId is required', { status: 400 })
 
+  // Background functions may keep running after the 202 is returned to the caller.
   const result = await runSiteSeoAudit(auditId)
   console.log('[site-seo-audit-background] finished', {
     id: result.id,
     status: result.status,
     score: result.score,
     proposalCount: result.proposalCount,
+  })
+
+  return new Response(JSON.stringify({ ok: true, id: result.id, status: result.status }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
   })
 }
 
