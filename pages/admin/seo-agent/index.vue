@@ -5,7 +5,7 @@
       <div class="flex flex-col gap-2">
         <h1 class="text-4xl font-bold">SEO Agent</h1>
         <p class="text-gray-600 dark:text-gray-300">
-          Each worker is capped at {{ agentStatus?.schedule.listingsPerWorker || 100 }} listings so it can finish inside Netlify’s 15-minute limit. Five hourly jobs from midnight UTC add up to {{ agentStatus?.schedule.dailyLimit || 500 }} listings a day.
+          Each worker is capped at {{ agentStatus?.schedule.listingsPerWorker || 100 }} listings so it can finish inside Netlify’s 15-minute limit. Automatic midnight cron is currently off — use Run now for a manual batch (daily cap {{ agentStatus?.schedule.dailyLimit || 500 }}).
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
@@ -38,6 +38,19 @@
       >
         The AI SEO database migration has not been applied yet.
       </div>
+
+      <div
+        v-if="agentStatus && !agentStatus.schedule.cronEnabled"
+        class="rounded-lg border border-slate-300 bg-slate-50 p-4 text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+      >
+        <p class="font-semibold">Scheduled SEO cron is off</p>
+        <p class="mt-1 text-sm">
+          Nightly listing SEO jobs are not running. Use <strong>Run now</strong> below when you want a batch.
+          To turn automatic runs back on later, set <code>AI_SEO_CRON_ENABLED=true</code> in Netlify and re-add a schedule to
+          <code>netlify/functions/daily-seo-agent.mts</code>.
+        </p>
+      </div>
+
 
       <NuxtLink
         to="/admin/seo-agent/site"
@@ -91,7 +104,10 @@
         <dl class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
           <div>
             <dt class="text-gray-500 dark:text-gray-400">Cron</dt>
-            <dd class="font-mono">{{ agentStatus?.schedule.cron }}</dd>
+            <dd class="font-mono">
+              <span v-if="agentStatus?.schedule.cronEnabled === false" class="font-sans font-semibold text-red-700 dark:text-red-300">Disabled</span>
+              <span v-else>{{ agentStatus?.schedule.cron }}</span>
+            </dd>
           </div>
           <div>
             <dt class="text-gray-500 dark:text-gray-400">UTC</dt>
@@ -267,6 +283,7 @@ const { user, isAdmin, initializeAuth } = useAuth()
 type SeoAgentStatus = {
   schedule: {
     cron: string
+    cronEnabled?: boolean
     utcTime: string
     ukSummerTime: string
     ukWinterTime: string
