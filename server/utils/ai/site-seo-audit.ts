@@ -115,24 +115,31 @@ export async function buildSiteSeoInventory(): Promise<SiteSeoInventory> {
     newsArticles,
     stadiumPages,
     profilesWithSeo,
-    pendingRecs,
-    appliedRecs,
-    newsWithoutImage,
-    latestNews,
-    recentNews,
-    topTowns,
-    topCounties,
-    sampleVenues,
-    sampleEvents,
   ] = await Promise.all([
     prisma.event.count({ where: { event_start: { gte: new Date() } } }).catch(() => 0),
     prisma.ukpubsNews.count().catch(() => 0),
     prisma.stadium.count().catch(() => 0),
     prisma.venueProfile.count({ where: { OR: [{ pageTitle: { not: null } }, { metaDescription: { not: null } }] } }).catch(() => 0),
+  ])
+
+  // Keep concurrent queries well under the serverless pool size (connection_limit=1–5).
+  const [
+    pendingRecs,
+    appliedRecs,
+    newsWithoutImage,
+    latestNews,
+  ] = await Promise.all([
     prisma.venueSeoRecommendation.count({ where: { status: 'pending' } }).catch(() => 0),
     prisma.venueSeoRecommendation.count({ where: { status: 'applied' } }).catch(() => 0),
     prisma.ukpubsNews.count({ where: { imageUrl: null } }).catch(() => 0),
     prisma.ukpubsNews.findFirst({ orderBy: { publishedAt: 'desc' }, select: { publishedAt: true } }).catch(() => null),
+  ])
+
+  const [
+    recentNews,
+    topTowns,
+    topCounties,
+  ] = await Promise.all([
     prisma.ukpubsNews
       .findMany({
         orderBy: { publishedAt: 'desc' },
@@ -156,6 +163,9 @@ export async function buildSiteSeoInventory(): Promise<SiteSeoInventory> {
       ORDER BY count DESC
       LIMIT 3
     `.catch(() => []),
+  ])
+
+  const [sampleVenues, sampleEvents] = await Promise.all([
     prisma.venue
       .findMany({
         where: { is_live: '1' },
@@ -739,15 +749,37 @@ export async function createSiteSeoAudit(focus: string | null) {
   return prisma.siteSeoAudit.create({ data: { focus: focus ? focus.slice(0, 2000) : null } })
 }
 
+async function withPrismaRetry<T>(label: string, fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error
+      const message = (error as Error)?.message || ''
+      const poolBusy = /timed out fetching a new connection|connection pool|P2024/i.test(message)
+      if (!poolBusy || attempt === attempts) break
+      const waitMs = attempt * 750
+      console.warn(`[site-seo-audit] ${label} pool busy, retry ${attempt}/${attempts} in ${waitMs}ms`)
+      await new Promise((resolve) => setTimeout(resolve, waitMs))
+    }
+  }
+  throw lastError
+}
+
 /** Build the inventory, ask the model for a site-wide strategy and store proposals for review. */
 export async function runSiteSeoAudit(auditId: string) {
-  const audit = await prisma.siteSeoAudit.findUnique({ where: { id: auditId } })
+  const audit = await withPrismaRetry('load audit', () =>
+    prisma.siteSeoAudit.findUnique({ where: { id: auditId } }),
+  )
   if (!audit) throw new Error(`Site SEO audit ${auditId} was not found`)
   if (audit.status !== 'running') return audit
 
   try {
     const inventory = await buildSiteSeoInventory()
-    await prisma.siteSeoAudit.update({ where: { id: auditId }, data: { inventory: inventory as any } })
+    await withPrismaRetry('save inventory', () =>
+      prisma.siteSeoAudit.update({ where: { id: auditId }, data: { inventory: inventory as any } }),
+    )
 
     const focus = audit.focus?.trim() || null
     const fallback = fallbackSiteSeoAudit(inventory, focus)
@@ -764,40 +796,52 @@ export async function runSiteSeoAudit(auditId: string) {
       result.findings = result.findings.length ? result.findings : fallback.findings
     }
 
+    // Snapshot sequentially (each may hit the DB), then insert in one write.
+    const rows = []
     for (const proposal of result.proposals) {
       const before = await snapshotBeforeForProposal(proposal)
-      await prisma.siteSeoProposal.create({
-        data: {
-          auditId,
-          kind: proposal.kind,
-          target: proposal.target,
-          title: proposal.title.slice(0, 300),
-          rationale: proposal.rationale,
-          impact: proposal.impact,
-          effort: proposal.effort,
-          before: before as any,
-          after: proposal.after as any,
-        },
+      rows.push({
+        auditId,
+        kind: proposal.kind,
+        target: proposal.target,
+        title: proposal.title.slice(0, 300),
+        rationale: proposal.rationale,
+        impact: proposal.impact,
+        effort: proposal.effort,
+        before: before as any,
+        after: proposal.after as any,
       })
     }
+    if (rows.length) {
+      await withPrismaRetry('create proposals', () => prisma.siteSeoProposal.createMany({ data: rows }))
+    }
 
-    return prisma.siteSeoAudit.update({
-      where: { id: auditId },
-      data: {
-        status: 'completed',
-        score: result.score,
-        summary: result.summary,
-        findings: result.findings as any,
-        proposalCount: result.proposals.length,
-        finishedAt: new Date(),
-      },
-    })
+    return await withPrismaRetry('complete audit', () =>
+      prisma.siteSeoAudit.update({
+        where: { id: auditId },
+        data: {
+          status: 'completed',
+          score: result.score,
+          summary: result.summary,
+          findings: result.findings as any,
+          proposalCount: result.proposals.length,
+          finishedAt: new Date(),
+        },
+      }),
+    )
   } catch (error) {
     console.error('[site-seo-audit] failed', auditId, (error as Error).message)
-    return prisma.siteSeoAudit.update({
-      where: { id: auditId },
-      data: { status: 'failed', error: { message: (error as Error).message }, finishedAt: new Date() },
-    })
+    try {
+      return await withPrismaRetry('mark failed', () =>
+        prisma.siteSeoAudit.update({
+          where: { id: auditId },
+          data: { status: 'failed', error: { message: (error as Error).message }, finishedAt: new Date() },
+        }),
+      )
+    } catch (markFailedError) {
+      console.error('[site-seo-audit] could not mark failed', auditId, (markFailedError as Error).message)
+      throw error
+    }
   }
 }
 

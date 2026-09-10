@@ -13,11 +13,20 @@ export const MAX_BATCH_LIMIT = SEO_AGENT_CHUNK_LIMIT
 export const SEO_AGENT_WORKER_TIME_BUDGET_MS = 12 * 60 * 1000
 /** Treat leftover running rows as dead if they have not written progress within this window. */
 export const SEO_AGENT_STALE_RUN_MS = 20 * 60 * 1000
-/** Five hourly jobs from midnight UTC: 00:00, 01:00, 02:00, 03:00, 04:00. */
-export const SEO_AGENT_CRON = '0 0,1,2,3,4 * * *'
-export const SEO_AGENT_CRON_UTC_HOURS = '00:00, 01:00, 02:00, 03:00, 04:00'
-export const SEO_AGENT_CRON_UK_SUMMER = '01:00–05:00 BST'
-export const SEO_AGENT_CRON_UK_WINTER = '00:00–04:00 GMT'
+/**
+ * Cron expression kept for docs / admin UI only.
+ * The Netlify scheduled function is disabled unless AI_SEO_CRON_ENABLED=true
+ * (and even then the function has no `schedule` until someone re-adds it).
+ */
+export const SEO_AGENT_CRON = 'disabled'
+export const SEO_AGENT_CRON_UTC_HOURS = 'off'
+export const SEO_AGENT_CRON_UK_SUMMER = 'off'
+export const SEO_AGENT_CRON_UK_WINTER = 'off'
+
+/** Scheduled SEO jobs stay off until this env var is explicitly set to "true". */
+export function isSeoCronEnabled() {
+  return String(process.env.AI_SEO_CRON_ENABLED || '').trim().toLowerCase() === 'true'
+}
 
 export function parseSeoAgentDailyLimit(value: unknown = process.env.AI_SEO_DAILY_LIMIT) {
   const parsed = Number.parseInt(String(value ?? SEO_AGENT_DAILY_LIMIT_DEFAULT), 10)
@@ -509,7 +518,7 @@ export async function runDailySeoAgent(
   options: { runId?: string } = {},
 ) {
   const concurrency = Math.min(
-    Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '2', 10) || 2),
+    Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '1', 10) || 2),
     5,
   )
   await expireStaleSeoRuns()

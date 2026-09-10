@@ -1,7 +1,16 @@
 import type { Config } from '@netlify/functions'
-import { getLiveSeoRun, nextSeoRunLimit } from '../../server/utils/ai/seo-agent'
+import { getLiveSeoRun, nextSeoRunLimit, isSeoCronEnabled } from '../../server/utils/ai/seo-agent'
 
+/**
+ * Formerly scheduled at 00:00–04:00 UTC. Cron is OFF unless AI_SEO_CRON_ENABLED=true.
+ * Manual “Run now” from the admin SEO Agent page still works via /api/ai/daily-seo-background.
+ */
 export default async () => {
+  if (!isSeoCronEnabled()) {
+    console.log('[daily-seo-agent] cron disabled (set AI_SEO_CRON_ENABLED=true to re-enable)')
+    return
+  }
+
   const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL
   const secret = process.env.AI_SEO_CRON_SECRET
   if (!siteUrl || !secret) {
@@ -36,6 +45,5 @@ export default async () => {
   console.log('[daily-seo-agent] background worker started', { limit })
 }
 
-export const config: Config = {
-  schedule: '0 0,1,2,3,4 * * *',
-}
+// No Netlify `schedule` — cron must stay off until explicitly re-enabled.
+export const config: Config = {}

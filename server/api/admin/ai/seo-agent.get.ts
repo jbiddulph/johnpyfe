@@ -1,6 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAdmin } from '../../../utils/require-admin'
-import { countSeoRecommendationsToday, countVenuesNeedingSeoImprovement, expireStaleSeoRuns, parseSeoAgentDailyLimit, SEO_AGENT_CHUNK_LIMIT, SEO_AGENT_CRON, SEO_AGENT_CRON_UK_SUMMER, SEO_AGENT_CRON_UK_WINTER, SEO_AGENT_CRON_UTC_HOURS } from '../../../utils/ai/seo-agent'
+import { countSeoRecommendationsToday, countVenuesNeedingSeoImprovement, expireStaleSeoRuns, parseSeoAgentDailyLimit, SEO_AGENT_CHUNK_LIMIT, SEO_AGENT_CRON, SEO_AGENT_CRON_UK_SUMMER, SEO_AGENT_CRON_UK_WINTER, SEO_AGENT_CRON_UTC_HOURS, isSeoCronEnabled } from '../../../utils/ai/seo-agent'
 
 function isMissingSeoTableError(error: unknown): boolean {
   const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
 
   const dailyLimit = parseSeoAgentDailyLimit()
   const concurrency = Math.min(
-    Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '2', 10) || 2),
+    Math.max(1, Number.parseInt(process.env.AI_SEO_BATCH_CONCURRENCY || '1', 10) || 2),
     5,
   )
   const live = String(getQuery(event).live || '') === '1'
@@ -72,6 +72,7 @@ export default defineEventHandler(async (event) => {
     return {
       schedule: {
         cron: SEO_AGENT_CRON,
+        cronEnabled: isSeoCronEnabled(),
         utcTime: SEO_AGENT_CRON_UTC_HOURS,
         ukSummerTime: SEO_AGENT_CRON_UK_SUMMER,
         ukWinterTime: SEO_AGENT_CRON_UK_WINTER,
@@ -103,6 +104,7 @@ export default defineEventHandler(async (event) => {
     return {
       schedule: {
         cron: SEO_AGENT_CRON,
+        cronEnabled: isSeoCronEnabled(),
         utcTime: SEO_AGENT_CRON_UTC_HOURS,
         ukSummerTime: SEO_AGENT_CRON_UK_SUMMER,
         ukWinterTime: SEO_AGENT_CRON_UK_WINTER,
