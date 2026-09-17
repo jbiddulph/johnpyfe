@@ -1,7 +1,7 @@
 import { prisma } from './prisma'
 import { listCountySlugs, listTownSlugs } from './place-hub'
 
-const STATIC_ROUTES = ['/', '/events', '/venues', '/map', '/counties'] as const
+const STATIC_ROUTES = ['/', '/events', '/venues', '/map', '/counties', '/ask'] as const
 
 /** DB stores literal "NULL" strings — Invalid Date breaks sitemap XML generation. */
 function safeLastmod(value: unknown, fallback: Date): Date {

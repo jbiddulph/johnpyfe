@@ -1,5 +1,6 @@
 <template>
   <HomeHeroSearch />
+  <HomeAiPrompt />
   <HomePubCrawlAnnouncementModal />
 
   <div class="home-band bg-white dark:bg-gray-900">

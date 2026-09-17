@@ -23,6 +23,14 @@ function fallbackOrThrow<T>(options: GenerateJsonOptions, error: unknown): T {
   throw error
 }
 
+export function isOpenAiConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY)
+}
+
+export function defaultOpenAiModel() {
+  return process.env.OPENAI_PROMPT_MODEL || process.env.OPENAI_SEO_MODEL || 'gpt-5-mini'
+}
+
 function extractOutputText(payload: any): string {
   if (typeof payload?.output_text === 'string') return payload.output_text
 
@@ -33,6 +41,105 @@ function extractOutputText(payload: any): string {
     }
   }
   return parts.join('\n').trim()
+}
+
+export function isOpenAIConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY)
+}
+
+export type OpenAIFunctionTool = {
+  type: 'function'
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+}
+
+export type OpenAIFunctionCall = {
+  callId: string
+  name: string
+  arguments: string
+}
+
+export type OpenAIResponseResult = {
+  id: string
+  output: any[]
+  outputText: string
+  functionCalls: OpenAIFunctionCall[]
+}
+
+function defaultPromptModel() {
+  return process.env.OPENAI_PROMPT_MODEL || process.env.OPENAI_SEO_MODEL || 'gpt-5-mini'
+}
+
+function extractFunctionCalls(payload: any): OpenAIFunctionCall[] {
+  const calls: OpenAIFunctionCall[] = []
+  for (const item of payload?.output ?? []) {
+    if (item?.type !== 'function_call' && item?.type !== 'custom_tool_call') continue
+    const callId = String(item.call_id || item.id || '')
+    const name = String(item.name || '')
+    if (!callId || !name) continue
+    const rawArgs = item.arguments
+    calls.push({
+      callId,
+      name,
+      arguments: typeof rawArgs === 'string' ? rawArgs : JSON.stringify(rawArgs || {}),
+    })
+  }
+  return calls
+}
+
+export async function createOpenAIResponse(options: {
+  input: unknown
+  tools?: OpenAIFunctionTool[]
+  previousResponseId?: string
+  timeoutMs?: number
+  maxOutputTokens?: number
+  model?: string
+}): Promise<OpenAIResponseResult> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured')
+
+  const controller = new AbortController()
+  const timeoutMs = options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : getTimeoutMs()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const response = await fetch(OPENAI_RESPONSES_URL, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: options.model || defaultPromptModel(),
+        input: options.input,
+        ...(options.previousResponseId ? { previous_response_id: options.previousResponseId } : {}),
+        ...(options.tools?.length
+          ? {
+              tools: options.tools,
+              tool_choice: 'auto',
+            }
+          : {}),
+        ...(options.maxOutputTokens ? { max_output_tokens: options.maxOutputTokens } : {}),
+      }),
+    })
+
+    if (!response.ok) {
+      const details = await response.text().catch(() => '')
+      throw new Error(`OpenAI request failed with ${response.status}: ${details.slice(0, 500)}`)
+    }
+
+    const payload = await response.json()
+    return {
+      id: String(payload?.id || ''),
+      output: Array.isArray(payload?.output) ? payload.output : [],
+      outputText: extractOutputText(payload),
+      functionCalls: extractFunctionCalls(payload),
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 export async function generateJsonWithOpenAI<T>(options: GenerateJsonOptions): Promise<T> {
