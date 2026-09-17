@@ -59,7 +59,10 @@
       </form>
 
       <p class="mt-4 text-center text-sm text-white/80 drop-shadow">
-        Try “Brighton”, “Manchester”, or your favourite pub name
+        Try “Brighton”, “Manchester”, or your favourite pub name —
+        <a href="#ask-uk-pubs" class="font-semibold text-pint underline-offset-2 hover:underline">
+          or ask UK Pubs AI
+        </a>
       </p>
     </div>
   </section>

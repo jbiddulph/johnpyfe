@@ -85,6 +85,7 @@ export default defineNuxtConfig({
     '/api/homepage/stats': { cache: { maxAge: 300, swr: true } },
     '/api/news/featured': { cache: { maxAge: 300, swr: true } },
     '/api/news/latest': { cache: { maxAge: 300, swr: true } },
+    '/api/ai/**': { cache: false },
     '/api/events/top-ten': { cache: { maxAge: 900, swr: true } },
     '/events/**': { isr: 900 },
     '/news/**': { isr: 1800 },
