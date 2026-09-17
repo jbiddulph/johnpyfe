@@ -5,7 +5,7 @@
     <h1 class="text-4xl font-bold mb-6">Search</h1>
 
     <form
-      class="mb-8 max-w-3xl"
+      class="mb-3 max-w-3xl"
       role="search"
       aria-label="Search pubs, towns and counties"
       @submit.prevent="submitSearch"
@@ -31,6 +31,11 @@
       </div>
     </form>
 
+    <p class="mb-6 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
+      Prefer to ask in plain English?
+      <NuxtLink to="/ask" class="font-medium text-primary-700 hover:underline dark:text-primary-300">Open Ask AI</NuxtLink>
+    </p>
+
     <p v-if="loadError" class="text-red-600 mb-6">{{ loadError }}</p>
 
     <template v-else-if="activeQuery.length >= 2">
@@ -38,7 +43,9 @@
 
       <template v-else-if="results">
         <p v-if="!hasAnyResults" class="text-lg text-gray-600 mb-6">
-          No towns, counties or venues matched “{{ activeQuery }}”. Try a different spelling or browse
+          No towns, counties or venues matched “{{ activeQuery }}”. Try a different spelling,
+          <NuxtLink :to="{ path: '/ask', query: { q: activeQuery } }" class="text-primary-600 hover:underline">ask UK Pubs</NuxtLink>,
+          or browse
           <NuxtLink to="/counties" class="text-primary-600 hover:underline">counties</NuxtLink>.
         </p>
 
@@ -103,6 +110,7 @@
 
     <p v-else class="text-lg text-gray-600">
       Enter at least two characters to search pubs, towns and counties across the UK.
+      Or <NuxtLink to="/ask" class="text-primary-600 hover:underline">ask UK Pubs</NuxtLink> in plain English.
     </p>
   </div>
 </template>

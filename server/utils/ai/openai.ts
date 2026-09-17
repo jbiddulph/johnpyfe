@@ -23,29 +23,16 @@ function fallbackOrThrow<T>(options: GenerateJsonOptions, error: unknown): T {
   throw error
 }
 
-export function isOpenAIConfigured() {
+export function isOpenAiConfigured() {
   return Boolean(process.env.OPENAI_API_KEY)
 }
 
-export type OpenAIResponseItem = {
-  type?: string
-  call_id?: string
-  name?: string
-  arguments?: string
-  content?: Array<{ type?: string; text?: string }>
+export function defaultOpenAiModel() {
+  return process.env.OPENAI_PROMPT_MODEL || process.env.OPENAI_SEO_MODEL || 'gpt-5-mini'
 }
 
-export type OpenAIResponsePayload = {
-  id?: string
-  status?: string
-  output_text?: string
-  output?: OpenAIResponseItem[]
-}
-
-export function extractOpenAIOutputText(payload: OpenAIResponsePayload | null | undefined): string {
-  if (typeof payload?.output_text === 'string' && payload.output_text.trim()) {
-    return payload.output_text.trim()
-  }
+function extractOutputText(payload: any): string {
+  if (typeof payload?.output_text === 'string') return payload.output_text
 
   const parts: string[] = []
   for (const item of payload?.output ?? []) {
@@ -56,21 +43,65 @@ export function extractOpenAIOutputText(payload: OpenAIResponsePayload | null | 
   return parts.join('\n').trim()
 }
 
-function extractOutputText(payload: any): string {
-  return extractOpenAIOutputText(payload)
+export function isOpenAIConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY)
 }
 
-export async function createOpenAIResponse(
-  body: Record<string, unknown>,
-  timeoutMs: number,
-): Promise<OpenAIResponsePayload> {
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured')
+export type OpenAIFunctionTool = {
+  type: 'function'
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+}
+
+export type OpenAIFunctionCall = {
+  callId: string
+  name: string
+  arguments: string
+}
+
+export type OpenAIResponseResult = {
+  id: string
+  output: any[]
+  outputText: string
+  functionCalls: OpenAIFunctionCall[]
+}
+
+function defaultPromptModel() {
+  return process.env.OPENAI_PROMPT_MODEL || process.env.OPENAI_SEO_MODEL || 'gpt-5-mini'
+}
+
+function extractFunctionCalls(payload: any): OpenAIFunctionCall[] {
+  const calls: OpenAIFunctionCall[] = []
+  for (const item of payload?.output ?? []) {
+    if (item?.type !== 'function_call' && item?.type !== 'custom_tool_call') continue
+    const callId = String(item.call_id || item.id || '')
+    const name = String(item.name || '')
+    if (!callId || !name) continue
+    const rawArgs = item.arguments
+    calls.push({
+      callId,
+      name,
+      arguments: typeof rawArgs === 'string' ? rawArgs : JSON.stringify(rawArgs || {}),
+    })
   }
+  return calls
+}
+
+export async function createOpenAIResponse(options: {
+  input: unknown
+  tools?: OpenAIFunctionTool[]
+  previousResponseId?: string
+  timeoutMs?: number
+  maxOutputTokens?: number
+  model?: string
+}): Promise<OpenAIResponseResult> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured')
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), Math.max(1_000, timeoutMs))
+  const timeoutMs = options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : getTimeoutMs()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const response = await fetch(OPENAI_RESPONSES_URL, {
@@ -80,7 +111,18 @@ export async function createOpenAIResponse(
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model: options.model || defaultPromptModel(),
+        input: options.input,
+        ...(options.previousResponseId ? { previous_response_id: options.previousResponseId } : {}),
+        ...(options.tools?.length
+          ? {
+              tools: options.tools,
+              tool_choice: 'auto',
+            }
+          : {}),
+        ...(options.maxOutputTokens ? { max_output_tokens: options.maxOutputTokens } : {}),
+      }),
     })
 
     if (!response.ok) {
@@ -88,102 +130,15 @@ export async function createOpenAIResponse(
       throw new Error(`OpenAI request failed with ${response.status}: ${details.slice(0, 500)}`)
     }
 
-    return (await response.json()) as OpenAIResponsePayload
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('OpenAI request timed out')
+    const payload = await response.json()
+    return {
+      id: String(payload?.id || ''),
+      output: Array.isArray(payload?.output) ? payload.output : [],
+      outputText: extractOutputText(payload),
+      functionCalls: extractFunctionCalls(payload),
     }
-    throw error
   } finally {
     clearTimeout(timeout)
-  }
-}
-
-export type OpenAIToolDefinition = {
-  type: 'function'
-  name: string
-  description: string
-  parameters: Record<string, unknown>
-  strict?: boolean
-}
-
-export async function runOpenAIToolLoop(options: {
-  instructions: string
-  input: unknown[]
-  tools: OpenAIToolDefinition[]
-  model: string
-  timeoutMs: number
-  maxRounds?: number
-  execute: (name: string, args: Record<string, unknown>) => Promise<unknown>
-}): Promise<{ text: string; toolsUsed: string[]; toolResults: unknown[] }> {
-  const maxRounds = options.maxRounds && options.maxRounds > 0 ? options.maxRounds : 3
-  const startedAt = Date.now()
-  const remainingMs = () => Math.max(1_000, options.timeoutMs - (Date.now() - startedAt))
-
-  const input: unknown[] = [...options.input]
-  const toolsUsed: string[] = []
-  const toolResults: unknown[] = []
-
-  const requestBody = (toolChoice: 'auto' | 'none') => ({
-    model: options.model,
-    instructions: options.instructions,
-    tools: options.tools,
-    tool_choice: toolChoice,
-    input,
-  })
-
-  for (let round = 0; round < maxRounds; round++) {
-    const payload = await createOpenAIResponse(requestBody('auto'), remainingMs())
-    const calls = (payload.output ?? []).filter((item) => item.type === 'function_call' && item.call_id && item.name)
-
-    if (!calls.length) {
-      return {
-        text: extractOpenAIOutputText(payload),
-        toolsUsed,
-        toolResults,
-      }
-    }
-
-    input.push(...(payload.output ?? []))
-
-    const outputs = await Promise.all(
-      calls.map(async (call) => {
-        toolsUsed.push(String(call.name))
-        let args: Record<string, unknown> = {}
-        try {
-          const parsed = JSON.parse(call.arguments || '{}')
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            args = parsed as Record<string, unknown>
-          }
-        } catch {
-          args = {}
-        }
-
-        let result: unknown
-        try {
-          result = await options.execute(String(call.name), args)
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error)
-          result = { error: message }
-        }
-        toolResults.push(result)
-
-        return {
-          type: 'function_call_output',
-          call_id: call.call_id,
-          output: JSON.stringify(result),
-        }
-      }),
-    )
-
-    input.push(...outputs)
-  }
-
-  const finalPayload = await createOpenAIResponse(requestBody('none'), remainingMs())
-  return {
-    text: extractOpenAIOutputText(finalPayload),
-    toolsUsed,
-    toolResults,
   }
 }
 
