@@ -55,14 +55,6 @@ export async function askPubAssistant(options: {
   latitude?: unknown
   longitude?: unknown
 }): Promise<PubAssistantReply> {
-  if (!isOpenAIConfigured()) {
-    throw createError({
-      statusCode: 503,
-      statusMessage: 'Ask UK Pubs is not configured',
-      message: 'OPENAI_API_KEY is not configured on the server.',
-    })
-  }
-
   const question = normalisePubQuestion(options.question)
   if (question.length < PUB_ASSISTANT_QUESTION_MIN) {
     throw createError({
@@ -76,6 +68,14 @@ export async function askPubAssistant(options: {
       statusCode: 400,
       statusMessage: 'Question is too long',
       message: `Please keep questions to ${PUB_ASSISTANT_QUESTION_MAX} characters or fewer.`,
+    })
+  }
+
+  if (!isOpenAIConfigured()) {
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Ask UK Pubs is not configured',
+      message: 'Ask UK Pubs is not available yet. Please try again later.',
     })
   }
 

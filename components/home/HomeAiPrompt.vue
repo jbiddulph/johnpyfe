@@ -22,7 +22,7 @@
             <textarea
               id="home-ai-prompt"
               v-model="draft"
-              rows="3"
+              rows="2"
               maxlength="500"
               :disabled="asking"
               autocomplete="off"
@@ -30,11 +30,11 @@
               class="block w-full resize-y rounded-t-2xl border-0 bg-transparent px-5 py-4 text-base text-gray-900 outline-none placeholder:text-gray-500 disabled:opacity-60 dark:text-white md:px-6 md:text-lg"
               @keydown.enter.exact.prevent="submitQuestion"
             />
-            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 dark:border-gray-800">
-              <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 dark:border-gray-800">
+              <div class="flex min-w-0 items-center gap-2">
                 <button
                   type="button"
-                  class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset transition"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset transition"
                   :class="location
                     ? 'bg-primary-50 text-primary-800 ring-primary-200 dark:bg-primary-950 dark:text-primary-100 dark:ring-primary-800'
                     : 'text-gray-600 ring-gray-200 hover:bg-gray-50 dark:text-gray-300 dark:ring-gray-700 dark:hover:bg-gray-800'"
@@ -42,11 +42,12 @@
                   @click="toggleLocation"
                 >
                   <UIcon name="i-heroicons-map-pin-20-solid" class="h-4 w-4" aria-hidden="true" />
-                  {{ location ? 'Using your location' : 'Use my location' }}
+                  <span class="hidden sm:inline">{{ location ? 'Using your location' : 'Use my location' }}</span>
+                  <span class="sm:hidden">{{ location ? 'Located' : 'Near me' }}</span>
                 </button>
                 <span class="text-xs text-gray-400">{{ draft.length }}/500</span>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex shrink-0 items-center gap-2">
                 <UButton
                   v-if="turns.length"
                   type="button"
@@ -248,7 +249,10 @@ function historyPayload(): PubAssistantHistoryItem[] {
 }
 
 function fetchErrorMessage(error: unknown) {
-  const err = error as { data?: { message?: string }; statusMessage?: string; message?: string }
+  const err = error as { statusCode?: number; data?: { message?: string; statusCode?: number }; statusMessage?: string; message?: string }
+  const status = err?.statusCode || err?.data?.statusCode
+  if (status === 503) return 'Ask UK Pubs is not available yet. Please try again later.'
+  if (status === 429) return 'Too many questions in a short time. Please wait a moment and try again.'
   return err?.data?.message || err?.statusMessage || err?.message || 'Something went wrong. Please try again.'
 }
 
