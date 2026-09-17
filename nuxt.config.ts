@@ -80,6 +80,7 @@ export default defineNuxtConfig({
     '/venues/**': { isr: 1800 },
     '/api/venues/*/owner-profile': { cache: false },
     '/api/venues/*/reviews': { cache: false },
+    '/api/ai/prompt': { cache: false },
     '/api/favorites': { cache: false },
     '/api/favorites/**': { cache: false },
     '/api/homepage/stats': { cache: { maxAge: 300, swr: true } },
