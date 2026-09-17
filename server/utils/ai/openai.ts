@@ -23,6 +23,14 @@ function fallbackOrThrow<T>(options: GenerateJsonOptions, error: unknown): T {
   throw error
 }
 
+export function isOpenAiConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY)
+}
+
+export function defaultOpenAiModel() {
+  return process.env.OPENAI_PROMPT_MODEL || process.env.OPENAI_SEO_MODEL || 'gpt-5-mini'
+}
+
 function extractOutputText(payload: any): string {
   if (typeof payload?.output_text === 'string') return payload.output_text
 

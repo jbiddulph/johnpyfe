@@ -63,6 +63,14 @@ const tiles = [
     badge: 'New',
   },
   {
+    to: '/ask',
+    icon: 'i-heroicons-sparkles-20-solid',
+    title: 'Ask UK Pubs',
+    description: 'Ask anything — dog-friendly pubs, gigs in your town, or what’s near a stadium.',
+    accent: 'bg-amber-500',
+    badge: 'AI',
+  },
+  {
     to: '/pub-crawls',
     icon: 'i-heroicons-flag-20-solid',
     title: 'Pub crawls',

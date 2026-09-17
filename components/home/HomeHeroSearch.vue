@@ -101,32 +101,30 @@ const route = useRoute()
 const query = ref('')
 const mode = ref<'search' | 'ask'>('search')
 
-const canSearch = computed(() => query.value.trim().length >= 2)
+const hint = computed(() =>
+  mode.value === 'ask'
+    ? 'Try “dog-friendly pubs in Brighton” or “pubs near Anfield”'
+    : 'Try “Brighton”, “Manchester”, or your favourite pub name',
+)
 
 function resetQuery() {
-  query.value = ''
+  mode.value = 'search'
+  promptBox.value?.reset()
 }
 
 watch(
   () => route.path,
   (path) => {
-    if (path === '/') {
-      resetQuery()
-    }
+    if (path === '/') resetQuery()
   },
-  { immediate: true },
 )
 
 onMounted(() => {
-  if (route.path === '/') {
-    resetQuery()
-  }
+  if (route.path === '/') resetQuery()
 })
 
 onActivated(() => {
-  if (route.path === '/') {
-    resetQuery()
-  }
+  if (route.path === '/') resetQuery()
 })
 
 function submitHero() {
@@ -139,14 +137,3 @@ function submitHero() {
   navigateTo({ path: '/search', query: { q } })
 }
 </script>
-
-<style scoped>
-.home-hero__search input[type='search']::-webkit-search-cancel-button {
-  -webkit-appearance: none;
-}
-
-.home-hero__input {
-  -webkit-appearance: none;
-  appearance: none;
-}
-</style>
