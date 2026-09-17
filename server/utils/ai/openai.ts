@@ -23,6 +23,14 @@ function fallbackOrThrow<T>(options: GenerateJsonOptions, error: unknown): T {
   throw error
 }
 
+export function isOpenAiConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY)
+}
+
+export function defaultOpenAiModel() {
+  return process.env.OPENAI_PROMPT_MODEL || process.env.OPENAI_SEO_MODEL || 'gpt-5-mini'
+}
+
 function extractOutputText(payload: any): string {
   if (typeof payload?.output_text === 'string') return payload.output_text
 
@@ -33,6 +41,151 @@ function extractOutputText(payload: any): string {
     }
   }
   return parts.join('\n').trim()
+}
+
+export type OpenAIFunctionTool = {
+  type: 'function'
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+}
+
+type FunctionCallItem = {
+  call_id: string
+  name: string
+  arguments: string
+}
+
+function extractFunctionCalls(payload: any): FunctionCallItem[] {
+  const calls: FunctionCallItem[] = []
+  for (const item of payload?.output ?? []) {
+    if (item?.type !== 'function_call') continue
+    const callId = String(item.call_id || item.id || '')
+    const name = String(item.name || '')
+    if (!callId || !name) continue
+    calls.push({
+      call_id: callId,
+      name,
+      arguments: typeof item.arguments === 'string' ? item.arguments : JSON.stringify(item.arguments ?? {}),
+    })
+  }
+  return calls
+}
+
+function parseToolArguments(raw: string): Record<string, unknown> {
+  if (!raw || !raw.trim()) return {}
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+async function postOpenAIResponses(body: Record<string, unknown>, timeoutMs: number) {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured')
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const response = await fetch(OPENAI_RESPONSES_URL, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      const details = await response.text().catch(() => '')
+      throw new Error(`OpenAI request failed with ${response.status}: ${details.slice(0, 500)}`)
+    }
+
+    return await response.json()
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+/**
+ * Run a Responses API loop: the model may request private function tools,
+ * this executes them server-side, then continues until a text answer.
+ */
+export async function runOpenAIToolLoop(options: {
+  system: string
+  user: string
+  tools: OpenAIFunctionTool[]
+  execute: (name: string, args: Record<string, unknown>) => Promise<unknown>
+  maxRounds?: number
+  timeoutMs?: number
+  model?: string
+}): Promise<{ text: string; usedTools: string[] }> {
+  const usedTools: string[] = []
+  const maxRounds = Math.max(1, options.maxRounds ?? 4)
+  const deadline = Date.now() + (options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : 20_000)
+  const model = options.model || defaultOpenAiModel()
+
+  const remainingMs = () => Math.max(1_000, deadline - Date.now())
+
+  let payload = await postOpenAIResponses(
+    {
+      model,
+      tool_choice: 'auto',
+      tools: options.tools,
+      input: [
+        { role: 'system', content: options.system },
+        { role: 'user', content: options.user },
+      ],
+    },
+    remainingMs(),
+  )
+
+  for (let round = 0; round < maxRounds; round += 1) {
+    if (Date.now() >= deadline) break
+
+    const calls = extractFunctionCalls(payload)
+    if (!calls.length) {
+      return { text: extractOutputText(payload), usedTools }
+    }
+
+    const outputs = await Promise.all(
+      calls.map(async (call) => {
+        usedTools.push(call.name)
+        let output: unknown
+        try {
+          output = await options.execute(call.name, parseToolArguments(call.arguments))
+        } catch (error) {
+          output = {
+            error: error instanceof Error ? error.message : 'Tool failed',
+          }
+        }
+        let serialized = JSON.stringify(output ?? {})
+        if (serialized.length > 8_000) serialized = `${serialized.slice(0, 8_000)}…`
+        return {
+          type: 'function_call_output',
+          call_id: call.call_id,
+          output: serialized,
+        }
+      }),
+    )
+
+    payload = await postOpenAIResponses(
+      {
+        model,
+        previous_response_id: payload.id,
+        tool_choice: 'auto',
+        tools: options.tools,
+        input: outputs,
+      },
+      remainingMs(),
+    )
+  }
+
+  return { text: extractOutputText(payload), usedTools }
 }
 
 export async function generateJsonWithOpenAI<T>(options: GenerateJsonOptions): Promise<T> {

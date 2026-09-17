@@ -1,5 +1,5 @@
 <template>
-  <section class="home-hero relative w-full min-h-[320px] max-h-[520px] overflow-hidden bg-gray-900">
+  <section class="home-hero relative w-full min-h-[380px] max-h-[580px] overflow-hidden bg-gray-900">
     <picture>
       <source
         type="image/avif"
@@ -25,41 +25,23 @@
     </picture>
     <div class="home-hero__overlay absolute inset-0 bg-gradient-to-b from-primary-950/55 via-black/35 to-primary-950/70" aria-hidden="true" />
 
-    <div class="relative z-[1] flex min-h-[320px] max-h-[520px] flex-col items-center justify-center px-4 py-10 md:py-14">
+    <div class="relative z-[1] flex min-h-[380px] max-h-[580px] flex-col items-center justify-center px-4 py-10 md:py-14">
       <p class="mb-2 text-sm font-semibold uppercase tracking-[0.22em] text-pint">UK Pubs</p>
-      <h1 class="mb-8 max-w-3xl text-center text-3xl font-semibold tracking-tight text-white drop-shadow-md md:text-5xl">
+      <h1 class="mb-6 max-w-3xl text-center text-3xl font-semibold tracking-tight text-white drop-shadow-md md:text-5xl">
         Find pubs and venues across the UK
       </h1>
 
-      <form
-        class="home-hero__search w-full max-w-3xl"
-        role="search"
-        aria-label="Search pubs and venues"
-        @submit.prevent="submitSearch"
-      >
-        <div class="relative flex items-center rounded-full bg-white shadow-2xl ring-1 ring-black/5">
-          <label for="home-hero-search-input" class="sr-only">Search pubs and venues</label>
-          <input
-            id="home-hero-search-input"
-            v-model="query"
-            type="search"
-            autocomplete="off"
-            placeholder="Search by pub or venue name, town, or county…"
-            class="home-hero__input w-full rounded-full border-0 bg-transparent py-4 pl-5 pr-14 text-base text-gray-900 outline-none placeholder:text-gray-500 md:py-5 md:pl-7 md:pr-16 md:text-lg"
-          />
-          <button
-            type="submit"
-            class="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-pint text-stone-900 transition hover:bg-pint-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-50 md:right-3 md:h-11 md:w-11"
-            :disabled="!canSearch"
-            aria-label="Search"
-          >
-            <UIcon name="i-heroicons-magnifying-glass-20-solid" class="h-5 w-5 md:h-6 md:w-6" />
-          </button>
-        </div>
-      </form>
+      <AiPromptBox
+        ref="promptBox"
+        v-model:mode="mode"
+        variant="hero"
+        allow-toggle
+        input-id="home-hero-search-input"
+        @submit="onPromptSubmit"
+      />
 
       <p class="mt-4 text-center text-sm text-white/80 drop-shadow">
-        Try “Brighton”, “Manchester”, or your favourite pub name
+        {{ hint }}
       </p>
     </div>
   </section>
@@ -67,50 +49,40 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const query = ref('')
+const mode = ref<'search' | 'ask'>('search')
+const promptBox = ref<{ reset: () => void } | null>(null)
 
-const canSearch = computed(() => query.value.trim().length >= 2)
+const hint = computed(() =>
+  mode.value === 'ask'
+    ? 'Try “dog-friendly pubs in Brighton” or “pubs near Anfield”'
+    : 'Try “Brighton”, “Manchester”, or your favourite pub name',
+)
 
 function resetQuery() {
-  query.value = ''
+  mode.value = 'search'
+  promptBox.value?.reset()
 }
 
 watch(
   () => route.path,
   (path) => {
-    if (path === '/') {
-      resetQuery()
-    }
+    if (path === '/') resetQuery()
   },
-  { immediate: true },
 )
 
 onMounted(() => {
-  if (route.path === '/') {
-    resetQuery()
-  }
+  if (route.path === '/') resetQuery()
 })
 
 onActivated(() => {
-  if (route.path === '/') {
-    resetQuery()
-  }
+  if (route.path === '/') resetQuery()
 })
 
-function submitSearch() {
-  const q = query.value.trim()
-  if (q.length < 2) return
-  navigateTo({ path: '/search', query: { q } })
+function onPromptSubmit(payload: { mode: 'search' | 'ask'; query: string }) {
+  if (payload.mode === 'ask') {
+    navigateTo({ path: '/ask', query: { q: payload.query } })
+    return
+  }
+  navigateTo({ path: '/search', query: { q: payload.query } })
 }
 </script>
-
-<style scoped>
-.home-hero__search input[type='search']::-webkit-search-cancel-button {
-  -webkit-appearance: none;
-}
-
-.home-hero__input {
-  -webkit-appearance: none;
-  appearance: none;
-}
-</style>
