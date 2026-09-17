@@ -31,6 +31,11 @@
       </div>
     </form>
 
+    <p class="mb-6 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
+      Prefer to ask in plain English?
+      <NuxtLink to="/ask" class="font-medium text-primary-700 hover:underline dark:text-primary-300">Open Ask AI</NuxtLink>
+    </p>
+
     <p v-if="loadError" class="text-red-600 mb-6">{{ loadError }}</p>
 
     <template v-else-if="activeQuery.length >= 2">
