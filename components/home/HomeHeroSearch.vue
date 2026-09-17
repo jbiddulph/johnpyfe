@@ -59,7 +59,10 @@
       </form>
 
       <p class="mt-4 text-center text-sm text-white/80 drop-shadow">
-        Try “Brighton”, “Manchester”, or your favourite pub name
+        Try “Brighton”, “Manchester”, or your favourite pub name.
+        <NuxtLink to="/map#ask" class="ml-1 font-semibold text-pint hover:text-white">
+          Or ask UK Pubs in plain English
+        </NuxtLink>
       </p>
     </div>
   </section>

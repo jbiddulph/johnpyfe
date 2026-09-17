@@ -17,6 +17,7 @@ export default defineNuxtConfig({
     '~/assets/css/spinner.css',
   ],
   runtimeConfig: {
+    openaiApiKey: process.env.OPENAI_API_KEY || '',
     googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY || '',
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
@@ -82,6 +83,7 @@ export default defineNuxtConfig({
     '/api/venues/*/reviews': { cache: false },
     '/api/favorites': { cache: false },
     '/api/favorites/**': { cache: false },
+    '/api/ai/pub-search': { cache: false },
     '/api/homepage/stats': { cache: { maxAge: 300, swr: true } },
     '/api/news/featured': { cache: { maxAge: 300, swr: true } },
     '/api/news/latest': { cache: { maxAge: 300, swr: true } },
