@@ -122,9 +122,12 @@ export default defineEventHandler(async (event) => {
     })
     if (statusCode === 429) throw error
     console.error('[api/ai/pub-search] failed:', error)
+    const leakedInternals = /prisma|datasource|DATABASE_URL|Invalid `prisma/i.test(message)
     throw createError({
       statusCode: statusCode >= 400 && statusCode < 600 ? statusCode : 500,
-      statusMessage: message.slice(0, 180),
+      statusMessage: (statusCode >= 500 || leakedInternals)
+        ? 'Pub search is temporarily unavailable. Please try again shortly.'
+        : message.slice(0, 180),
     })
   }
 })

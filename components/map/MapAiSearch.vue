@@ -5,12 +5,10 @@
   >
     <div class="container mx-auto px-4 py-4 md:py-5">
       <form class="mx-auto max-w-4xl" role="search" aria-label="Ask UK Pubs" @submit.prevent="submitSearch">
-        <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200">Ask UK Pubs</p>
-            <h2 class="text-lg font-semibold md:text-xl">Find pubs in plain English</h2>
-          </div>
-          <p class="text-xs text-white/70">
+        <div class="mb-3 text-center">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200">Ask UK Pubs</p>
+          <h2 class="mt-0.5 text-lg font-semibold md:text-xl">Find pubs in plain English</h2>
+          <p class="mt-1 text-xs text-white/70">
             {{ remainingLabel }}
           </p>
         </div>
@@ -58,7 +56,10 @@
         </button>
       </div>
 
-      <p v-if="errorMessage" class="mx-auto mt-3 max-w-4xl text-sm text-amber-100">
+      <p
+        v-if="errorMessage"
+        class="mx-auto mt-3 max-w-4xl rounded-lg bg-black/25 px-3 py-2 text-sm text-amber-100"
+      >
         {{ errorMessage }}
         <button
           v-if="needsLocation"
