@@ -13,7 +13,7 @@
       input-id="ask-page-input"
       initial-mode="ask"
       :initial-query="query"
-      :pending="pending || followUpPending"
+      :pending="asking"
       @submit="onPromptSubmit"
     />
 
@@ -31,7 +31,7 @@
 
     <p v-if="loadError" class="text-red-600 mb-6">{{ loadError }}</p>
 
-    <p v-else-if="pending && activeQuery" class="text-gray-600 mb-6">
+    <p v-else-if="asking && activeQuery" class="text-gray-600 mb-6">
       Looking up “{{ activeQuery }}”…
     </p>
 
@@ -107,6 +107,8 @@ const { data: result, pending, error } = await useAsyncData(
   },
   { watch: [activeQuery], server: false },
 )
+
+const asking = computed(() => Boolean(activeQuery.value) && (pending.value || followUpPending.value))
 
 watch(result, (value) => {
   displayResult.value = value

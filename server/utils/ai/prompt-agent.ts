@@ -40,12 +40,17 @@ function fallbackAnswer(prompt: string, links: AiPromptLink[]) {
 }
 
 async function catalogFallback(prompt: string): Promise<{ links: AiPromptLink[] }> {
-  const [pubs, places, events] = await Promise.all([
-    runPromptTool('search_pubs', { query: prompt, limit: 6 }),
-    runPromptTool('search_places', { query: prompt }),
-    runPromptTool('search_events', { query: prompt, limit: 4 }),
-  ])
-  return { links: dedupePromptLinks([...places.links, ...pubs.links, ...events.links]) }
+  try {
+    const [pubs, places, events] = await Promise.all([
+      runPromptTool('search_pubs', { query: prompt, limit: 6 }),
+      runPromptTool('search_places', { query: prompt }),
+      runPromptTool('search_events', { query: prompt, limit: 4 }),
+    ])
+    return { links: dedupePromptLinks([...places.links, ...pubs.links, ...events.links]) }
+  } catch (error) {
+    console.warn('[ai-prompt] catalogue lookup failed', error)
+    return { links: [] }
+  }
 }
 
 export async function answerAiPrompt(options: {

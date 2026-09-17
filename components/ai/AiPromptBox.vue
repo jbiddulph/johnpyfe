@@ -1,6 +1,7 @@
 <template>
   <form
     class="ai-prompt-box w-full max-w-3xl"
+    :class="{ 'ai-prompt-box--hero': variant === 'hero' }"
     :role="mode === 'search' ? 'search' : undefined"
     :aria-label="formLabel"
     @submit.prevent="submit"
@@ -10,15 +11,15 @@
       class="mb-3 flex justify-center"
     >
       <div
-        class="inline-flex rounded-full p-1"
-        :class="variant === 'hero' ? 'bg-black/35 ring-1 ring-white/20 backdrop-blur-sm' : 'bg-gray-100 ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700'"
+        class="ai-prompt-box__tabs rounded-full p-1.5"
+        :class="variant === 'hero' ? 'bg-black/70 ring-1 ring-white/50 backdrop-blur-sm' : 'bg-gray-100 ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700'"
         role="tablist"
         aria-label="Search or ask"
       >
         <button
           type="button"
           role="tab"
-          class="rounded-full px-4 py-1.5 text-sm font-semibold transition"
+          class="ai-prompt-box__tab rounded-full px-5 py-2 text-sm font-semibold transition"
           :class="tabClass('search')"
           :aria-selected="mode === 'search'"
           @click="mode = 'search'"
@@ -28,7 +29,7 @@
         <button
           type="button"
           role="tab"
-          class="rounded-full px-4 py-1.5 text-sm font-semibold transition"
+          class="ai-prompt-box__tab rounded-full px-5 py-2 text-sm font-semibold transition"
           :aria-selected="mode === 'ask'"
           @click="mode = 'ask'"
         >
@@ -157,5 +158,31 @@ defineExpose({
 .ai-prompt-box__input {
   -webkit-appearance: none;
   appearance: none;
+}
+
+.ai-prompt-box__tabs {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.ai-prompt-box__tab {
+  width: auto !important;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.ai-prompt-box--hero .ai-prompt-box__tab[aria-selected='true'] {
+  background-color: #f5b301;
+  color: #1c1917;
+}
+
+.ai-prompt-box--hero .ai-prompt-box__tab[aria-selected='false'] {
+  color: rgba(255, 255, 255, 0.92);
 }
 </style>
