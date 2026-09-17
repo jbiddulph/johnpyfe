@@ -52,7 +52,11 @@ export type OpenAIFunctionTool = {
   name: string
   description: string
   parameters: Record<string, unknown>
+  strict?: boolean
 }
+
+/** Alias used by the homepage Ask UK Pubs assistant. */
+export type OpenAIToolDefinition = OpenAIFunctionTool
 
 export type OpenAIFunctionCall = {
   callId: string
@@ -90,11 +94,12 @@ function extractFunctionCalls(payload: any): OpenAIFunctionCall[] {
 
 export async function createOpenAIResponse(options: {
   input: unknown
-  tools?: OpenAIFunctionTool[]
+  tools?: OpenAIToolDefinition[]
   previousResponseId?: string
   timeoutMs?: number
   maxOutputTokens?: number
   model?: string
+  instructions?: string
 }): Promise<OpenAIResponseResult> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured')
@@ -114,6 +119,7 @@ export async function createOpenAIResponse(options: {
       body: JSON.stringify({
         model: options.model || defaultPromptModel(),
         input: options.input,
+        ...(options.instructions ? { instructions: options.instructions } : {}),
         ...(options.previousResponseId ? { previous_response_id: options.previousResponseId } : {}),
         ...(options.tools?.length
           ? {
@@ -140,6 +146,76 @@ export async function createOpenAIResponse(options: {
   } finally {
     clearTimeout(timeout)
   }
+}
+
+function parseToolArgs(raw: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(raw || '{}')
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>
+    }
+  } catch {
+    /* ignore invalid JSON from the model */
+  }
+  return {}
+}
+
+export async function runOpenAIToolLoop(options: {
+  instructions?: string
+  input: unknown
+  tools: OpenAIToolDefinition[]
+  model?: string
+  timeoutMs?: number
+  maxRounds?: number
+  maxOutputTokens?: number
+  execute: (name: string, args: Record<string, unknown>) => Promise<unknown> | unknown
+}): Promise<{ text: string; toolsUsed: string[]; toolResults: unknown[] }> {
+  const maxRounds = options.maxRounds && options.maxRounds > 0 ? options.maxRounds : 3
+  const budgetMs = options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : getTimeoutMs() * 2
+  const deadline = Date.now() + budgetMs
+  const toolsUsed: string[] = []
+  const toolResults: unknown[] = []
+  let previousResponseId: string | undefined
+  let nextInput: unknown = options.input
+  let lastText = ''
+
+  for (let round = 0; round < maxRounds; round += 1) {
+    const leftover = deadline - Date.now()
+    if (leftover < 2000) break
+
+    const result = await createOpenAIResponse({
+      input: nextInput,
+      previousResponseId,
+      tools: options.tools,
+      timeoutMs: Math.min(12_000, leftover - 400),
+      maxOutputTokens: options.maxOutputTokens ?? 700,
+      model: options.model,
+      instructions: round === 0 ? options.instructions : undefined,
+    })
+
+    previousResponseId = result.id || previousResponseId
+    if (result.outputText) lastText = result.outputText
+
+    if (!result.functionCalls.length) break
+
+    const outputs: Array<Record<string, unknown>> = []
+    for (const call of result.functionCalls) {
+      if (deadline - Date.now() < 1000) break
+      toolsUsed.push(call.name)
+      const toolResult = await options.execute(call.name, parseToolArgs(call.arguments))
+      toolResults.push(toolResult)
+      outputs.push({
+        type: 'function_call_output',
+        call_id: call.callId,
+        output: JSON.stringify(toolResult ?? {}).slice(0, 7000),
+      })
+    }
+
+    if (!outputs.length) break
+    nextInput = outputs
+  }
+
+  return { text: lastText, toolsUsed, toolResults }
 }
 
 export async function generateJsonWithOpenAI<T>(options: GenerateJsonOptions): Promise<T> {
