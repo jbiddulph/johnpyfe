@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="map-page flex min-h-[calc(100vh-4rem)] flex-col">
     <div class="flex justify-between w-full text-xl items-center container mx-auto py-3 gap-3 flex-wrap">
       <span>{{ venueName }}</span>
       <div class="flex items-center gap-2 flex-wrap">
@@ -37,6 +37,20 @@
         />
       </div>
     </div>
+    <MapAiSearch
+      :user-lat="userLocation?.lat ?? null"
+      :user-lng="userLocation?.lng ?? null"
+      :has-location="Boolean(userLocation)"
+      :locating="isLocating"
+      :is-logged-in="isLoggedIn"
+      :saving-crawl="aiCrawlSaving"
+      @request-location="requestUserLocation"
+      @results="onAiSearchResults"
+      @clear="clearAiSearchResults"
+      @select-pub="onAiSelectPub"
+      @save-crawl="onAiSaveCrawl"
+      @share-crawl="onAiShareCrawl"
+    />
     <div
       v-if="arrivalMessage"
       class="bg-emerald-50 border-b border-emerald-200 px-4 py-2 text-center text-sm text-emerald-900"
@@ -62,11 +76,12 @@
     >
       {{ locationError }}
     </p>
+    <div class="relative min-h-[400px] flex-1">
     <ClientOnly>
-      <div v-if="mapError" class="flex items-center justify-center bg-gray-100 text-gray-600 px-4 py-16 text-center">
+      <div v-if="mapError" class="flex h-full min-h-[400px] items-center justify-center bg-gray-100 text-gray-600 px-4 py-16 text-center">
         {{ mapError }}
       </div>
-      <div v-else class="relative">
+      <div v-else class="absolute inset-0">
         <div id="mainmap" />
         <MapGettingStarted
           :visible="showGettingStarted"
@@ -92,9 +107,10 @@
         </div>
       </div>
       <template #fallback>
-        <div id="mainmap" class="bg-gray-100" aria-hidden="true" />
+        <div id="mainmap" class="h-full min-h-[400px] bg-gray-100" aria-hidden="true" />
       </template>
     </ClientOnly>
+    </div>
     <USlideover v-model="isOpenRight.slideover" :transition="true">
       <div class="p-4 flex-1">
         <UButton label="Events" @click="showVenueEvents" />
@@ -396,6 +412,7 @@ import {
   type MapVenueFilters,
   type MapVenuePoint,
 } from '@/utils/map-filters'
+import type { AiPubCrawl, AiPubResult, AiPubSearchResponse } from '@/utils/ai-pub-search'
 
 useSiteSeo({
   title: 'Map of UK pubs and venues',
@@ -423,6 +440,7 @@ const {
   errorMessage: crawlErrorMessage,
   canEditActiveCrawl,
   createCrawl,
+  saveCrawl,
   loadingList: crawlsLoading,
 } = usePubCrawl()
 
@@ -705,6 +723,16 @@ const CRAWL_ROUTE_LAYER = 'crawl-route-line'
 const CRAWL_STOPS_CIRCLE = 'crawl-stops-circle'
 const CRAWL_STOPS_NUMBER = 'crawl-stops-number'
 const CRAWL_DISTANCE_LAYER = 'crawl-distance-label'
+
+const AI_SOURCE = 'ai-search-pubs'
+const AI_ROUTE_SOURCE = 'ai-search-route'
+const AI_LAYER_CIRCLE = 'ai-search-circle'
+const AI_LAYER_NUMBER = 'ai-search-number'
+const AI_ROUTE_LAYER = 'ai-search-route-line'
+
+const aiPubs = ref<AiPubResult[]>([])
+const aiCrawl = ref<AiPubCrawl | null>(null)
+const aiCrawlSaving = ref(false)
 
 type SelectedMapVenue = MapVenuePoint
 type VenueDetails = Record<string, unknown> & {
@@ -1059,10 +1087,13 @@ async function createMap() {
       map.value.resize()
       ensureClusterLayers()
       ensureCrawlRouteLayers()
+      ensureAiResultLayers()
       bindClusterHandlers()
+      bindAiResultHandlers()
       updateMapLayer(venueName.value)
       void loadVenueClusters()
       updateCrawlRouteOnMap()
+      updateAiResultsOnMap()
       if (isLoggedIn.value) startLocationWatch()
     })
   } catch (err) {
@@ -1719,6 +1750,251 @@ function fitMapToCrawlStops() {
   map.value.fitBounds(bounds, { padding: 64, maxZoom: 15, duration: 800 })
 }
 
+function ensureAiResultLayers() {
+  if (!map.value) return
+
+  if (!map.value.getSource(AI_ROUTE_SOURCE)) {
+    map.value.addSource(AI_ROUTE_SOURCE, {
+      type: 'geojson',
+      data: emptyFeatureCollection(),
+    })
+  }
+  if (!map.value.getSource(AI_SOURCE)) {
+    map.value.addSource(AI_SOURCE, {
+      type: 'geojson',
+      data: emptyFeatureCollection(),
+    })
+  }
+
+  if (!map.value.getLayer(AI_ROUTE_LAYER)) {
+    map.value.addLayer({
+      id: AI_ROUTE_LAYER,
+      type: 'line',
+      source: AI_ROUTE_SOURCE,
+      layout: {
+        'line-cap': 'round',
+        'line-join': 'round',
+      },
+      paint: {
+        'line-color': '#F5B301',
+        'line-width': 4,
+        'line-opacity': 0.95,
+      },
+    })
+  }
+
+  if (!map.value.getLayer(AI_LAYER_CIRCLE)) {
+    map.value.addLayer({
+      id: AI_LAYER_CIRCLE,
+      type: 'circle',
+      source: AI_SOURCE,
+      paint: {
+        'circle-radius': 11,
+        'circle-color': '#0E8579',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+      },
+    })
+  }
+
+  if (!map.value.getLayer(AI_LAYER_NUMBER)) {
+    map.value.addLayer({
+      id: AI_LAYER_NUMBER,
+      type: 'symbol',
+      source: AI_SOURCE,
+      layout: {
+        'text-field': ['get', 'stopNumber'],
+        'text-size': 11,
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-allow-overlap': true,
+      },
+      paint: {
+        'text-color': '#ffffff',
+      },
+    })
+  }
+}
+
+function updateAiResultsOnMap() {
+  if (!map.value?.getSource) return
+  try {
+    ensureAiResultLayers()
+  } catch {
+    return
+  }
+
+  const pubsSource = map.value.getSource(AI_SOURCE)
+  const routeSource = map.value.getSource(AI_ROUTE_SOURCE)
+  if (!pubsSource || !routeSource) return
+
+  const stopFeatures = aiPubs.value.flatMap((pub, index) => {
+    if (!Number.isFinite(pub.latitude) || !Number.isFinite(pub.longitude)) return []
+    return [{
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [pub.longitude, pub.latitude] },
+      properties: {
+        stopNumber: String(index + 1),
+        id: pub.id,
+        fsa_id: 0,
+        venuename: pub.name,
+        lat: pub.latitude,
+        lng: pub.longitude,
+      },
+    }]
+  })
+
+  pubsSource.setData({ type: 'FeatureCollection', features: stopFeatures })
+
+  const route = aiCrawl.value?.route
+  routeSource.setData({
+    type: 'FeatureCollection',
+    features: route?.length
+      ? [{
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: route },
+          properties: {},
+        }]
+      : aiPubs.value.length >= 2
+        ? [{
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: aiPubs.value.map((pub) => [pub.longitude, pub.latitude]),
+            },
+            properties: {},
+          }]
+        : [],
+  })
+}
+
+function fitMapToAiPubs() {
+  if (!map.value || !mapboxgl || !aiPubs.value.length) return
+  const points = aiPubs.value
+    .filter((pub) => Number.isFinite(pub.latitude) && Number.isFinite(pub.longitude))
+    .map((pub) => [pub.longitude, pub.latitude] as [number, number])
+  if (!points.length) return
+  if (points.length === 1) {
+    map.value.flyTo({ center: points[0], zoom: 14 })
+    return
+  }
+  const bounds = points.reduce(
+    (b, coord) => b.extend(coord),
+    new mapboxgl.LngLatBounds(points[0], points[0]),
+  )
+  map.value.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 800 })
+}
+
+function bindAiResultHandlers() {
+  if (!map.value || !mapboxgl) return
+
+  map.value.on('click', AI_LAYER_CIRCLE, (e: { features?: { properties?: Record<string, unknown> }[] }) => {
+    const pub = mapFeatureToVenue(e.features?.[0]?.properties)
+    if (!pub) return
+    selectedVenue.value = pub
+    selectedVenueDetails.value = null
+    venueDetailsError.value = ''
+    isVenueModalOpen.value = true
+    void loadSelectedVenueDetails(pub.id)
+  })
+
+  const setPointer = () => {
+    map.value.getCanvas().style.cursor = 'pointer'
+  }
+  const clearPointer = () => {
+    map.value.getCanvas().style.cursor = ''
+  }
+  map.value.on('mouseenter', AI_LAYER_CIRCLE, setPointer)
+  map.value.on('mouseleave', AI_LAYER_CIRCLE, clearPointer)
+}
+
+function onAiSearchResults(response: AiPubSearchResponse) {
+  aiPubs.value = response.pubs || []
+  aiCrawl.value = response.crawl
+  if (aiPubs.value.length && !gettingStartedDismissed.value) dismissGettingStarted()
+  void nextTick(() => {
+    map.value?.resize?.()
+    updateAiResultsOnMap()
+    fitMapToAiPubs()
+  })
+}
+
+function clearAiSearchResults() {
+  aiPubs.value = []
+  aiCrawl.value = null
+  updateAiResultsOnMap()
+  void nextTick(() => map.value?.resize?.())
+}
+
+function onAiSelectPub(pub: AiPubResult) {
+  selectedVenue.value = {
+    id: pub.id,
+    fsaId: 0,
+    name: pub.name,
+    lat: pub.latitude,
+    lng: pub.longitude,
+  }
+  selectedVenueDetails.value = null
+  venueDetailsError.value = ''
+  isVenueModalOpen.value = true
+  void loadSelectedVenueDetails(pub.id)
+  if (map.value) {
+    map.value.flyTo({ center: [pub.longitude, pub.latitude], zoom: 15 })
+  }
+}
+
+async function onAiSaveCrawl(payload: { pubs: AiPubResult[]; crawl: AiPubCrawl | null }) {
+  if (!payload.pubs.length || aiCrawlSaving.value) return
+  if (!isLoggedIn.value) {
+    await navigateTo(`/login?redirect=${encodeURIComponent('/map#ask')}`)
+    return
+  }
+
+  aiCrawlSaving.value = true
+  try {
+    await initializePubCrawl()
+    const name = payload.crawl?.name || `${payload.pubs.length}-pub crawl`
+    const created = await createCrawl(name)
+    if (!created) {
+      showCrawlToggleMessage(crawlErrorMessage.value || 'Could not save this crawl.', true)
+      openCrawlBuilder()
+      return
+    }
+
+    stops.value = payload.pubs.map((pub) => ({
+      venueId: pub.id,
+      venueName: pub.name,
+      town: pub.town,
+      county: pub.county,
+      latitude: pub.latitude,
+      longitude: pub.longitude,
+    }))
+    currentStopIndex.value = 0
+    const saved = await saveCrawl()
+    selectedCrawlId.value = created.id
+    updateCrawlRouteOnMap()
+    fitMapToCrawlStops()
+    if (saved) {
+      showCrawlToggleMessage(`Saved “${created.name}”. Invite friends to share it.`)
+      openCrawlBuilder(true)
+    } else {
+      showCrawlToggleMessage(crawlErrorMessage.value || 'Created the crawl but could not save the stops.', true)
+      openCrawlBuilder()
+    }
+  } catch (err: any) {
+    showCrawlToggleMessage(err?.data?.statusMessage || err?.message || 'Could not save this crawl.', true)
+  } finally {
+    aiCrawlSaving.value = false
+  }
+}
+
+function onAiShareCrawl() {
+  if (!isLoggedIn.value) {
+    void navigateTo(`/login?redirect=${encodeURIComponent('/map#ask')}`)
+    return
+  }
+  openCrawlBuilder(true)
+}
+
 /**
  * Single position watch shared by the distance labels, the near-me filter and
  * crawl auto check-in. Safe to call repeatedly.
@@ -1793,9 +2069,9 @@ onBeforeUnmount(() => {
 <style>
 @import 'https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css';
 
-#mainmap {
+.map-page #mainmap {
   width: 100%;
-  height: calc(100vh - 12rem);
+  height: 100%;
   min-height: 400px;
 }
 

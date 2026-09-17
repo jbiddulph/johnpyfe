@@ -446,6 +446,24 @@ model UkpubsReview {
   @@map("ukpubs_reviews")
 }
 
+/// Natural-language pub searches (success, empty, and failures) for quotas and debugging.
+model AiPubSearch {
+  id          String   @id @default(uuid())
+  query       String   @db.VarChar(500)
+  userId      String?  @map("user_id")
+  visitorId   String?  @map("visitor_id")
+  status      String
+  error       String?  @db.VarChar(1000)
+  filters     Json?
+  resultCount Int      @default(0) @map("result_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@index([visitorId, createdAt])
+  @@index([userId, createdAt])
+  @@map("ai_pub_searches")
+}
+
 /// News articles for the site (table: ukpubs_news)
 model UkpubsNews {
   id          String    @id @default(uuid())
