@@ -1,119 +1,294 @@
 import type { Prisma } from '@prisma/client'
-import type { AiPromptLink } from '../../../types/ai-prompt'
-import type { OpenAIFunctionTool } from './openai'
+import { MAP_FEATURE_FLAGS } from '../../../utils/map-filters'
+import { cleanDbString, formatPlaceName, slugifyPlace } from '../../../utils/format-venue'
+import type {
+  AiPromptEvent,
+  AiPromptNews,
+  AiPromptPlace,
+  AiPromptStadium,
+  AiPromptVenue,
+} from '../../../types/ai-prompt'
 import { prisma } from '../prisma'
-import { runSiteSearch } from '../site-search'
-import { formatEventStart } from '../../../utils/format-event'
-import {
-  cleanDbString,
-  formatPlaceName,
-  parseVenueCoord,
-  slugifyPlace,
-} from '../../../utils/format-venue'
-import { MAP_FEATURE_FLAGS, featureFlagsFromText, flagBit } from '../../../utils/map-filters'
-import { findNearbyVenues, findVenuesNearPoint, venueCoordsForNearby } from '../venue-nearby'
-import { getEventsTopTen } from '../events-top-ten'
-import { getTopCounties, getTopTowns } from '../homepage-stats'
 import { upcomingEventWhere } from '../event-list'
+import { runSiteSearch } from '../site-search'
+import {
+  findNearbyVenues,
+  findVenuesNearPoint,
+  NEARBY_VENUE_RADIUS_MILES,
+  venueCoordsForNearby,
+} from '../venue-nearby'
 
-const AMENITY_KEYS = MAP_FEATURE_FLAGS.map((flag) => flag.key)
-const MAX_TOOL_ITEMS = 8
-
-export type PromptToolRun = {
-  data: unknown
-  links: AiPromptLink[]
+const LIVE_VENUE: Prisma.VenueWhereInput = {
+  is_live: '1',
+  slug: { not: '' },
 }
 
-function str(value: unknown, max = 120) {
-  const text = cleanDbString(value) || ''
-  return text.length > max ? `${text.slice(0, max)}…` : text
+const FEATURE_KEYWORDS: Record<string, string[]> = {
+  garden: ['garden', 'outdoor', 'terrace', 'courtyard'],
+  dogs: ['dog'],
+  music: ['live music', 'live band', 'karaoke', 'open mic'],
+  food: ['food', 'kitchen', 'sunday roast', 'restaurant'],
+  sport: ['sport', 'sky sport', 'football', 'big screen'],
+  ale: ['real ale', 'cask', 'craft beer', 'camra'],
+  family: ['family', 'child', 'kids'],
+  wifi: ['wifi', 'wi-fi'],
+  parking: ['parking', 'car park'],
+  accessible: ['wheelchair', 'accessible', 'step free'],
+  quiz: ['quiz'],
+  rooms: ['accommodation', 'b&b', 'hotel', 'rooms'],
 }
 
-function num(value: unknown, fallback: number, min: number, max: number) {
-  const parsed = Number.parseInt(String(value ?? ''), 10)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.min(max, Math.max(min, parsed))
+export const PROMPT_TOOL_DEFINITIONS = [
+  {
+    type: 'function' as const,
+    name: 'search_venues',
+    description:
+      'Search live UK pub and venue listings by name, town, county, venue type, or amenity (dog friendly, live music, beer garden, food, sport, real ale, family, wifi, parking, quiz, rooms). Use this whenever the user asks about pubs or bars.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        query: { type: 'string', description: 'Pub or venue name, or free-text keywords' },
+        town: { type: 'string', description: 'Town or city name, e.g. Brighton' },
+        county: { type: 'string', description: 'UK county name' },
+        feature: {
+          type: 'string',
+          description: 'Amenity such as dogs, music, garden, food, sport, ale, family, wifi, parking, quiz, rooms',
+        },
+        venuetype: { type: 'string', description: 'Venue type such as pub, bar, club' },
+        limit: { type: 'integer', description: 'Max results, default 8, max 12' },
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'get_venue',
+    description: 'Fetch one pub or venue by id, or by name (optionally with town) when the user asks about a specific listing.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        venueId: { type: 'integer', description: 'Numeric venue id' },
+        name: { type: 'string', description: 'Venue name' },
+        town: { type: 'string', description: 'Optional town to disambiguate' },
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'search_events',
+    description: 'Search upcoming events at pubs and venues (gigs, quizzes, comedy, sport). Prefer this for “what’s on” questions.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        query: { type: 'string', description: 'Event title or keywords' },
+        town: { type: 'string', description: 'Town or city name' },
+        category: { type: 'string', description: 'Category name such as music, comedy, quiz' },
+        limit: { type: 'integer', description: 'Max results, default 8, max 12' },
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'search_places',
+    description: 'Find town and county hub pages that match a place name.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        query: { type: 'string', description: 'Town or county name' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'search_news',
+    description: 'Search UK pub and bar news articles, or list the latest stories when query is omitted.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        query: { type: 'string', description: 'Keywords in the title or excerpt' },
+        limit: { type: 'integer', description: 'Max results, default 5, max 8' },
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'find_nearby_pubs',
+    description:
+      'Find pubs near a known venue, a town centre, or a Premier League stadium. Use for “near me” style questions when a place or stadium is named.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        venueId: { type: 'integer', description: 'Centre on this venue id' },
+        venueName: { type: 'string', description: 'Centre on a venue with this name' },
+        town: { type: 'string', description: 'Town to search within or centre on' },
+        stadium: { type: 'string', description: 'Club or stadium name, e.g. Old Trafford' },
+        radiusMiles: { type: 'number', description: 'Straight-line radius in miles, default 1, max 5' },
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'search_stadiums',
+    description: 'Look up Premier League stadiums and how many pubs sit within a mile.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        query: { type: 'string', description: 'Club or stadium name' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'get_site_overview',
+    description: 'High-level counts of live pubs, upcoming events, news, and the busiest towns. Use for “how many pubs” or site overview questions.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {},
+    },
+  },
+] as const
+
+export type PromptToolName = (typeof PROMPT_TOOL_DEFINITIONS)[number]['name']
+
+function clampLimit(value: unknown, fallback: number, max: number) {
+  const n = Number.parseInt(String(value ?? ''), 10)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(1, n))
 }
 
 function venueHref(id: number, slug: string) {
   return `/venues/${id}/${encodeURIComponent(slug || '')}`
 }
 
-function venueLink(venue: { id: number; slug: string; venuename: string; town?: string | null }): AiPromptLink {
-  const town = formatPlaceName(venue.town)
-  return {
-    title: cleanDbString(venue.venuename) || 'Venue',
-    href: venueHref(venue.id, venue.slug),
-    kind: 'venue',
-    meta: town || undefined,
-  }
+function truncate(value: unknown, max = 220) {
+  const text = cleanDbString(value)
+  if (!text) return undefined
+  if (text.length <= max) return text
+  return `${text.slice(0, max).trim()}…`
 }
 
-function compactVenue(venue: {
+function toVenueCard(venue: {
   id: number
   slug: string
   venuename: string
-  town?: string | null
+  town: string
   county?: string | null
   address?: string | null
   postcode?: string | null
   venuetype?: string | null
   features?: string | null
-  description?: string | null
-  telephone?: string | null
-  website?: string | null
-  distanceMiles?: number
-}) {
+}): AiPromptVenue {
   return {
     id: venue.id,
-    name: str(venue.venuename, 80),
-    town: formatPlaceName(venue.town),
-    county: formatPlaceName(venue.county),
-    address: str(venue.address, 80),
-    postcode: str(venue.postcode, 20),
-    type: str(venue.venuetype, 40),
-    features: str(venue.features, 180),
-    description: str(venue.description, 220),
-    telephone: str(venue.telephone, 30),
-    website: str(venue.website, 80),
+    slug: venue.slug,
+    venuename: venue.venuename,
+    town: formatPlaceName(venue.town) || venue.town,
+    county: formatPlaceName(venue.county) || String(venue.county || ''),
+    address: cleanDbString(venue.address) || '',
+    postcode: cleanDbString(venue.postcode) || '',
     href: venueHref(venue.id, venue.slug),
-    ...(typeof venue.distanceMiles === 'number'
-      ? { distanceMiles: Number(venue.distanceMiles.toFixed(2)) }
-      : {}),
+    venuetype: cleanDbString(venue.venuetype) || undefined,
+    featuresPreview: truncate(venue.features, 160),
   }
 }
 
-function amenityBit(amenity: unknown): number | null {
-  const key = String(amenity || '').trim().toLowerCase()
-  const flag = MAP_FEATURE_FLAGS.find((item) => item.key === key)
-  return flag ? flagBit(flag.bit) : null
-}
+export class PromptResultCollector {
+  venues = new Map<number, AiPromptVenue>()
+  events = new Map<number, AiPromptEvent>()
+  places = new Map<string, AiPromptPlace>()
+  news = new Map<string, AiPromptNews>()
+  stadiums = new Map<string, AiPromptStadium>()
+  toolsCalled: string[] = []
 
-function matchesAmenity(
-  amenity: unknown,
-  venue: { features?: string | null; venuetype?: string | null; description?: string | null },
-) {
-  const bit = amenityBit(amenity)
-  if (bit == null) return true
-  const mask =
-    featureFlagsFromText(venue.features)
-    | featureFlagsFromText(venue.venuetype)
-    | featureFlagsFromText(venue.description)
-  return Boolean(mask & bit)
-}
-
-async function searchPubs(args: Record<string, unknown>): Promise<PromptToolRun> {
-  const query = str(args.query || args.q, 80)
-  const town = str(args.town, 40)
-  const county = str(args.county, 40)
-  const amenity = str(args.amenity, 20).toLowerCase()
-  const limit = num(args.limit, 6, 1, MAX_TOOL_ITEMS)
-
-  const where: Prisma.VenueWhereInput = {
-    is_live: '1',
-    slug: { not: '' },
+  noteTool(name: string) {
+    if (!this.toolsCalled.includes(name)) this.toolsCalled.push(name)
   }
-  const and: Prisma.VenueWhereInput[] = []
+
+  addVenue(venue: AiPromptVenue) {
+    if (!this.venues.has(venue.id)) this.venues.set(venue.id, venue)
+  }
+
+  addEvent(event: AiPromptEvent) {
+    if (!this.events.has(event.id)) this.events.set(event.id, event)
+  }
+
+  addPlace(place: AiPromptPlace) {
+    if (!this.places.has(place.href)) this.places.set(place.href, place)
+  }
+
+  addNews(article: AiPromptNews) {
+    if (!this.news.has(article.slug)) this.news.set(article.slug, article)
+  }
+
+  addStadium(stadium: AiPromptStadium) {
+    if (!this.stadiums.has(stadium.href)) this.stadiums.set(stadium.href, stadium)
+  }
+
+  snapshot() {
+    return {
+      venues: [...this.venues.values()].slice(0, 12),
+      events: [...this.events.values()].slice(0, 12),
+      places: [...this.places.values()].slice(0, 8),
+      news: [...this.news.values()].slice(0, 6),
+      stadiums: [...this.stadiums.values()].slice(0, 6),
+      toolsCalled: [...this.toolsCalled],
+    }
+  }
+}
+
+function featureTerms(feature: unknown): string[] {
+  const raw = String(feature || '').trim().toLowerCase()
+  if (!raw) return []
+  const flag = MAP_FEATURE_FLAGS.find(
+    (item) =>
+      item.key === raw
+      || item.label.toLowerCase() === raw
+      || item.label.toLowerCase().includes(raw)
+      || raw.includes(item.key),
+  )
+  if (flag) return FEATURE_KEYWORDS[flag.key] || [flag.key]
+  return [raw]
+}
+
+function textSearch(field: 'features' | 'description' | 'venuename' | 'venuetype', terms: string[]): Prisma.VenueWhereInput[] {
+  return terms.map((term) => ({
+    [field]: { contains: term, mode: 'insensitive' as const },
+  }))
+}
+
+const venueCardSelect = {
+  id: true,
+  slug: true,
+  venuename: true,
+  address: true,
+  town: true,
+  county: true,
+  postcode: true,
+  venuetype: true,
+  features: true,
+} as const
+
+async function searchVenues(args: Record<string, unknown>, collector: PromptResultCollector) {
+  const query = String(args.query || '').trim()
+  const town = String(args.town || '').trim()
+  const county = String(args.county || '').trim()
+  const venuetype = String(args.venuetype || '').trim()
+  const feature = featureTerms(args.feature)
+  const limit = clampLimit(args.limit, 8, 12)
+
+  const and: Prisma.VenueWhereInput[] = [{ ...LIVE_VENUE }]
+  if (town) and.push({ town: { contains: town, mode: 'insensitive' } })
+  if (county) and.push({ county: { contains: county, mode: 'insensitive' } })
+  if (venuetype) and.push({ venuetype: { contains: venuetype, mode: 'insensitive' } })
   if (query) {
     and.push({
       OR: [
@@ -121,250 +296,227 @@ async function searchPubs(args: Record<string, unknown>): Promise<PromptToolRun>
         { town: { contains: query, mode: 'insensitive' } },
         { county: { contains: query, mode: 'insensitive' } },
         { features: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
       ],
     })
   }
-  if (town) and.push({ town: { contains: town, mode: 'insensitive' } })
-  if (county) and.push({ county: { contains: county, mode: 'insensitive' } })
-  if (and.length) where.AND = and
+  if (feature.length) {
+    and.push({
+      OR: [
+        ...textSearch('features', feature),
+        ...textSearch('description', feature),
+      ],
+    })
+  }
 
-  const rows = await prisma.venue.findMany({
-    where,
-    select: {
-      id: true,
-      slug: true,
-      venuename: true,
-      town: true,
-      county: true,
-      address: true,
-      postcode: true,
-      venuetype: true,
-      features: true,
-      description: true,
-      telephone: true,
-      website: true,
-    },
-    orderBy: { venuename: 'asc' },
-    take: amenity ? Math.min(limit * 5, 40) : limit,
+  if (and.length === 1 && !query) {
+    return { total: 0, venues: [] as AiPromptVenue[], note: 'Provide a query, town, county, or feature.' }
+  }
+
+  const where: Prisma.VenueWhereInput = { AND: and }
+  const [items, total] = await Promise.all([
+    prisma.venue.findMany({
+      where,
+      select: venueCardSelect,
+      orderBy: { venuename: 'asc' },
+      take: limit,
+    }),
+    prisma.venue.count({ where }),
+  ])
+
+  const venues = items.map((venue) => {
+    const card = toVenueCard(venue)
+    collector.addVenue(card)
+    return card
   })
 
-  const filtered = (amenity ? rows.filter((row) => matchesAmenity(amenity, row)) : rows).slice(0, limit)
-  const items = filtered.map(compactVenue)
-  return {
-    data: { count: items.length, amenity: amenity || undefined, items },
-    links: filtered.map(venueLink),
-  }
+  return { total, venues }
 }
 
-async function searchPlaces(args: Record<string, unknown>): Promise<PromptToolRun> {
-  const query = str(args.query || args.q, 80)
-  if (query.length < 2) {
-    return { data: { towns: [], counties: [] }, links: [] }
-  }
+async function getVenue(args: Record<string, unknown>, collector: PromptResultCollector) {
+  const venueId = Number.parseInt(String(args.venueId ?? ''), 10)
+  const name = String(args.name || '').trim()
+  const town = String(args.town || '').trim()
 
-  const result = await runSiteSearch(query, 0, 6)
-  const links: AiPromptLink[] = [
-    ...result.towns.slice(0, 6).map((town) => ({
-      title: town.displayName,
-      href: town.href,
-      kind: 'town' as const,
-      meta: `${town.venueCount} venues`,
-    })),
-    ...result.counties.slice(0, 6).map((county) => ({
-      title: county.displayName,
-      href: county.href,
-      kind: 'county' as const,
-      meta: `${county.venueCount} venues`,
-    })),
-  ]
+  const venue = Number.isFinite(venueId)
+    ? await prisma.venue.findFirst({
+        where: { id: venueId, ...LIVE_VENUE },
+        select: {
+          ...venueCardSelect,
+          telephone: true,
+          website: true,
+          description: true,
+          latitude: true,
+          longitude: true,
+        },
+      })
+    : name
+      ? await prisma.venue.findFirst({
+          where: {
+            ...LIVE_VENUE,
+            venuename: { contains: name, mode: 'insensitive' },
+            ...(town ? { town: { contains: town, mode: 'insensitive' } } : {}),
+          },
+          select: {
+            ...venueCardSelect,
+            telephone: true,
+            website: true,
+            description: true,
+            latitude: true,
+            longitude: true,
+          },
+        })
+      : null
+
+  if (!venue) return { venue: null }
+
+  const [review, upcoming] = await Promise.all([
+    prisma.ukpubsReview.aggregate({
+      where: { venueId: venue.id },
+      _avg: { rating: true },
+      _count: true,
+    }),
+    prisma.event.count({
+      where: {
+        listingId: venue.id,
+        ...upcomingEventWhere(),
+      },
+    }),
+  ])
+
+  const card = toVenueCard(venue)
+  collector.addVenue(card)
 
   return {
-    data: {
-      towns: result.towns.slice(0, 6).map((town) => ({
-        name: town.displayName,
-        href: town.href,
-        venueCount: town.venueCount,
-      })),
-      counties: result.counties.slice(0, 6).map((county) => ({
-        name: county.displayName,
-        href: county.href,
-        venueCount: county.venueCount,
-      })),
+    venue: {
+      ...card,
+      telephone: cleanDbString(venue.telephone),
+      website: cleanDbString(venue.website),
+      description: truncate(venue.description, 400),
+      hasCoords: Boolean(venueCoordsForNearby(venue)),
+      reviewCount: review._count,
+      averageRating: review._avg.rating ? Number(review._avg.rating.toFixed(1)) : null,
+      upcomingEvents: upcoming,
     },
-    links,
   }
 }
 
-async function searchEvents(args: Record<string, unknown>): Promise<PromptToolRun> {
-  const query = str(args.query || args.q, 80)
-  const town = str(args.town, 40)
-  const category = str(args.category, 40)
-  const limit = num(args.limit, 6, 1, MAX_TOOL_ITEMS)
+async function searchEvents(args: Record<string, unknown>, collector: PromptResultCollector) {
+  const query = String(args.query || '').trim()
+  const town = String(args.town || '').trim()
+  const category = String(args.category || '').trim()
+  const limit = clampLimit(args.limit, 8, 12)
 
-  const and: Prisma.EventWhereInput[] = [upcomingEventWhere()]
+  const and: Prisma.EventWhereInput[] = [
+    upcomingEventWhere(),
+    { listing: { is: LIVE_VENUE } },
+  ]
   if (query) {
     and.push({
       OR: [
         { event_title: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } },
-        { listing: { venuename: { contains: query, mode: 'insensitive' } } },
-        { listing: { town: { contains: query, mode: 'insensitive' } } },
+        { listing: { is: { venuename: { contains: query, mode: 'insensitive' } } } },
       ],
     })
   }
   if (town) {
-    and.push({ listing: { town: { contains: town, mode: 'insensitive' } } })
+    and.push({
+      OR: [
+        { city: { is: { name: { contains: town, mode: 'insensitive' } } } },
+        { listing: { is: { town: { contains: town, mode: 'insensitive' } } } },
+      ],
+    })
   }
   if (category) {
-    and.push({ category: { name: { contains: category, mode: 'insensitive' } } })
+    and.push({ category: { is: { name: { contains: category, mode: 'insensitive' } } } })
   }
 
-  const rows = await prisma.event.findMany({
-    where: { AND: and },
+  const where: Prisma.EventWhereInput = { AND: and }
+
+  const items = await prisma.event.findMany({
+    where,
     include: {
-      listing: { select: { id: true, slug: true, venuename: true, town: true } },
+      city: { select: { name: true, slug: true } },
       category: { select: { name: true } },
-      city: { select: { name: true } },
+      listing: { select: { id: true, slug: true, venuename: true, town: true } },
     },
     orderBy: [{ event_start: 'asc' }, { id: 'asc' }],
     take: limit,
   })
 
-  const items = rows.map((event) => {
-    const when = formatEventStart(event.event_start)
-    return {
-      id: event.id,
-      title: str(event.event_title, 90),
-      when: when.label,
-      category: str(event.category?.name, 40),
-      venue: str(event.listing?.venuename, 80),
-      town: formatPlaceName(event.listing?.town || event.city?.name),
-      href: `/events/${event.id}`,
-      venueHref: event.listing ? venueHref(event.listing.id, event.listing.slug) : undefined,
+  const events = items.map((item) => {
+    const card: AiPromptEvent = {
+      id: item.id,
+      title: item.event_title,
+      startsAt: item.event_start.toISOString(),
+      venueName: item.listing.venuename,
+      town: formatPlaceName(item.city?.name || item.listing.town) || item.listing.town,
+      category: item.category?.name || '',
+      href: `/events/${item.id}`,
+      venueHref: venueHref(item.listing.id, item.listing.slug),
     }
+    collector.addEvent(card)
+    collector.addVenue(
+      toVenueCard({
+        id: item.listing.id,
+        slug: item.listing.slug,
+        venuename: item.listing.venuename,
+        town: item.listing.town,
+        county: '',
+        address: '',
+        postcode: '',
+      }),
+    )
+    return card
   })
 
-  const links: AiPromptLink[] = items.map((item) => ({
-    title: item.title,
-    href: item.href,
-    kind: 'event',
-    meta: [item.when, item.venue, item.town].filter(Boolean).join(' · ') || undefined,
-  }))
-
-  return { data: { count: items.length, items }, links }
+  return { total: events.length, events }
 }
 
-async function getVenue(args: Record<string, unknown>): Promise<PromptToolRun> {
-  const venueId = Number.parseInt(String(args.venueId ?? args.id ?? ''), 10)
-  if (!Number.isFinite(venueId) || venueId < 1) {
-    return { data: { error: 'A numeric venueId is required' }, links: [] }
-  }
+async function searchPlaces(args: Record<string, unknown>, collector: PromptResultCollector) {
+  const query = String(args.query || '').trim()
+  if (query.length < 2) return { towns: [], counties: [] }
 
-  const venue = await prisma.venue.findFirst({
-    where: { id: venueId, is_live: '1' },
-    select: {
-      id: true,
-      slug: true,
-      venuename: true,
-      town: true,
-      county: true,
-      address: true,
-      postcode: true,
-      venuetype: true,
-      features: true,
-      description: true,
-      telephone: true,
-      website: true,
-      latitude: true,
-      longitude: true,
-    },
+  const results = await runSiteSearch(query, 0, 6)
+  const towns = results.towns.map((town) => {
+    const place: AiPromptPlace = {
+      kind: 'town',
+      name: town.displayName,
+      href: town.href,
+      venueCount: town.venueCount,
+    }
+    collector.addPlace(place)
+    return place
   })
-
-  if (!venue) {
-    return { data: { error: 'Venue not found' }, links: [] }
+  const counties = results.counties.map((county) => {
+    const place: AiPromptPlace = {
+      kind: 'county',
+      name: county.displayName,
+      href: county.href,
+      venueCount: county.venueCount,
+    }
+    collector.addPlace(place)
+    return place
+  })
+  for (const venue of results.venues.items) {
+    collector.addVenue(toVenueCard({
+      id: venue.id,
+      slug: venue.slug,
+      venuename: venue.venuename,
+      town: venue.town,
+      county: '',
+      address: venue.address,
+      postcode: venue.postcode,
+    }))
   }
-
-  return {
-    data: compactVenue(venue),
-    links: [venueLink(venue)],
-  }
+  return { towns, counties }
 }
 
-async function findNearbyPubs(args: Record<string, unknown>): Promise<PromptToolRun> {
-  const venueId = Number.parseInt(String(args.venueId ?? ''), 10)
-  const town = str(args.town, 40)
-  const radiusMiles = num(args.radiusMiles, 1, 1, 5)
-  const limit = num(args.limit, 6, 1, MAX_TOOL_ITEMS)
-
-  let lat: number | null = null
-  let lon: number | null = null
-  let originLabel = ''
-  const links: AiPromptLink[] = []
-
-  if (Number.isFinite(venueId)) {
-    const origin = await prisma.venue.findFirst({
-      where: { id: venueId, is_live: '1' },
-      select: { id: true, slug: true, venuename: true, town: true, latitude: true, longitude: true },
-    })
-    if (!origin) return { data: { error: 'Venue not found' }, links: [] }
-    const coords = venueCoordsForNearby(origin)
-    lat = coords?.lat ?? null
-    lon = coords?.lon ?? null
-    originLabel = cleanDbString(origin.venuename) || 'venue'
-    links.push(venueLink(origin))
-    if (lat != null && lon != null) {
-      const nearby = (await findNearbyVenues(prisma, origin.id, lat, lon, radiusMiles)).slice(0, limit)
-      return {
-        data: {
-          origin: originLabel,
-          radiusMiles,
-          items: nearby.map(compactVenue),
-        },
-        links: [...links, ...nearby.map(venueLink)],
-      }
-    }
-  }
-
-  if (town) {
-    const sample = await prisma.venue.findMany({
-      where: {
-        is_live: '1',
-        slug: { not: '' },
-        town: { contains: town, mode: 'insensitive' },
-      },
-      select: { latitude: true, longitude: true, town: true },
-      take: 25,
-    })
-    const coords = sample
-      .map((row) => ({ lat: parseVenueCoord(row.latitude), lon: parseVenueCoord(row.longitude) }))
-      .filter((row): row is { lat: number; lon: number } => row.lat != null && row.lon != null)
-    if (coords.length) {
-      lat = coords.reduce((sum, row) => sum + row.lat, 0) / coords.length
-      lon = coords.reduce((sum, row) => sum + row.lon, 0) / coords.length
-      originLabel = formatPlaceName(sample[0]?.town || town)
-    }
-  }
-
-  if (lat == null || lon == null) {
-    return { data: { error: 'Could not resolve a location. Provide a venueId or town.' }, links }
-  }
-
-  const nearby = (await findVenuesNearPoint(prisma, lat, lon, radiusMiles, limit)).slice(0, limit)
-  return {
-    data: {
-      origin: originLabel || 'location',
-      radiusMiles,
-      items: nearby.map(compactVenue),
-    },
-    links: [...links, ...nearby.map(venueLink)],
-  }
-}
-
-async function searchNews(args: Record<string, unknown>): Promise<PromptToolRun> {
-  const query = str(args.query || args.q, 80)
-  const limit = num(args.limit, 5, 1, MAX_TOOL_ITEMS)
-
-  const rows = await prisma.ukpubsNews.findMany({
+async function searchNews(args: Record<string, unknown>, collector: PromptResultCollector) {
+  const query = String(args.query || '').trim()
+  const limit = clampLimit(args.limit, 5, 8)
+  const items = await prisma.ukpubsNews.findMany({
     where: query
       ? {
           OR: [
@@ -373,34 +525,32 @@ async function searchNews(args: Record<string, unknown>): Promise<PromptToolRun>
           ],
         }
       : undefined,
-    select: { title: true, slug: true, excerpt: true, publishedAt: true },
     orderBy: { publishedAt: 'desc' },
     take: limit,
+    select: {
+      title: true,
+      slug: true,
+      excerpt: true,
+      publishedAt: true,
+    },
   })
-
-  const items = rows.map((article) => ({
-    title: str(article.title, 90),
-    excerpt: str(article.excerpt, 180),
-    href: `/news/${article.slug}`,
-    publishedAt: article.publishedAt.toISOString().slice(0, 10),
-  }))
-
-  return {
-    data: { count: items.length, items },
-    links: items.map((item) => ({
+  const news = items.map((item) => {
+    const card: AiPromptNews = {
       title: item.title,
-      href: item.href,
-      kind: 'news' as const,
-      meta: item.publishedAt,
-    })),
-  }
+      slug: item.slug,
+      excerpt: item.excerpt,
+      href: `/news/${item.slug}`,
+      publishedAt: item.publishedAt.toISOString(),
+    }
+    collector.addNews(card)
+    return card
+  })
+  return { news }
 }
 
-async function findPubsNearStadium(args: Record<string, unknown>): Promise<PromptToolRun> {
-  const query = str(args.query || args.club || args.stadium, 80)
-  if (query.length < 2) {
-    return { data: { error: 'Provide a club or stadium name' }, links: [] }
-  }
+async function searchStadiums(args: Record<string, unknown>, collector: PromptResultCollector) {
+  const query = String(args.query || '').trim()
+  if (!query) return { stadiums: [] }
 
   const stadiums = await prisma.stadium.findMany({
     where: {
@@ -410,235 +560,232 @@ async function findPubsNearStadium(args: Record<string, unknown>): Promise<Promp
       ],
     },
     orderBy: { club: 'asc' },
-    take: 5,
+    take: 8,
   })
 
-  const stadium = stadiums[0]
-  if (!stadium) {
-    return { data: { error: 'No matching stadium found' }, links: [] }
-  }
-
-  const lat = Number(stadium.latitude)
-  const lon = Number(stadium.longitude)
-  const slug = slugifyPlace(stadium.club)
-  const href = `/pubs-near-stadiums/${slug}`
-  const stadiumLink: AiPromptLink = {
-    title: `${stadium.club} — ${stadium.stadium_name}`,
-    href,
-    kind: 'stadium',
-  }
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return { data: { stadium: stadiumLink.title, href, items: [] }, links: [stadiumLink] }
-  }
-
-  const nearby = (await findVenuesNearPoint(prisma, lat, lon, 1, 8)).slice(0, 8)
   return {
-    data: {
-      club: stadium.club,
-      stadium: stadium.stadium_name,
-      href,
-      items: nearby.map(compactVenue),
-    },
-    links: [stadiumLink, ...nearby.map(venueLink)],
+    stadiums: stadiums.map((stadium) => {
+      const slug = slugifyPlace(stadium.club)
+      const card: AiPromptStadium = {
+        club: stadium.club,
+        stadiumName: stadium.stadium_name,
+        href: `/pubs-near-stadiums/${slug}`,
+      }
+      collector.addStadium(card)
+      return {
+        ...card,
+        latitude: Number(stadium.latitude),
+        longitude: Number(stadium.longitude),
+      }
+    }),
   }
 }
 
-async function getSiteHighlights(): Promise<PromptToolRun> {
-  const [towns, counties, events, stadiums] = await Promise.all([
-    getTopTowns(prisma, 6),
-    getTopCounties(prisma, 6),
-    getEventsTopTen(prisma, 6).catch(() => ({ limitedVenues: [], limitedTowns: [] })),
-    prisma.stadium.findMany({
-      orderBy: { club: 'asc' },
+async function findNearbyPubs(args: Record<string, unknown>, collector: PromptResultCollector) {
+  const radiusMiles = Math.min(5, Math.max(0.5, Number(args.radiusMiles) || NEARBY_VENUE_RADIUS_MILES))
+  const venueId = Number.parseInt(String(args.venueId ?? ''), 10)
+  const venueName = String(args.venueName || '').trim()
+  const town = String(args.town || '').trim()
+  const stadiumQuery = String(args.stadium || '').trim()
+
+  if (stadiumQuery) {
+    const stadiums = await prisma.stadium.findMany({
+      where: {
+        OR: [
+          { club: { contains: stadiumQuery, mode: 'insensitive' } },
+          { stadium_name: { contains: stadiumQuery, mode: 'insensitive' } },
+        ],
+      },
+      take: 1,
+    })
+    const stadium = stadiums[0]
+    if (!stadium) return { venues: [], note: 'No matching stadium.' }
+    const lat = Number(stadium.latitude)
+    const lon = Number(stadium.longitude)
+    const slug = slugifyPlace(stadium.club)
+    collector.addStadium({
+      club: stadium.club,
+      stadiumName: stadium.stadium_name,
+      href: `/pubs-near-stadiums/${slug}`,
+    })
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return { venues: [], note: 'Stadium coordinates missing.' }
+    const nearby = await findVenuesNearPoint(prisma, lat, lon, radiusMiles, 12)
+    const venues = nearby.map((row) => {
+      const card = toVenueCard(row)
+      collector.addVenue(card)
+      return { ...card, distanceMiles: row.distanceMiles }
+    })
+    return {
+      centre: { type: 'stadium', name: stadium.stadium_name, club: stadium.club, href: `/pubs-near-stadiums/${slug}` },
+      radiusMiles,
+      venues,
+    }
+  }
+
+  let centre = Number.isFinite(venueId)
+    ? await prisma.venue.findFirst({
+        where: { id: venueId, ...LIVE_VENUE },
+        select: { id: true, slug: true, venuename: true, town: true, county: true, address: true, postcode: true, venuetype: true, features: true, latitude: true, longitude: true },
+      })
+    : null
+
+  if (!centre && venueName) {
+    centre = await prisma.venue.findFirst({
+      where: {
+        ...LIVE_VENUE,
+        venuename: { contains: venueName, mode: 'insensitive' },
+        ...(town ? { town: { contains: town, mode: 'insensitive' } } : {}),
+      },
+      select: { id: true, slug: true, venuename: true, town: true, county: true, address: true, postcode: true, venuetype: true, features: true, latitude: true, longitude: true },
+    })
+  }
+
+  if (!centre && town) {
+    centre = await prisma.venue.findFirst({
+      where: {
+        ...LIVE_VENUE,
+        town: { contains: town, mode: 'insensitive' },
+        latitude: { not: '' },
+        longitude: { not: '' },
+      },
+      select: { id: true, slug: true, venuename: true, town: true, county: true, address: true, postcode: true, venuetype: true, features: true, latitude: true, longitude: true },
+    })
+  }
+
+  if (!centre) return { venues: [], note: 'Need a venue, town, or stadium to search nearby.' }
+
+  const coords = venueCoordsForNearby(centre)
+  collector.addVenue(toVenueCard(centre))
+  if (!coords) {
+    return { centre: toVenueCard(centre), venues: [], note: 'That listing has no map coordinates.' }
+  }
+
+  const nearby = await findNearbyVenues(prisma, centre.id, coords.lat, coords.lon, radiusMiles)
+  const venues = nearby.map((row) => {
+    const card = toVenueCard(row)
+    collector.addVenue(card)
+    return { ...card, distanceMiles: row.distanceMiles }
+  })
+
+  return {
+    centre: toVenueCard(centre),
+    radiusMiles,
+    venues,
+  }
+}
+
+async function getSiteOverview() {
+  const [venueCount, eventCount, newsCount, townRows] = await Promise.all([
+    prisma.venue.count({ where: LIVE_VENUE }),
+    prisma.event.count({ where: upcomingEventWhere() }),
+    prisma.ukpubsNews.count(),
+    prisma.venue.groupBy({
+      by: ['town'],
+      where: LIVE_VENUE,
+      _count: { _all: true },
+      orderBy: { _count: { town: 'desc' } },
       take: 8,
-      select: { club: true, stadium_name: true },
     }),
   ])
 
-  const links: AiPromptLink[] = [
-    ...towns.map((town) => ({
-      title: town.displayName,
-      href: town.href,
-      kind: 'town' as const,
-      meta: `${town.venueCount} venues`,
-    })),
-    ...counties.map((county) => ({
-      title: county.displayName,
-      href: county.href,
-      kind: 'county' as const,
-      meta: `${county.venueCount} venues`,
-    })),
-    ...events.limitedVenues.map((venue) => ({
-      title: venue.venueName,
-      href: venue.href,
-      kind: 'venue' as const,
-      meta: `${venue.count} upcoming events`,
-    })),
-    ...stadiums.map((stadium) => ({
-      title: stadium.club,
-      href: `/pubs-near-stadiums/${slugifyPlace(stadium.club)}`,
-      kind: 'stadium' as const,
-      meta: stadium.stadium_name,
-    })),
-    { title: 'Interactive map', href: '/map', kind: 'page' },
-    { title: 'Upcoming events', href: '/events', kind: 'page' },
-  ]
-
   return {
-    data: {
-      topTowns: towns.map((town) => ({ name: town.displayName, href: town.href, venueCount: town.venueCount })),
-      topCounties: counties.map((county) => ({ name: county.displayName, href: county.href, venueCount: county.venueCount })),
-      venuesWithEvents: events.limitedVenues.map((venue) => ({
-        name: venue.venueName,
-        town: venue.town,
-        href: venue.href,
-        eventCount: venue.count,
-      })),
-      stadiums: stadiums.map((stadium) => ({
-        club: stadium.club,
-        stadium: stadium.stadium_name,
-        href: `/pubs-near-stadiums/${slugifyPlace(stadium.club)}`,
-      })),
-    },
-    links,
+    liveVenues: venueCount,
+    upcomingEvents: eventCount,
+    newsArticles: newsCount,
+    busiestTowns: townRows.map((row) => ({
+      town: formatPlaceName(row.town) || row.town,
+      venueCount: row._count._all,
+      href: `/town/${slugifyPlace(row.town)}`,
+    })),
   }
 }
 
-export const PROMPT_TOOL_DEFINITIONS: OpenAIFunctionTool[] = [
-  {
-    type: 'function',
-    name: 'search_pubs',
-    description:
-      'Search live pub and venue listings by name, town, county, or amenity (dog-friendly, live sport, beer garden, food, etc.). Use this whenever the visitor asks for pubs or bars.',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Pub or place name, or a free-text phrase' },
-        town: { type: 'string', description: 'Town or city name to restrict results' },
-        county: { type: 'string', description: 'UK county name to restrict results' },
-        amenity: {
-          type: 'string',
-          enum: AMENITY_KEYS,
-          description: 'Optional amenity filter from listing features',
-        },
-        limit: { type: 'integer', minimum: 1, maximum: 8 },
-      },
-    },
-  },
-  {
-    type: 'function',
-    name: 'search_places',
-    description: 'Find matching town and county hub pages for a place name.',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Town or county name' },
-      },
-      required: ['query'],
-    },
-  },
-  {
-    type: 'function',
-    name: 'search_events',
-    description: 'Find upcoming pub events (gigs, quizzes, comedy, sport). Filter by town or category when known.',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Event title, act, or keyword' },
-        town: { type: 'string' },
-        category: { type: 'string', description: 'e.g. live music, comedy, quiz' },
-        limit: { type: 'integer', minimum: 1, maximum: 8 },
-      },
-    },
-  },
-  {
-    type: 'function',
-    name: 'get_venue',
-    description: 'Load one public venue listing by its numeric id, returned from search_pubs.',
-    parameters: {
-      type: 'object',
-      properties: {
-        venueId: { type: 'integer' },
-      },
-      required: ['venueId'],
-    },
-  },
-  {
-    type: 'function',
-    name: 'find_nearby_pubs',
-    description: 'Find pubs near a known venue id or around a town centre.',
-    parameters: {
-      type: 'object',
-      properties: {
-        venueId: { type: 'integer' },
-        town: { type: 'string' },
-        radiusMiles: { type: 'integer', minimum: 1, maximum: 5 },
-        limit: { type: 'integer', minimum: 1, maximum: 8 },
-      },
-    },
-  },
-  {
-    type: 'function',
-    name: 'search_news',
-    description: 'Search UK pub industry news articles on the site.',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: { type: 'string' },
-        limit: { type: 'integer', minimum: 1, maximum: 8 },
-      },
-    },
-  },
-  {
-    type: 'function',
-    name: 'find_pubs_near_stadium',
-    description: 'Find pubs within about a mile of a Premier League (or listed) stadium, by club or ground name.',
-    parameters: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Club or stadium name, e.g. Anfield or Liverpool' },
-      },
-      required: ['query'],
-    },
-  },
-  {
-    type: 'function',
-    name: 'get_site_highlights',
-    description:
-      'Get top towns, counties, venues with events, and stadium hubs. Use for “best of”, “where should I go”, or general browsing questions.',
-    parameters: { type: 'object', properties: {} },
-  },
-]
-
-const PRIVATE_PROMPT_TOOLS: Record<string, (args: Record<string, unknown>) => Promise<PromptToolRun>> = {
-  search_pubs: searchPubs,
-  search_places: searchPlaces,
-  search_events: searchEvents,
-  get_venue: getVenue,
-  find_nearby_pubs: findNearbyPubs,
-  search_news: searchNews,
-  find_pubs_near_stadium: findPubsNearStadium,
-  get_site_highlights: getSiteHighlights,
+export async function executePromptTool(
+  name: string,
+  args: Record<string, unknown>,
+  collector: PromptResultCollector,
+) {
+  collector.noteTool(name)
+  switch (name) {
+    case 'search_venues':
+      return searchVenues(args, collector)
+    case 'get_venue':
+      return getVenue(args, collector)
+    case 'search_events':
+      return searchEvents(args, collector)
+    case 'search_places':
+      return searchPlaces(args, collector)
+    case 'search_news':
+      return searchNews(args, collector)
+    case 'find_nearby_pubs':
+      return findNearbyPubs(args, collector)
+    case 'search_stadiums':
+      return searchStadiums(args, collector)
+    case 'get_site_overview':
+      return getSiteOverview()
+    default:
+      return { error: `Unknown tool: ${name}` }
+  }
 }
 
-/** Private server-only dispatcher. These functions are not HTTP endpoints. */
-export async function runPromptTool(name: string, args: Record<string, unknown> = {}): Promise<PromptToolRun> {
-  const tool = PRIVATE_PROMPT_TOOLS[name]
-  if (!tool) {
-    return { data: { error: `Unknown tool: ${name}` }, links: [] }
-  }
-  return tool(args)
+export function suggestedQueriesFromResults(
+  prompt: string,
+  snapshot: ReturnType<PromptResultCollector['snapshot']>,
+): string[] {
+  const suggestions: string[] = []
+  const town = snapshot.places.find((place) => place.kind === 'town')
+  const venue = snapshot.venues[0]
+  const stadium = snapshot.stadiums[0]
+  if (town) suggestions.push(`What's on in ${town.name}?`)
+  if (venue) suggestions.push(`Pubs near ${venue.venuename}`)
+  if (stadium) suggestions.push(`Pubs near ${stadium.stadiumName}`)
+  if (!suggestions.includes('Dog-friendly pubs in Brighton')) suggestions.push('Dog-friendly pubs in Brighton')
+  if (!suggestions.includes('Latest pub news')) suggestions.push('Latest pub news')
+  return [...new Set(suggestions)].filter((item) => item.toLowerCase() !== prompt.trim().toLowerCase()).slice(0, 4)
 }
 
-export function dedupePromptLinks(links: AiPromptLink[], limit = 12): AiPromptLink[] {
-  const seen = new Set<string>()
-  const result: AiPromptLink[] = []
-  for (const link of links) {
-    if (!link.href || seen.has(link.href)) continue
-    seen.add(link.href)
-    result.push(link)
-    if (result.length >= limit) break
+export function composeFallbackAnswer(
+  prompt: string,
+  snapshot: ReturnType<PromptResultCollector['snapshot']>,
+): string {
+  const parts: string[] = []
+  if (snapshot.places.length) {
+    parts.push(
+      `Place matches: ${snapshot.places
+        .slice(0, 4)
+        .map((place) => `${place.name} (${place.kind}${place.venueCount ? `, ${place.venueCount} pubs` : ''})`)
+        .join('; ')}.`,
+    )
   }
-  return result
+  if (snapshot.venues.length) {
+    parts.push(
+      `Here are some matching pubs: ${snapshot.venues
+        .slice(0, 5)
+        .map((venue) => `${venue.venuename} in ${venue.town}`)
+        .join('; ')}.`,
+    )
+  }
+  if (snapshot.events.length) {
+    parts.push(
+      `Upcoming events: ${snapshot.events
+        .slice(0, 4)
+        .map((event) => `${event.title} at ${event.venueName}`)
+        .join('; ')}.`,
+    )
+  }
+  if (snapshot.news.length) {
+    parts.push(`Related news: ${snapshot.news.slice(0, 3).map((item) => item.title).join('; ')}.`)
+  }
+  if (snapshot.stadiums.length) {
+    parts.push(
+      `Stadium pages: ${snapshot.stadiums
+        .slice(0, 3)
+        .map((item) => `${item.stadiumName} (${item.club})`)
+        .join('; ')}.`,
+    )
+  }
+  if (!parts.length) {
+    return `I couldn't find a listing that matches “${prompt.trim()}”. Try a town, a pub name, or browse the map and counties pages.`
+  }
+  return parts.join(' ')
 }

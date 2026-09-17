@@ -43,6 +43,10 @@ function extractOutputText(payload: any): string {
   return parts.join('\n').trim()
 }
 
+export function isOpenAIConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY)
+}
+
 export type OpenAIFunctionTool = {
   type: 'function'
   name: string
@@ -50,43 +54,53 @@ export type OpenAIFunctionTool = {
   parameters: Record<string, unknown>
 }
 
-type FunctionCallItem = {
-  call_id: string
+export type OpenAIFunctionCall = {
+  callId: string
   name: string
   arguments: string
 }
 
-function extractFunctionCalls(payload: any): FunctionCallItem[] {
-  const calls: FunctionCallItem[] = []
+export type OpenAIResponseResult = {
+  id: string
+  output: any[]
+  outputText: string
+  functionCalls: OpenAIFunctionCall[]
+}
+
+function defaultPromptModel() {
+  return process.env.OPENAI_PROMPT_MODEL || process.env.OPENAI_SEO_MODEL || 'gpt-5-mini'
+}
+
+function extractFunctionCalls(payload: any): OpenAIFunctionCall[] {
+  const calls: OpenAIFunctionCall[] = []
   for (const item of payload?.output ?? []) {
-    if (item?.type !== 'function_call') continue
+    if (item?.type !== 'function_call' && item?.type !== 'custom_tool_call') continue
     const callId = String(item.call_id || item.id || '')
     const name = String(item.name || '')
     if (!callId || !name) continue
+    const rawArgs = item.arguments
     calls.push({
-      call_id: callId,
+      callId,
       name,
-      arguments: typeof item.arguments === 'string' ? item.arguments : JSON.stringify(item.arguments ?? {}),
+      arguments: typeof rawArgs === 'string' ? rawArgs : JSON.stringify(rawArgs || {}),
     })
   }
   return calls
 }
 
-function parseToolArguments(raw: string): Record<string, unknown> {
-  if (!raw || !raw.trim()) return {}
-  try {
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
-  } catch {
-    return {}
-  }
-}
-
-async function postOpenAIResponses(body: Record<string, unknown>, timeoutMs: number) {
+export async function createOpenAIResponse(options: {
+  input: unknown
+  tools?: OpenAIFunctionTool[]
+  previousResponseId?: string
+  timeoutMs?: number
+  maxOutputTokens?: number
+  model?: string
+}): Promise<OpenAIResponseResult> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured')
 
   const controller = new AbortController()
+  const timeoutMs = options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : getTimeoutMs()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
@@ -97,7 +111,18 @@ async function postOpenAIResponses(body: Record<string, unknown>, timeoutMs: num
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model: options.model || defaultPromptModel(),
+        input: options.input,
+        ...(options.previousResponseId ? { previous_response_id: options.previousResponseId } : {}),
+        ...(options.tools?.length
+          ? {
+              tools: options.tools,
+              tool_choice: 'auto',
+            }
+          : {}),
+        ...(options.maxOutputTokens ? { max_output_tokens: options.maxOutputTokens } : {}),
+      }),
     })
 
     if (!response.ok) {
@@ -105,87 +130,16 @@ async function postOpenAIResponses(body: Record<string, unknown>, timeoutMs: num
       throw new Error(`OpenAI request failed with ${response.status}: ${details.slice(0, 500)}`)
     }
 
-    return await response.json()
+    const payload = await response.json()
+    return {
+      id: String(payload?.id || ''),
+      output: Array.isArray(payload?.output) ? payload.output : [],
+      outputText: extractOutputText(payload),
+      functionCalls: extractFunctionCalls(payload),
+    }
   } finally {
     clearTimeout(timeout)
   }
-}
-
-/**
- * Run a Responses API loop: the model may request private function tools,
- * this executes them server-side, then continues until a text answer.
- */
-export async function runOpenAIToolLoop(options: {
-  system: string
-  user: string
-  tools: OpenAIFunctionTool[]
-  execute: (name: string, args: Record<string, unknown>) => Promise<unknown>
-  maxRounds?: number
-  timeoutMs?: number
-  model?: string
-}): Promise<{ text: string; usedTools: string[] }> {
-  const usedTools: string[] = []
-  const maxRounds = Math.max(1, options.maxRounds ?? 4)
-  const deadline = Date.now() + (options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : 20_000)
-  const model = options.model || defaultOpenAiModel()
-
-  const remainingMs = () => Math.max(1_000, deadline - Date.now())
-
-  let payload = await postOpenAIResponses(
-    {
-      model,
-      tool_choice: 'auto',
-      tools: options.tools,
-      input: [
-        { role: 'system', content: options.system },
-        { role: 'user', content: options.user },
-      ],
-    },
-    remainingMs(),
-  )
-
-  for (let round = 0; round < maxRounds; round += 1) {
-    if (Date.now() >= deadline) break
-
-    const calls = extractFunctionCalls(payload)
-    if (!calls.length) {
-      return { text: extractOutputText(payload), usedTools }
-    }
-
-    const outputs = await Promise.all(
-      calls.map(async (call) => {
-        usedTools.push(call.name)
-        let output: unknown
-        try {
-          output = await options.execute(call.name, parseToolArguments(call.arguments))
-        } catch (error) {
-          output = {
-            error: error instanceof Error ? error.message : 'Tool failed',
-          }
-        }
-        let serialized = JSON.stringify(output ?? {})
-        if (serialized.length > 8_000) serialized = `${serialized.slice(0, 8_000)}…`
-        return {
-          type: 'function_call_output',
-          call_id: call.call_id,
-          output: serialized,
-        }
-      }),
-    )
-
-    payload = await postOpenAIResponses(
-      {
-        model,
-        previous_response_id: payload.id,
-        tool_choice: 'auto',
-        tools: options.tools,
-        input: outputs,
-      },
-      remainingMs(),
-    )
-  }
-
-  return { text: extractOutputText(payload), usedTools }
 }
 
 export async function generateJsonWithOpenAI<T>(options: GenerateJsonOptions): Promise<T> {

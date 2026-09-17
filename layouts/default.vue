@@ -72,7 +72,7 @@
         <div class="container mx-auto py-12">
           <ul class="flex flex-wrap gap-x-6 gap-y-2 mb-4">
             <li><NuxtLink to="/" class="hover:text-pint">Home</NuxtLink></li>
-            <li><NuxtLink to="/ask" class="hover:text-pint">Ask UK Pubs</NuxtLink></li>
+            <li><NuxtLink to="/ask" class="hover:text-pint">Ask AI</NuxtLink></li>
             <li><NuxtLink to="/favorites" class="hover:text-pint">Favourite pubs</NuxtLink></li>
             <li><NuxtLink to="/venues" class="hover:text-pint">Venues</NuxtLink></li>
             <li><NuxtLink to="/events" class="hover:text-pint">Events</NuxtLink></li>
@@ -159,7 +159,7 @@ const openGroup = ref<string | null>(null)
 
 const exploreItems = [
   { label: 'Map', to: '/map' },
-  { label: 'Ask UK Pubs', to: '/ask' },
+  { label: 'Ask AI', to: '/ask' },
   { label: 'Pub Crawls', to: '/pub-crawls' },
   { label: 'Venues', to: '/venues' },
   { label: 'Events', to: '/events' },

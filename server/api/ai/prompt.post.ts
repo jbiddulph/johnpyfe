@@ -1,91 +1,84 @@
-import { getRequestIP } from 'h3'
+import type { H3Event } from 'h3'
+import { answerAiPrompt } from '../../utils/ai/prompt-agent'
 import {
   AI_PROMPT_HISTORY_LIMIT,
   AI_PROMPT_MAX_LENGTH,
   AI_PROMPT_MIN_LENGTH,
-  type AiPromptHistoryItem,
+  type AiPromptHistoryMessage,
 } from '../../../types/ai-prompt'
-import { answerAiPrompt } from '../../utils/ai/prompt-agent'
 
-const RATE_LIMIT = 20
 const RATE_WINDOW_MS = 10 * 60 * 1000
+const RATE_MAX = 20
+const rateBuckets = new Map<string, { count: number; resetAt: number }>()
 
-type Bucket = { count: number; resetAt: number }
-const buckets = new Map<string, Bucket>()
-
-function clientKey(event: Parameters<typeof getRequestIP>[0]) {
-  return getRequestIP(event, { xForwardedFor: true }) || 'anonymous'
+function clientIp(event: H3Event) {
+  const netlifyIp = getHeader(event, 'x-nf-client-connection-ip')
+  if (netlifyIp) return netlifyIp.trim()
+  const forwarded = getHeader(event, 'x-forwarded-for')
+  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
+  return getRequestIP(event, { xForwardedFor: true }) || 'unknown'
 }
 
-function rateLimit(key: string) {
+function assertRateLimit(ip: string) {
   const now = Date.now()
-  const existing = buckets.get(key)
-  if (!existing || existing.resetAt <= now) {
-    const next = { count: 1, resetAt: now + RATE_WINDOW_MS }
-    buckets.set(key, next)
-    return { ok: true, remaining: RATE_LIMIT - 1, resetAt: next.resetAt }
+  const current = rateBuckets.get(ip)
+  if (!current || current.resetAt <= now) {
+    rateBuckets.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS })
+    return
   }
-  if (existing.count >= RATE_LIMIT) {
-    return { ok: false, remaining: 0, resetAt: existing.resetAt }
+  if (current.count >= RATE_MAX) {
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Too many questions just now. Please wait a few minutes and try again.',
+    })
   }
-  existing.count += 1
-  return { ok: true, remaining: RATE_LIMIT - existing.count, resetAt: existing.resetAt }
+  current.count += 1
 }
 
-function parseHistory(raw: unknown): AiPromptHistoryItem[] {
+function sanitiseHistory(raw: unknown): AiPromptHistoryMessage[] {
   if (!Array.isArray(raw)) return []
-  return raw
-    .slice(-AI_PROMPT_HISTORY_LIMIT)
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const role = (item as AiPromptHistoryItem).role
-      const content = String((item as AiPromptHistoryItem).content || '').trim()
-      if ((role !== 'user' && role !== 'assistant') || !content) return null
-      return { role, content: content.slice(0, AI_PROMPT_MAX_LENGTH) }
-    })
-    .filter((item): item is AiPromptHistoryItem => item != null)
+  const messages: AiPromptHistoryMessage[] = []
+  for (const item of raw.slice(-AI_PROMPT_HISTORY_LIMIT)) {
+    if (!item || typeof item !== 'object') continue
+    const role = (item as { role?: unknown }).role
+    const content = String((item as { content?: unknown }).content || '').trim()
+    if ((role !== 'user' && role !== 'assistant') || !content) continue
+    messages.push({ role, content: content.slice(0, 800) })
+  }
+  return messages
 }
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'no-store')
 
-  const limited = rateLimit(clientKey(event))
-  setResponseHeader(event, 'X-RateLimit-Limit', String(RATE_LIMIT))
-  setResponseHeader(event, 'X-RateLimit-Remaining', String(limited.remaining))
-  if (!limited.ok) {
-    const retryAfter = Math.max(1, Math.ceil((limited.resetAt - Date.now()) / 1000))
-    setResponseHeader(event, 'Retry-After', String(retryAfter))
-    throw createError({
-      statusCode: 429,
-      statusMessage: 'Too many questions just now. Please wait a minute and try again.',
-    })
-  }
+  const ip = clientIp(event)
+  assertRateLimit(ip)
 
   const body = await readBody(event).catch(() => null)
   const prompt = String(body?.prompt ?? body?.q ?? '').trim()
   if (prompt.length < AI_PROMPT_MIN_LENGTH) {
     throw createError({
       statusCode: 400,
-      statusMessage: `Ask a question of at least ${AI_PROMPT_MIN_LENGTH} characters.`,
+      statusMessage: 'Please enter a question.',
     })
   }
   if (prompt.length > AI_PROMPT_MAX_LENGTH) {
     throw createError({
       statusCode: 400,
-      statusMessage: `Keep questions under ${AI_PROMPT_MAX_LENGTH} characters.`,
+      statusMessage: `Questions can be up to ${AI_PROMPT_MAX_LENGTH} characters.`,
     })
   }
 
   try {
     return await answerAiPrompt({
       prompt,
-      history: parseHistory(body?.history),
+      history: sanitiseHistory(body?.history),
     })
   } catch (error) {
     console.error('[api/ai/prompt] failed:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Could not answer just now. Please try again.',
+      statusMessage: 'The assistant could not answer just now. Please try again.',
     })
   }
 })
