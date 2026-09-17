@@ -108,8 +108,6 @@
 
     <p v-else class="text-lg text-gray-600">
       Enter at least two characters to search pubs, towns and counties across the UK.
-      Prefer plain English?
-      <NuxtLink to="/ask" class="text-primary-700 hover:underline">Ask AI instead</NuxtLink>.
     </p>
   </div>
 </template>

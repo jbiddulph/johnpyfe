@@ -16,13 +16,14 @@
         class="ai-prompt__input"
         @keydown.enter.exact.prevent="submitPrompt()"
       />
-      <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p class="text-xs text-gray-500 dark:text-gray-400">
           {{ draft.length }}/1200 · Enter to send, Shift+Enter for a new line
         </p>
         <UButton
           type="submit"
           color="primary"
+          class="self-start sm:self-auto"
           :loading="pending"
           :disabled="!canSubmit"
           icon="i-heroicons-sparkles-20-solid"
