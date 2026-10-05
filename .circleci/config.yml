@@ -3,7 +3,7 @@ version: 2.1
 executors:
   node-executor:
     docker:
-      - image: cimg/node:20.19-browsers
+      - image: cimg/node:22.14-browsers
 
 jobs:
   build-node:
