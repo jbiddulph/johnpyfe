@@ -295,7 +295,7 @@
         </p>
         <template v-else>
           <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-            Click a run to see the previous title, meta description, page description and keywords next to the new copy.
+            Click a run to see previous live copy next to the new text. Title, meta description and keywords stay on the shared venue SEO templates unless a listing needs a custom override.
           </p>
           <div class="overflow-x-auto">
           <table class="min-w-full text-sm border border-gray-200 dark:border-gray-700">

@@ -5,7 +5,8 @@
       <div class="flex flex-col gap-2">
         <h1 class="text-4xl font-bold">{{ pageTitle }}</h1>
         <p class="text-gray-600 dark:text-gray-300">
-          Compare the previous listing copy with what the SEO agent wrote.
+          Compare the previous live listing copy with what the SEO agent wrote.
+          Title, meta description and keywords usually come from the shared venue SEO templates unless a listing has a custom override.
         </p>
       </div>
       <NuxtLink
@@ -101,14 +102,14 @@
                   {{ diff.changed ? 'Changed' : 'Unchanged' }}
                 </span>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Before</p>
-                  <p class="whitespace-pre-wrap">{{ displayValue(diff.before) }}</p>
+                  <p class="whitespace-pre-wrap">{{ displayValue(diff.before, diff.field) }}</p>
                 </div>
                 <div>
                   <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">After</p>
-                  <p class="whitespace-pre-wrap">{{ displayValue(diff.after) }}</p>
+                  <p class="whitespace-pre-wrap">{{ displayValue(diff.after, diff.field) }}</p>
                 </div>
               </div>
             </section>
@@ -234,8 +235,12 @@ function formatStatus(status: string) {
   return status.replaceAll('_', ' ')
 }
 
-function displayValue(value: string) {
-  return value?.trim() ? value : 'Not set'
+function displayValue(value: string, field?: string) {
+  if (value?.trim()) return value
+  if (field === 'pageTitle' || field === 'metaDescription' || field === 'seoKeywords') {
+    return 'Not set in profile (shared venue SEO template is used on the live page)'
+  }
+  return 'Not set'
 }
 
 function changedCount(item: SeoImprovementItem) {
