@@ -7,6 +7,7 @@ import {
   getSeoFieldDiffs,
   runIdFromAnalysis,
   snapshotFromAnalysisPrevious,
+  snapshotAfterChanges,
   snapshotFromChanges,
   sourceNotesFromChanges,
 } from './seo-snapshot'
@@ -33,6 +34,7 @@ export type SeoImprovementItem = {
 export {
   emptySeoSnapshot,
   getSeoFieldDiffs,
+  snapshotAfterChanges,
   snapshotFromChanges,
   snapshotFromSeoData,
   snapshotFromAnalysisPrevious,
@@ -151,7 +153,7 @@ export async function listSeoImprovements(options: {
 
   const items: SeoImprovementItem[] = recs.map((rec) => {
     const previous = previousById.get(rec.id) || { snapshot: emptySeoSnapshot(), source: 'missing' as const }
-    const after = snapshotFromChanges(rec.changes)
+    const after = snapshotAfterChanges(previous.snapshot, rec.changes)
     return {
       id: rec.id,
       venueId: rec.venueId,

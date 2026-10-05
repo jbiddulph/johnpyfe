@@ -53,6 +53,21 @@ export function snapshotFromChanges(changes: unknown): SeoFieldSnapshot {
   })
 }
 
+/**
+ * Build the "after" snapshot for the improvements UI. Fields omitted from `changes`
+ * (e.g. title/meta left on the shared venue SEO templates) stay at the previous
+ * live value so they are not shown as wiped.
+ */
+export function snapshotAfterChanges(previous: SeoFieldSnapshot, changes: unknown): SeoFieldSnapshot {
+  const rec = asRecord(changes)
+  return {
+    pageTitle: 'pageTitle' in rec ? String(rec.pageTitle || '').trim() : previous.pageTitle,
+    metaDescription: 'metaDescription' in rec ? String(rec.metaDescription || '').trim() : previous.metaDescription,
+    description: 'description' in rec ? String(rec.description || '').trim() : previous.description,
+    seoKeywords: 'seoKeywords' in rec ? keywordsToDisplay(rec.seoKeywords) : previous.seoKeywords,
+  }
+}
+
 export function snapshotFromAnalysisPrevious(analysis: unknown): SeoFieldSnapshot | null {
   const previous = asRecord(analysis).previous
   if (!previous || typeof previous !== 'object') return null

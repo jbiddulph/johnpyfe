@@ -1,4 +1,14 @@
 import { Prisma } from '@prisma/client'
+import { formatPlaceName } from '../../../utils/format-venue'
+import {
+  applyKeywordStrategy,
+  renderSeoTemplate,
+} from '../../../utils/site-seo-pages'
+import {
+  venueSeoDescription,
+  venueSeoHeadline,
+  venueSeoKeywords,
+} from '../../../utils/site-seo-copy'
 import { prisma } from '../prisma'
 import { generateJsonWithOpenAI } from './openai'
 import { isGscPrioritiserEnabled } from './gsc-client'
@@ -8,7 +18,15 @@ import {
   getGscOpportunityForVenue,
 } from './gsc-prioritiser'
 import { seoExpertPrompt } from './seo-expert-prompt'
-import type { PubSeoData, SavedSeoChanges, SaveSeoChangesOptions, SeoAnalysis, SeoChanges } from './seo-types'
+import { loadSiteSeoConfig } from './site-seo-config'
+import type {
+  PubSeoData,
+  SavedSeoChanges,
+  SaveSeoChangesOptions,
+  SeoAnalysis,
+  SeoChanges,
+  SeoFieldSource,
+} from './seo-types'
 import { snapshotFromSeoData } from './seo-snapshot'
 
 /** Daily cap across all workers. AI_SEO_DAILY_LIMIT=500 with five hourly jobs of 100. */
@@ -105,8 +123,68 @@ function countImprovements(changes: SeoChanges): number {
   return total
 }
 
+/**
+ * Per-venue title/meta/keywords overrides are only useful when the listing already
+ * opted out of site templates, or when Search Console shows a real CTR gap worth
+ * beating the shared venue template for.
+ */
+export function shouldProposeTemplatedSeoOverrides(data: PubSeoData): boolean {
+  if (data.hasCustomListingSeo) return true
+  if (!data.gsc) return false
+  return data.gsc.ctrGap >= 0.01 && data.gsc.impressions >= 50
+}
+
+const TEMPLATED_FIELD_WARNING =
+  /SEO page title is missing|Meta description is missing|SEO keywords are missing/i
+
+/**
+ * Drop title / meta / keywords proposals that would only duplicate (or override)
+ * the site-wide venue SEO templates stored in the database.
+ */
+export function sanitizeSeoChangesAgainstTemplates(
+  data: PubSeoData,
+  changes: SeoChanges,
+): SeoChanges {
+  const next: SeoChanges = {
+    ...changes,
+    missingContentWarnings: [...(changes.missingContentWarnings || [])],
+    sourceNotes: [...(changes.sourceNotes || [])],
+  }
+
+  if (!shouldProposeTemplatedSeoOverrides(data)) {
+    delete next.pageTitle
+    delete next.metaDescription
+    delete next.seoKeywords
+    next.missingContentWarnings = (next.missingContentWarnings || []).filter(
+      (warning) => !TEMPLATED_FIELD_WARNING.test(warning),
+    )
+    if (!next.sourceNotes?.some((note) => note.includes('site-wide venue SEO templates'))) {
+      next.sourceNotes = [
+        ...(next.sourceNotes || []),
+        'Kept site-wide venue SEO templates for title, meta description and keywords (no per-venue override).',
+      ]
+    }
+    return next
+  }
+
+  // GSC CTR overrides may rewrite title/meta, but keywords stay on the shared template
+  // unless this listing already stores a custom keyword string.
+  if (data.seoSources.seoKeywords !== 'profile') {
+    delete next.seoKeywords
+    if (!next.sourceNotes?.some((note) => note.includes('keywords remain on the site template'))) {
+      next.sourceNotes = [
+        ...(next.sourceNotes || []),
+        'Per-venue title/meta may override templates for CTR; keywords remain on the site template.',
+      ]
+    }
+  }
+
+  return next
+}
+
 function fallbackAnalysis(data: PubSeoData): SeoAnalysis {
   const warnings = findMissingSeoContentFromData(data)
+  const allowMetaOverrides = shouldProposeTemplatedSeoOverrides(data)
   const keywords = [
     data.name,
     `pub in ${data.town}`,
@@ -114,24 +192,136 @@ function fallbackAnalysis(data: PubSeoData): SeoAnalysis {
     ...data.facilities.slice(0, 5),
   ].filter(Boolean) as string[]
 
+  const opportunities = [
+    !data.description || data.description.length < 160
+      ? 'Expand the on-page description with useful local detail'
+      : null,
+    allowMetaOverrides ? 'Improve title/meta for Search Console CTR' : null,
+    'Add FAQs that match pub visitor intent',
+  ].filter(Boolean) as string[]
+
+  const changes = sanitizeSeoChangesAgainstTemplates(data, {
+    pageTitle: allowMetaOverrides ? generateSeoTitleFromData(data) : undefined,
+    metaDescription: allowMetaOverrides ? generateMetaDescriptionFromData(data) : undefined,
+    description: rewriteVenueDescriptionFromData(data),
+    seoKeywords: allowMetaOverrides ? keywords : undefined,
+    faqSuggestions: suggestFaqsFromData(data),
+    missingContentWarnings: warnings,
+    topics: [`${data.town} pubs`, 'food and drink', 'opening times'],
+    sourceNotes: ['Generated from existing UK Pubs listing data'],
+  })
+
   return {
     score: Math.max(20, 100 - warnings.length * 12),
     issues: warnings,
-    opportunities: [
-      'Add a concise, localised page title',
-      'Use a search-focused meta description',
-      'Add FAQs that match pub visitor intent',
-    ],
-    changes: {
-      pageTitle: generateSeoTitleFromData(data),
-      metaDescription: generateMetaDescriptionFromData(data),
-      description: rewriteVenueDescriptionFromData(data),
-      seoKeywords: keywords,
-      faqSuggestions: suggestFaqsFromData(data),
-      missingContentWarnings: warnings,
-      topics: [`${data.town} pubs`, 'food and drink', 'opening times'],
-      sourceNotes: ['Generated from existing UK Pubs listing data'],
+    opportunities,
+    changes,
+  }
+}
+
+export function resolveEffectiveVenueSeo(input: {
+  name: string
+  town: string
+  county: string
+  postcode: string
+  venueType: string
+  profilePageTitle: string | null
+  profileMetaDescription: string | null
+  profileSeoKeywords: string[]
+  titleTemplate?: string | null
+  descriptionTemplate?: string | null
+  keywordsTemplate?: string | null
+  includeKeywords: string[]
+  excludeKeywords: string[]
+  titleSuffix: string | null
+}): Pick<PubSeoData, 'pageTitle' | 'metaDescription' | 'seoKeywords' | 'seoSources' | 'hasCustomListingSeo'> {
+  const vars = {
+    venue: formatPlaceName(input.name),
+    town: formatPlaceName(input.town),
+    county: formatPlaceName(input.county),
+    postcode: input.postcode || '',
+    venueType: input.venueType || '',
+  }
+
+  const codeTitle = venueSeoHeadline(input.name, input.town)
+  const codeDescription = venueSeoDescription(input.name, input.town, input.county)
+  const codeKeywords = venueSeoKeywords(input.name, input.town, input.county)
+
+  const templatedTitle = input.titleTemplate
+    ? renderSeoTemplate(input.titleTemplate, vars) || codeTitle
+    : codeTitle
+  const templatedDescription = input.descriptionTemplate
+    ? renderSeoTemplate(input.descriptionTemplate, vars) || codeDescription
+    : codeDescription
+  const templatedKeywordsRaw = input.keywordsTemplate
+    ? renderSeoTemplate(input.keywordsTemplate, vars) || codeKeywords
+    : codeKeywords
+  const templatedKeywords = applyKeywordStrategy(templatedKeywordsRaw, {
+    includeKeywords: input.includeKeywords,
+    excludeKeywords: input.excludeKeywords,
+    titleSuffix: input.titleSuffix,
+  })
+
+  const hasCustomListingSeo = Boolean(input.profilePageTitle || input.profileMetaDescription)
+  // Matches pages/venues/[id]/[slug].vue: custom title/meta disables site templates.
+  const useTemplates = !hasCustomListingSeo
+
+  let pageTitle: string
+  let metaDescription: string
+  let seoKeywords: string[]
+  let titleSource: SeoFieldSource
+  let metaSource: SeoFieldSource
+  let keywordsSource: SeoFieldSource
+
+  if (input.profilePageTitle) {
+    pageTitle = input.profilePageTitle
+    titleSource = 'profile'
+  } else if (useTemplates && input.titleTemplate) {
+    pageTitle = templatedTitle
+    titleSource = 'site_template'
+  } else {
+    pageTitle = codeTitle
+    titleSource = 'code_default'
+  }
+
+  if (input.profileMetaDescription) {
+    metaDescription = input.profileMetaDescription
+    metaSource = 'profile'
+  } else if (useTemplates && input.descriptionTemplate) {
+    metaDescription = templatedDescription
+    metaSource = 'site_template'
+  } else {
+    metaDescription = codeDescription
+    metaSource = 'code_default'
+  }
+
+  if (input.profileSeoKeywords.length) {
+    seoKeywords = input.profileSeoKeywords
+    keywordsSource = 'profile'
+  } else if (useTemplates && input.keywordsTemplate) {
+    seoKeywords = splitList(templatedKeywords)
+    keywordsSource = 'site_template'
+  } else {
+    seoKeywords = splitList(
+      applyKeywordStrategy(codeKeywords, {
+        includeKeywords: input.includeKeywords,
+        excludeKeywords: input.excludeKeywords,
+        titleSuffix: input.titleSuffix,
+      }),
+    )
+    keywordsSource = 'code_default'
+  }
+
+  return {
+    pageTitle,
+    metaDescription,
+    seoKeywords,
+    seoSources: {
+      pageTitle: titleSource,
+      metaDescription: metaSource,
+      seoKeywords: keywordsSource,
     },
+    hasCustomListingSeo,
   }
 }
 
@@ -146,16 +336,19 @@ export async function getPubSeoData(venueId: number): Promise<PubSeoData> {
 
   if (!venue) throw new Error(`Venue ${venueId} was not found`)
 
-  const nearby = await prisma.venue.findMany({
-    where: {
-      id: { not: venue.id },
-      town: venue.town,
-      is_live: venue.is_live,
-    },
-    select: { venuename: true, town: true },
-    take: 8,
-    orderBy: { venuename: 'asc' },
-  })
+  const [nearby, siteSeo] = await Promise.all([
+    prisma.venue.findMany({
+      where: {
+        id: { not: venue.id },
+        town: venue.town,
+        is_live: venue.is_live,
+      },
+      select: { venuename: true, town: true },
+      take: 8,
+      orderBy: { venuename: 'asc' },
+    }),
+    loadSiteSeoConfig(),
+  ])
 
   const profileImages = Array.isArray(venue.profile?.headerImageUrls)
     ? venue.profile?.headerImageUrls.map(String)
@@ -181,6 +374,24 @@ export async function getPubSeoData(venueId: number): Promise<PubSeoData> {
     }
   }
 
+  const venueTemplate = siteSeo.pages.venue || {}
+  const effectiveSeo = resolveEffectiveVenueSeo({
+    name: venue.venuename,
+    town: venue.town,
+    county: venue.county,
+    postcode: cleanString(venue.postcode) || '',
+    venueType: cleanString(venue.venuetype) || '',
+    profilePageTitle: cleanString(venue.profile?.pageTitle),
+    profileMetaDescription: cleanString(venue.profile?.metaDescription),
+    profileSeoKeywords: splitList(venue.profile?.seoKeywords),
+    titleTemplate: venueTemplate.titleTemplate,
+    descriptionTemplate: venueTemplate.descriptionTemplate,
+    keywordsTemplate: venueTemplate.keywords,
+    includeKeywords: siteSeo.settings.includeKeywords,
+    excludeKeywords: siteSeo.settings.excludeKeywords,
+    titleSuffix: siteSeo.settings.titleSuffix,
+  })
+
   return {
     venueId: venue.id,
     name: venue.venuename,
@@ -194,9 +405,11 @@ export async function getPubSeoData(venueId: number): Promise<PubSeoData> {
     facilities: splitList(venue.features),
     openingHours: null,
     images: [venue.photo, venue.profile?.headerImageUrl, ...profileImages].map(cleanString).filter(Boolean) as string[],
-    pageTitle: cleanString(venue.profile?.pageTitle),
-    metaDescription: cleanString(venue.profile?.metaDescription),
-    seoKeywords: splitList(venue.profile?.seoKeywords),
+    pageTitle: effectiveSeo.pageTitle,
+    metaDescription: effectiveSeo.metaDescription,
+    seoKeywords: effectiveSeo.seoKeywords,
+    seoSources: effectiveSeo.seoSources,
+    hasCustomListingSeo: effectiveSeo.hasCustomListingSeo,
     website: cleanString(venue.website),
     nearbyAreas: [venue.town, venue.county].map(cleanString).filter(Boolean) as string[],
     nearbyLandmarks: nearby.map((item) => `${item.venuename}, ${item.town}`),
@@ -208,6 +421,8 @@ export async function getPubSeoData(venueId: number): Promise<PubSeoData> {
 export function findMissingSeoContentFromData(data: PubSeoData): string[] {
   const warnings: string[] = []
   if (!data.description || data.description.length < 160) warnings.push('Pub description is missing or too short')
+  // Title / meta / keywords are filled by site-wide venue templates (or code defaults)
+  // when the profile does not store per-venue overrides — do not treat that as missing.
   if (!data.pageTitle) warnings.push('SEO page title is missing')
   if (!data.metaDescription) warnings.push('Meta description is missing')
   if (data.facilities.length === 0) warnings.push('Facilities/features are missing')
@@ -219,29 +434,55 @@ export function findMissingSeoContentFromData(data: PubSeoData): string[] {
 
 export async function analyseSeo(venueId: number): Promise<SeoAnalysis> {
   const data = await getPubSeoData(venueId)
+  const allowMetaOverrides = shouldProposeTemplatedSeoOverrides(data)
+  const templateNote = allowMetaOverrides
+    ? `
+This listing may receive a per-venue title/meta override (${
+        data.hasCustomListingSeo
+          ? 'it already has custom listing SEO in the profile'
+          : 'Google Search Console shows a CTR opportunity worth beating the shared venue template'
+      }).
+Still omit seoKeywords unless the profile already stores custom keywords — the site-wide venue keywords template covers the rest.
+`
+    : `
+IMPORTANT: Title, meta description and keywords for venue pages already come from the site-wide venue SEO templates in the database (see seoSources).
+Do NOT propose pageTitle, metaDescription or seoKeywords changes. Leave those fields omitted/null.
+Focus on on-page description quality, FAQs, missing factual content, and other non-template improvements.
+`
+
   const gscInstructions = data.gsc
     ? `
 Google Search Console context is supplied for this page. Prioritise CTR and query intent:
 - Reason selected: ${data.gsc.reason}
 - ${data.gsc.impressions} impressions, ${data.gsc.clicks} clicks, CTR ${(data.gsc.ctr * 100).toFixed(2)}%, avg position ${data.gsc.position.toFixed(1)}
-- Prefer natural inclusion of the strongest real search queries when writing the title/meta description
+${
+  allowMetaOverrides
+    ? '- Prefer natural inclusion of the strongest real search queries when writing the title/meta description'
+    : '- Do not rewrite title/meta solely because GSC data is present; the shared venue template already covers them'
+}
 - Do not keyword-stuff; stay factual and specific to this pub
 `
     : ''
 
-  return generateJsonWithOpenAI<SeoAnalysis>({
+  const analysis = await generateJsonWithOpenAI<SeoAnalysis>({
     system: seoExpertPrompt(`
 Analyse this UK pub listing and generate practical, owner-reviewable SEO improvements.
 
 Assess every area that can reasonably be inferred from the supplied data, including title quality, meta description quality, local relevance, duplicate/thin content risk, internal-link opportunities, heading/HTML structure opportunities, canonicalisation, robots/indexability, structured data, Open Graph metadata, image alt text, crawlability, CTR opportunities and Nuxt SEO implementation considerations.
 
-Keep page titles under 60 characters and meta descriptions under 155 characters. If web search is available, use the pub name and address only to verify missing factual amenities such as outdoor seating, dog friendliness, food, sport, accessibility or live music. Never invent facts. Put unverifiable gaps in missingContentWarnings and relevant evidence or caveats in sourceNotes.
+Keep page titles under 60 characters and meta descriptions under 155 characters when you are allowed to change them. If web search is available, use the pub name and address only to verify missing factual amenities such as outdoor seating, dog friendliness, food, sport, accessibility or live music. Never invent facts. Put unverifiable gaps in missingContentWarnings and relevant evidence or caveats in sourceNotes.
+${templateNote}
 ${gscInstructions}
 `),
     user: { task: 'analyse_pub_seo', venue: data },
     fallback: fallbackAnalysis(data),
     webSearch: process.env.AI_SEO_ENABLE_WEB_SEARCH === 'true',
   })
+
+  return {
+    ...analysis,
+    changes: sanitizeSeoChangesAgainstTemplates(data, analysis.changes || {}),
+  }
 }
 
 export function generateSeoTitleFromData(data: PubSeoData): string {
@@ -345,7 +586,8 @@ export async function saveSeoChanges(
   options: SaveSeoChangesOptions = {},
 ): Promise<SavedSeoChanges> {
   const data = await getPubSeoData(venueId)
-  const improvementCount = countImprovements(changes)
+  const sanitized = sanitizeSeoChangesAgainstTemplates(data, changes)
+  const improvementCount = countImprovements(sanitized)
   const status = data.isClaimed ? 'pending' : 'applied'
 
   let recommendation
@@ -360,12 +602,14 @@ export async function saveSeoChanges(
           generatedAt: new Date().toISOString(),
           runId: options.runId || null,
           previous: snapshotFromSeoData(data),
+          seoSources: data.seoSources,
           gsc: data.gsc || null,
         },
-        changes: changes as any,
-        warnings: changes.missingContentWarnings || [],
+        changes: sanitized as any,
+        warnings: sanitized.missingContentWarnings || [],
         sources: [
-          ...(changes.sourceNotes || []),
+          ...(sanitized.sourceNotes || []),
+          `Live SEO sources: title=${data.seoSources.pageTitle}, meta=${data.seoSources.metaDescription}, keywords=${data.seoSources.seoKeywords}`,
           ...(data.gsc
             ? [
                 `GSC: ${data.gsc.reason}`,
@@ -389,16 +633,17 @@ export async function saveSeoChanges(
       where: { venueId },
       create: {
         venueId,
-        pageTitle: changes.pageTitle?.slice(0, 100) || null,
-        metaDescription: changes.metaDescription?.slice(0, 500) || null,
-        customDescription: changes.description?.slice(0, 5000) || null,
-        seoKeywords: changes.seoKeywords?.join(', ').slice(0, 500) || null,
+        // Only write title/meta/keywords when the sanitiser kept a deliberate override.
+        pageTitle: sanitized.pageTitle?.slice(0, 100) || null,
+        metaDescription: sanitized.metaDescription?.slice(0, 500) || null,
+        customDescription: sanitized.description?.slice(0, 5000) || null,
+        seoKeywords: sanitized.seoKeywords?.join(', ').slice(0, 500) || null,
       },
       update: {
-        pageTitle: changes.pageTitle?.slice(0, 100) || undefined,
-        metaDescription: changes.metaDescription?.slice(0, 500) || undefined,
-        customDescription: changes.description?.slice(0, 5000) || undefined,
-        seoKeywords: changes.seoKeywords?.join(', ').slice(0, 500) || undefined,
+        pageTitle: sanitized.pageTitle?.slice(0, 100) || undefined,
+        metaDescription: sanitized.metaDescription?.slice(0, 500) || undefined,
+        customDescription: sanitized.description?.slice(0, 5000) || undefined,
+        seoKeywords: sanitized.seoKeywords?.join(', ').slice(0, 500) || undefined,
       },
     })
   }
@@ -464,7 +709,11 @@ export async function getPendingSeoImprovementCount(venueId: number): Promise<nu
   return aggregate._sum.improvementCount || 0
 }
 
-/** Live listings with thin, missing, or fallback SEO — processed or not. */
+/**
+ * Live listings with thin on-page copy (or a previous fallback rewrite).
+ * Empty page_title / meta_description / seo_keywords are NOT treated as gaps —
+ * those fields are filled by the shared venue SEO templates in the database.
+ */
 const venuesNeedingSeoFromSql = Prisma.sql`
   FROM "Venue" v
   LEFT JOIN venue_profiles p ON p.venue_id = v.id
@@ -483,13 +732,7 @@ const venuesNeedingSeoFromSql = Prisma.sql`
         AND pending.status = 'pending'
     )
     AND (
-      p.venue_id IS NULL
-      OR NULLIF(BTRIM(COALESCE(p.page_title, '')), '') IS NULL
-      OR length(BTRIM(p.page_title)) < 15
-      OR NULLIF(BTRIM(COALESCE(p.meta_description, '')), '') IS NULL
-      OR length(BTRIM(p.meta_description)) < 70
-      OR NULLIF(BTRIM(COALESCE(p.seo_keywords, '')), '') IS NULL
-      OR length(BTRIM(COALESCE(p.custom_description, v.description, ''))) < 160
+      length(BTRIM(COALESCE(p.custom_description, v.description, ''))) < 160
       OR COALESCE(latest.sources::text, '') LIKE '%Generated from existing UK Pubs listing data%'
     )
     AND (latest.generated_at IS NULL OR latest.generated_at < NOW() - INTERVAL '12 hours')
