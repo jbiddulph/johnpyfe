@@ -53,10 +53,10 @@ export default defineNuxtConfig({
   experimental: {
     payloadExtraction: false, // Reduce bundle size
   },
-  // Inline critical CSS into HTML so the hero can paint without waiting on a
-  // separate ~50KB render-blocking stylesheet (helps mobile LCP).
+  // Keep CSS external. Inlining Tailwind's full stylesheet balloons homepage
+  // HTML to ~500KB+ and delays LCP image discovery on mobile.
   features: {
-    inlineStyles: true,
+    inlineStyles: false,
   },
   
   // Optimize build

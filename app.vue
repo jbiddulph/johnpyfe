@@ -27,5 +27,15 @@ useHead({
     { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
     { rel: 'manifest', href: '/site.webmanifest' },
   ],
+  // Minimal paint styles before the deferred entry.css arrives (homepage LCP).
+  style: [
+    {
+      key: 'critical-lcp',
+      innerHTML:
+        'html,body{margin:0;background:#F6F3EE;color:#1c1917}' +
+        'body{font-family:Kanit,ui-sans-serif,system-ui,sans-serif}' +
+        'img{max-width:100%;height:auto}',
+    },
+  ],
 });
 </script>

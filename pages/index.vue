@@ -1,8 +1,8 @@
 <template>
   <HomeHeroSearch />
-  <LazyHomeAiPrompt />
   <ClientOnly>
-    <LazyHomePubCrawlAnnouncementModal />
+    <LazyHomeAiPrompt v-if="showDeferredHome" />
+    <LazyHomePubCrawlAnnouncementModal v-if="showDeferredHome" />
   </ClientOnly>
 
   <div class="home-band bg-white dark:bg-gray-900">
@@ -11,7 +11,9 @@
     </div>
   </div>
 
-  <LazyHomePubCrawlDemo />
+  <ClientOnly>
+    <LazyHomePubCrawlDemo v-if="showDeferredHome" />
+  </ClientOnly>
 
   <div v-if="featuredNews || latestNews.length" class="home-band">
     <div class="container mx-auto px-4 py-14">
@@ -107,6 +109,20 @@ const HOMEPAGE_NEWS_LIMIT = 6
 const homeIntro = useSiteSeoIntro('home')
 
 const requestFetch = useRequestFetch()
+
+// Mount below-fold interactive sections after first paint so their JS is not
+// on the critical path competing with the LCP hero image on mobile.
+const showDeferredHome = ref(false)
+onMounted(() => {
+  const reveal = () => {
+    showDeferredHome.value = true
+  }
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(reveal, { timeout: 1500 })
+  } else {
+    setTimeout(reveal, 1)
+  }
+})
 
 const [{ data: stats, pending: statsPending }, { data: featuredNews }, { data: latestNewsData }] = await Promise.all([
   useAsyncData('homepage-stats', () => requestFetch('/api/homepage/stats')),
