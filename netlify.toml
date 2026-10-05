@@ -3,8 +3,8 @@
   command = "npm run build"
   
 [build.environment]
-  # Set Node.js version to 20.19.0 or higher
-  NODE_VERSION = "20.19.0"
+  # openai@7 requires Node >= 22; Yarn (used when yarn.lock is present) enforces engines
+  NODE_VERSION = "22"
   NPM_VERSION = "10.8.2"
   # Canonical URL for sitemap, robots, and OG tags (do not use localhost here)
   NUXT_SITE_URL = "https://ukpubs.co.uk"

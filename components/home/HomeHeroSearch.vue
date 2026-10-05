@@ -1,5 +1,8 @@
 <template>
-  <section class="home-hero relative w-full min-h-[360px] max-h-[600px] overflow-hidden bg-gray-900">
+  <section
+    class="home-hero relative w-full min-h-[360px] max-h-[600px] overflow-hidden bg-gray-900"
+    style="position:relative;width:100%;min-height:360px;max-height:600px;overflow:hidden;background:#111827"
+  >
     <picture>
       <source
         type="image/avif"
@@ -11,8 +14,12 @@
         srcset="/assets/images/hero-home-640.webp 640w, /assets/images/hero-home-960.webp 960w, /assets/images/hero-home-1280.webp 1280w, /assets/images/hero-home-1600.webp 1600w"
         sizes="100vw"
       >
+      <!--
+        Inline layout styles so the LCP image can paint before the ~50KB+ Tailwind
+        entry stylesheet finishes (Lighthouse "Render Delay" was ~80% of mobile LCP).
+      -->
       <img
-        src="/assets/images/hero-home-1280.jpg"
+        src="/assets/images/hero-home-640.webp"
         alt=""
         width="1280"
         height="416"
@@ -20,12 +27,20 @@
         loading="eager"
         decoding="async"
         class="absolute inset-0 h-full w-full object-cover"
+        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"
         aria-hidden="true"
       >
     </picture>
-    <div class="home-hero__overlay absolute inset-0 bg-gradient-to-b from-primary-950/55 via-black/35 to-primary-950/70" aria-hidden="true" />
+    <div
+      class="home-hero__overlay absolute inset-0 bg-gradient-to-b from-primary-950/55 via-black/35 to-primary-950/70"
+      style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(5,46,43,.55),rgba(0,0,0,.35),rgba(5,46,43,.7))"
+      aria-hidden="true"
+    />
 
-    <div class="relative z-[1] flex min-h-[360px] max-h-[600px] flex-col items-center justify-center px-4 py-10 md:py-14">
+    <div
+      class="relative z-[1] flex min-h-[360px] max-h-[600px] flex-col items-center justify-center px-4 py-10 md:py-14"
+      style="position:relative;z-index:1;display:flex;min-height:360px;max-height:600px;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1rem"
+    >
       <p class="mb-2 text-sm font-semibold uppercase tracking-[0.22em] text-pint">UK Pubs</p>
       <h1 class="mb-6 max-w-3xl text-center text-3xl font-semibold tracking-tight text-white drop-shadow-md md:text-5xl">
         Find pubs and venues across the UK
@@ -100,16 +115,27 @@
 const route = useRoute()
 const query = ref('')
 const mode = ref<'search' | 'ask'>('search')
+const canSearch = computed(() => query.value.trim().length >= 2)
 
-const hint = computed(() =>
-  mode.value === 'ask'
-    ? 'Try “dog-friendly pubs in Brighton” or “pubs near Anfield”'
-    : 'Try “Brighton”, “Manchester”, or your favourite pub name',
-)
+// Discover the LCP hero image in <head> before the body <picture> is parsed.
+useHead({
+  link: [
+    {
+      key: 'lcp-hero-avif',
+      rel: 'preload',
+      as: 'image',
+      type: 'image/avif',
+      imagesrcset:
+        '/assets/images/hero-home-640.avif 640w, /assets/images/hero-home-960.avif 960w, /assets/images/hero-home-1280.avif 1280w, /assets/images/hero-home-1600.avif 1600w',
+      imagesizes: '100vw',
+      fetchpriority: 'high',
+    },
+  ],
+})
 
 function resetQuery() {
   mode.value = 'search'
-  promptBox.value?.reset()
+  query.value = ''
 }
 
 watch(

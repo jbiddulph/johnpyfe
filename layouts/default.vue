@@ -1,10 +1,20 @@
 <template>
   <div>
-    <nav class="sticky top-0 z-50 border-b border-stone-200/80 bg-white/90 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/90">
-      <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-        <NuxtLink to="/" class="brand-logo h-12 flex items-center space-x-3 rtl:space-x-reverse">
-            <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" />
-            <span class="self-center text-2xl font-semibold tracking-tight whitespace-nowrap text-stone-900 dark:text-white" title="Pubs in the UK">UK <span class="brand-logo__pubs">Pubs</span></span>
+    <nav
+      class="sticky top-0 z-50 border-b border-stone-200/80 bg-white/90 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/90"
+      style="position:sticky;top:0;z-index:50;border-bottom:1px solid rgba(231,229,228,.8);background:rgba(255,255,255,.9)"
+    >
+      <div
+        class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4"
+        style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;max-width:1280px;margin:0 auto;padding:1rem"
+      >
+        <NuxtLink
+          to="/"
+          class="brand-logo h-12 flex items-center space-x-3 rtl:space-x-reverse"
+          style="display:flex;height:3rem;align-items:center;gap:0.75rem"
+        >
+            <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" style="height:2rem;width:2rem" />
+            <span class="self-center text-2xl font-semibold tracking-tight whitespace-nowrap text-stone-900 dark:text-white" title="Pubs in the UK" style="font-size:1.5rem;font-weight:600;white-space:nowrap;color:#1c1917">UK <span class="brand-logo__pubs">Pubs</span></span>
         </NuxtLink>
         <button
           @click="toggleMenu"

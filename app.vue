@@ -9,7 +9,9 @@
 </template>
 
 <script setup>
-await loadSiteSeoConfigIntoState()
+// Non-blocking: SEO overrides hydrate when ready. Awaiting this previously
+// added ~1.5s to every SSR response on a cold Prisma connection (hurts LCP).
+loadSiteSeoConfigIntoState()
 
 useHead({
   meta: [
@@ -24,6 +26,16 @@ useHead({
     { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/favicon-192x192.png' },
     { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
     { rel: 'manifest', href: '/site.webmanifest' },
+  ],
+  // Minimal paint styles before the deferred entry.css arrives (homepage LCP).
+  style: [
+    {
+      key: 'critical-lcp',
+      innerHTML:
+        'html,body{margin:0;background:#F6F3EE;color:#1c1917}' +
+        'body{font-family:Kanit,ui-sans-serif,system-ui,sans-serif}' +
+        'img{max-width:100%;height:auto}',
+    },
   ],
 });
 </script>
