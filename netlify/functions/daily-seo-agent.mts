@@ -45,5 +45,10 @@ export default async () => {
   console.log('[daily-seo-agent] background worker started', { limit })
 }
 
-// No Netlify `schedule` — cron must stay off until explicitly re-enabled.
-export const config: Config = {}
+/**
+ * Once daily at 03:00 UTC. The handler still no-ops unless AI_SEO_CRON_ENABLED=true,
+ * so this schedule is safe to keep in the repo while nightly jobs stay off by default.
+ */
+export const config: Config = {
+  schedule: '0 3 * * *',
+}

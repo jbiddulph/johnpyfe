@@ -14,14 +14,13 @@ export const SEO_AGENT_WORKER_TIME_BUDGET_MS = 12 * 60 * 1000
 /** Treat leftover running rows as dead if they have not written progress within this window. */
 export const SEO_AGENT_STALE_RUN_MS = 20 * 60 * 1000
 /**
- * Cron expression kept for docs / admin UI only.
- * The Netlify scheduled function is disabled unless AI_SEO_CRON_ENABLED=true
- * (and even then the function has no `schedule` until someone re-adds it).
+ * Netlify schedule on daily-seo-agent.mts (03:00 UTC). The function still no-ops
+ * unless AI_SEO_CRON_ENABLED=true.
  */
-export const SEO_AGENT_CRON = 'disabled'
-export const SEO_AGENT_CRON_UTC_HOURS = 'off'
-export const SEO_AGENT_CRON_UK_SUMMER = 'off'
-export const SEO_AGENT_CRON_UK_WINTER = 'off'
+export const SEO_AGENT_CRON = '0 3 * * *'
+export const SEO_AGENT_CRON_UTC_HOURS = '03:00'
+export const SEO_AGENT_CRON_UK_SUMMER = '04:00'
+export const SEO_AGENT_CRON_UK_WINTER = '03:00'
 
 /** Scheduled SEO jobs stay off until this env var is explicitly set to "true". */
 export function isSeoCronEnabled() {

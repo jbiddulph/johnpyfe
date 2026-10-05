@@ -2,7 +2,6 @@
   <HomeHeroSearch />
   <ClientOnly>
     <LazyHomeAiPrompt v-if="showDeferredHome" />
-    <LazyHomePubCrawlAnnouncementModal v-if="showDeferredHome" />
   </ClientOnly>
 
   <div class="home-band bg-white dark:bg-gray-900">
