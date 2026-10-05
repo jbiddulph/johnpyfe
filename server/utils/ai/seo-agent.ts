@@ -1,6 +1,12 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../prisma'
 import { generateJsonWithOpenAI } from './openai'
+import { isGscPrioritiserEnabled } from './gsc-client'
+import {
+  fetchTopQueriesForPage,
+  findGscPriorityVenueIds,
+  getGscOpportunityForVenue,
+} from './gsc-prioritiser'
 import { seoExpertPrompt } from './seo-expert-prompt'
 import type { PubSeoData, SavedSeoChanges, SaveSeoChangesOptions, SeoAnalysis, SeoChanges } from './seo-types'
 import { snapshotFromSeoData } from './seo-snapshot'
@@ -155,6 +161,26 @@ export async function getPubSeoData(venueId: number): Promise<PubSeoData> {
     ? venue.profile?.headerImageUrls.map(String)
     : []
 
+  let gsc: PubSeoData['gsc'] = null
+  if (isGscPrioritiserEnabled()) {
+    const opportunity = await getGscOpportunityForVenue(venue.id)
+    if (opportunity) {
+      const topQueries = await fetchTopQueriesForPage(opportunity.pageUrl, 8)
+      gsc = {
+        pageUrl: opportunity.pageUrl,
+        clicks: opportunity.clicks,
+        impressions: opportunity.impressions,
+        ctr: opportunity.ctr,
+        position: opportunity.position,
+        expectedCtr: opportunity.expectedCtr,
+        ctrGap: opportunity.ctrGap,
+        opportunityScore: opportunity.opportunityScore,
+        reason: opportunity.reason,
+        topQueries,
+      }
+    }
+  }
+
   return {
     venueId: venue.id,
     name: venue.venuename,
@@ -175,6 +201,7 @@ export async function getPubSeoData(venueId: number): Promise<PubSeoData> {
     nearbyAreas: [venue.town, venue.county].map(cleanString).filter(Boolean) as string[],
     nearbyLandmarks: nearby.map((item) => `${item.venuename}, ${item.town}`),
     isClaimed: venue.claim?.status === 'verified',
+    gsc,
   }
 }
 
@@ -192,6 +219,16 @@ export function findMissingSeoContentFromData(data: PubSeoData): string[] {
 
 export async function analyseSeo(venueId: number): Promise<SeoAnalysis> {
   const data = await getPubSeoData(venueId)
+  const gscInstructions = data.gsc
+    ? `
+Google Search Console context is supplied for this page. Prioritise CTR and query intent:
+- Reason selected: ${data.gsc.reason}
+- ${data.gsc.impressions} impressions, ${data.gsc.clicks} clicks, CTR ${(data.gsc.ctr * 100).toFixed(2)}%, avg position ${data.gsc.position.toFixed(1)}
+- Prefer natural inclusion of the strongest real search queries when writing the title/meta description
+- Do not keyword-stuff; stay factual and specific to this pub
+`
+    : ''
+
   return generateJsonWithOpenAI<SeoAnalysis>({
     system: seoExpertPrompt(`
 Analyse this UK pub listing and generate practical, owner-reviewable SEO improvements.
@@ -199,6 +236,7 @@ Analyse this UK pub listing and generate practical, owner-reviewable SEO improve
 Assess every area that can reasonably be inferred from the supplied data, including title quality, meta description quality, local relevance, duplicate/thin content risk, internal-link opportunities, heading/HTML structure opportunities, canonicalisation, robots/indexability, structured data, Open Graph metadata, image alt text, crawlability, CTR opportunities and Nuxt SEO implementation considerations.
 
 Keep page titles under 60 characters and meta descriptions under 155 characters. If web search is available, use the pub name and address only to verify missing factual amenities such as outdoor seating, dog friendliness, food, sport, accessibility or live music. Never invent facts. Put unverifiable gaps in missingContentWarnings and relevant evidence or caveats in sourceNotes.
+${gscInstructions}
 `),
     user: { task: 'analyse_pub_seo', venue: data },
     fallback: fallbackAnalysis(data),
@@ -322,10 +360,19 @@ export async function saveSeoChanges(
           generatedAt: new Date().toISOString(),
           runId: options.runId || null,
           previous: snapshotFromSeoData(data),
+          gsc: data.gsc || null,
         },
         changes: changes as any,
         warnings: changes.missingContentWarnings || [],
-        sources: changes.sourceNotes || [],
+        sources: [
+          ...(changes.sourceNotes || []),
+          ...(data.gsc
+            ? [
+                `GSC: ${data.gsc.reason}`,
+                `GSC metrics: ${data.gsc.impressions} impr / ${data.gsc.clicks} clicks / pos ${data.gsc.position.toFixed(1)}`,
+              ]
+            : []),
+        ],
         appliedAt: status === 'applied' ? new Date() : null,
       },
     })
@@ -458,6 +505,21 @@ export async function countVenuesNeedingSeoImprovement(): Promise<number> {
 
 export async function findVenuesNeedingSeoImprovement(limit: number): Promise<Array<{ id: number }>> {
   const requestedLimit = Math.min(Math.max(1, limit), MAX_BATCH_LIMIT)
+
+  // Prefer GSC-ranked opportunities so OpenAI tokens go to pages with real search demand.
+  if (isGscPrioritiserEnabled()) {
+    try {
+      const prioritized = await findGscPriorityVenueIds(requestedLimit)
+      if (prioritized.length) {
+        console.log('[seo-agent] using GSC priority queue', { count: prioritized.length, requestedLimit })
+        return prioritized.map((id) => ({ id }))
+      }
+      console.warn('[seo-agent] GSC priority queue empty; falling back to thin-SEO SQL queue')
+    } catch (error) {
+      console.warn('[seo-agent] GSC prioritiser failed; falling back to SQL queue', (error as Error).message)
+    }
+  }
+
   return prisma.$queryRaw<Array<{ id: number }>>`
     SELECT v.id
     ${venuesNeedingSeoFromSql}

@@ -51,10 +51,9 @@
         </p>
         <p class="mt-2 text-sm">
           <strong>Low-cost tip:</strong> keep <code>OPENAI_SEO_MODEL=gpt-5-mini</code>, set
-          <code>AI_SEO_DAILY_LIMIT=25</code> (or 50), leave web search off, and approve proposals in
-          Pending improvements before they go live. ChatGPT Pro does not cover API cron costs —
-          only your OpenAI API balance does. Google Search Console itself is free; wiring GSC into
-          this agent for “improve what already ranks” is the next step when you want smarter targeting.
+          <code>AI_SEO_DAILY_LIMIT=25</code> (or 50), leave web search off, connect Search Console
+          (below), and approve proposals in Pending improvements. ChatGPT Pro does not cover API
+          cron costs — only your OpenAI API balance does. GSC API access is free.
         </p>
       </div>
 
@@ -149,10 +148,92 @@
             <dd>{{ agentStatus?.schedule.openAiConfigured ? 'Configured' : 'Missing' }}</dd>
           </div>
           <div>
+            <dt class="text-gray-500 dark:text-gray-400">Search Console</dt>
+            <dd>
+              <span v-if="agentStatus?.schedule.gscEnabled">Prioritising with GSC</span>
+              <span v-else-if="agentStatus?.schedule.gscConfigured">Configured (disabled)</span>
+              <span v-else>Not configured</span>
+            </dd>
+          </div>
+          <div>
             <dt class="text-gray-500 dark:text-gray-400">Today</dt>
             <dd>{{ agentStatus?.totals.processedToday || 0 }} / {{ agentStatus?.schedule.dailyLimit }} · {{ agentStatus?.totals.remainingToday || 0 }} left</dd>
           </div>
         </dl>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-2xl font-semibold">GSC priority queue</h2>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              Pages ranked by wasted impressions / striking distance. The daily agent spends OpenAI tokens on these first.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="rounded bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-200 dark:text-slate-900"
+            :disabled="loadingGsc"
+            @click="loadGscOpportunities(true)"
+          >
+            {{ loadingGsc ? 'Refreshing…' : 'Refresh from GSC' }}
+          </button>
+        </div>
+
+        <p v-if="gscError" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ gscError }}</p>
+        <p v-else-if="!gscSnapshot" class="text-sm text-gray-600 dark:text-gray-300">
+          Load opportunities to preview which venue pages will be improved next.
+        </p>
+        <template v-else>
+          <p class="mb-3 text-sm text-gray-600 dark:text-gray-300">
+            Property <code class="text-xs">{{ gscSnapshot.siteUrl }}</code>
+            · {{ gscSnapshot.venueOpportunityCount }} venue opportunities
+            · lookback {{ gscSnapshot.lookbackDays }}d
+            <span v-if="gscSnapshot.fetchedAt"> · fetched {{ formatDate(gscSnapshot.fetchedAt) }}</span>
+          </p>
+          <div v-if="!gscSnapshot.configured" class="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+            Add a Search Console service account in Netlify env (<code>GSC_SERVICE_ACCOUNT_JSON</code> or
+            <code>GSC_CLIENT_EMAIL</code> + <code>GSC_PRIVATE_KEY</code>, plus <code>GSC_SITE_URL</code>).
+            Invite the service-account email as a Full user on the property.
+          </div>
+          <div v-else-if="!gscSnapshot.opportunities.length" class="text-sm text-gray-600 dark:text-gray-300">
+            No eligible venue opportunities yet (need impressions above the minimum, and no pending/recent SEO draft).
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b text-left text-gray-500 dark:text-gray-400">
+                  <th class="py-2 pr-3">Score</th>
+                  <th class="py-2 pr-3">Page</th>
+                  <th class="py-2 pr-3">Imp</th>
+                  <th class="py-2 pr-3">Clicks</th>
+                  <th class="py-2 pr-3">CTR</th>
+                  <th class="py-2 pr-3">Pos</th>
+                  <th class="py-2">Why</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in gscSnapshot.opportunities"
+                  :key="row.pageUrl"
+                  class="border-b border-gray-100 dark:border-gray-700"
+                >
+                  <td class="py-2 pr-3 font-semibold">{{ Math.round(row.opportunityScore) }}</td>
+                  <td class="py-2 pr-3">
+                    <a :href="row.path" class="text-blue-600 hover:underline dark:text-blue-400" target="_blank" rel="noopener">
+                      {{ row.path }}
+                    </a>
+                  </td>
+                  <td class="py-2 pr-3">{{ row.impressions }}</td>
+                  <td class="py-2 pr-3">{{ row.clicks }}</td>
+                  <td class="py-2 pr-3">{{ (row.ctr * 100).toFixed(1) }}%</td>
+                  <td class="py-2 pr-3">{{ row.position.toFixed(1) }}</td>
+                  <td class="py-2 text-gray-600 dark:text-gray-300">{{ row.reason }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
       </div>
 
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -301,6 +382,9 @@ type SeoAgentStatus = {
     concurrency: number
     webSearchEnabled: boolean
     openAiConfigured: boolean
+    gscEnabled?: boolean
+    gscConfigured?: boolean
+    gscSiteUrl?: string
   }
   totals: {
     totalRuns: number
@@ -328,12 +412,38 @@ type SeoAgentStatus = {
   migrationReady: boolean
 }
 
+type GscOpportunitySnapshot = {
+  enabled: boolean
+  configured: boolean
+  siteUrl: string
+  lookbackDays: number
+  minImpressions: number
+  fetchedAt: string | null
+  error: string | null
+  pageOpportunityCount: number
+  venueOpportunityCount: number
+  opportunities: Array<{
+    pageUrl: string
+    path: string
+    venueId: number
+    clicks: number
+    impressions: number
+    ctr: number
+    position: number
+    opportunityScore: number
+    reason: string
+  }>
+}
+
 const loading = ref(true)
 const startingRun = ref(false)
 const stoppingRun = ref(false)
 const errorMessage = ref('')
 const agentStatus = ref<SeoAgentStatus | null>(null)
 const pollTimer = ref<ReturnType<typeof setInterval> | null>(null)
+const loadingGsc = ref(false)
+const gscError = ref('')
+const gscSnapshot = ref<GscOpportunitySnapshot | null>(null)
 
 const breadcrumbItems = [
   { label: 'Home', to: '/' },
@@ -374,6 +484,34 @@ function formatDateTime(value?: string | null) {
     dateStyle: 'medium',
     timeStyle: 'short',
   })
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return '—'
+  return new Date(value).toLocaleString('en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
+async function loadGscOpportunities(forceRefresh = false) {
+  loadingGsc.value = true
+  gscError.value = ''
+  try {
+    const token = await adminToken()
+    const qs = forceRefresh ? '?limit=25&refresh=1' : '?limit=25'
+    gscSnapshot.value = await requestFetch<GscOpportunitySnapshot>(`/api/admin/ai/seo-agent/gsc-opportunities${qs}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (gscSnapshot.value.error) {
+      gscError.value = gscSnapshot.value.error
+    }
+  } catch (error: unknown) {
+    const err = error as { data?: { statusMessage?: string }; message?: string }
+    gscError.value = err?.data?.statusMessage || err?.message || 'Failed to load Search Console opportunities'
+  } finally {
+    loadingGsc.value = false
+  }
 }
 
 async function adminToken() {
@@ -476,6 +614,7 @@ onMounted(async () => {
   await initializeAuth()
   if (isAdmin.value) {
     await loadSeoAgentStatus()
+    await loadGscOpportunities(false)
     startPolling()
   }
 })

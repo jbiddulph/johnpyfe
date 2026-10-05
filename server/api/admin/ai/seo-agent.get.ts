@@ -1,6 +1,15 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAdmin } from '../../../utils/require-admin'
+import { isGscConfigured, isGscPrioritiserEnabled, resolveGscSiteUrl } from '../../../utils/ai/gsc-client'
 import { countSeoRecommendationsToday, countVenuesNeedingSeoImprovement, expireStaleSeoRuns, parseSeoAgentDailyLimit, SEO_AGENT_CHUNK_LIMIT, SEO_AGENT_CRON, SEO_AGENT_CRON_UK_SUMMER, SEO_AGENT_CRON_UK_WINTER, SEO_AGENT_CRON_UTC_HOURS, isSeoCronEnabled } from '../../../utils/ai/seo-agent'
+
+function gscScheduleFields() {
+  return {
+    gscEnabled: isGscPrioritiserEnabled(),
+    gscConfigured: isGscConfigured(),
+    gscSiteUrl: resolveGscSiteUrl(),
+  }
+}
 
 function isMissingSeoTableError(error: unknown): boolean {
   const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : ''
@@ -83,6 +92,7 @@ export default defineEventHandler(async (event) => {
         concurrency,
         webSearchEnabled: process.env.AI_SEO_ENABLE_WEB_SEARCH === 'true',
         openAiConfigured: Boolean(process.env.OPENAI_API_KEY),
+        ...gscScheduleFields(),
       },
       totals: {
         totalRuns,
@@ -115,6 +125,7 @@ export default defineEventHandler(async (event) => {
         concurrency,
         webSearchEnabled: process.env.AI_SEO_ENABLE_WEB_SEARCH === 'true',
         openAiConfigured: Boolean(process.env.OPENAI_API_KEY),
+        ...gscScheduleFields(),
       },
       totals: {
         totalRuns: 0,
