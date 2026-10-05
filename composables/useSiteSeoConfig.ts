@@ -15,23 +15,34 @@ export function useSiteSeoConfig() {
   return useState<SiteSeoConfig>('site-seo-config', () => EMPTY_SITE_SEO_CONFIG)
 }
 
+/**
+ * Load approved SEO overrides into shared state.
+ *
+ * Uses lazy AsyncData so a slow / cold Prisma hit (often 1s+) does not block
+ * SSR HTML — critical for homepage LCP on mobile. Defaults stay in place until
+ * the cached response arrives.
+ */
 export async function loadSiteSeoConfigIntoState() {
   const state = useSiteSeoConfig()
   const requestFetch = useRequestFetch()
-  await useAsyncData('site-seo-config', async () => {
-    try {
-      const data = await requestFetch<{ pages?: SiteSeoConfig['pages']; settings?: Record<string, unknown> }>(
-        '/api/seo/site-config',
-      )
-      state.value = {
-        pages: data?.pages ?? {},
-        settings: normaliseSiteSeoSettings(data?.settings ?? null),
+  await useAsyncData(
+    'site-seo-config',
+    async () => {
+      try {
+        const data = await requestFetch<{ pages?: SiteSeoConfig['pages']; settings?: Record<string, unknown> }>(
+          '/api/seo/site-config',
+        )
+        state.value = {
+          pages: data?.pages ?? {},
+          settings: normaliseSiteSeoSettings(data?.settings ?? null),
+        }
+      } catch (error) {
+        console.warn('[site-seo] could not load site SEO config', (error as Error).message)
       }
-    } catch (error) {
-      console.warn('[site-seo] could not load site SEO config', (error as Error).message)
-    }
-    return true
-  })
+      return true
+    },
+    { lazy: true, server: true },
+  )
   return state
 }
 

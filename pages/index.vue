@@ -1,7 +1,9 @@
 <template>
   <HomeHeroSearch />
-  <HomeAiPrompt />
-  <HomePubCrawlAnnouncementModal />
+  <LazyHomeAiPrompt />
+  <ClientOnly>
+    <LazyHomePubCrawlAnnouncementModal />
+  </ClientOnly>
 
   <div class="home-band bg-white dark:bg-gray-900">
     <div class="container mx-auto px-4 py-14">
@@ -9,7 +11,7 @@
     </div>
   </div>
 
-  <HomePubCrawlDemo />
+  <LazyHomePubCrawlDemo />
 
   <div v-if="featuredNews || latestNews.length" class="home-band">
     <div class="container mx-auto px-4 py-14">

@@ -52,7 +52,9 @@ export default defineNuxtConfig({
   // Performance optimizations
   experimental: {
     payloadExtraction: false, // Reduce bundle size
-    inlineSSRStyles: false, // Prevent render-blocking CSS
+    // Inline critical CSS into HTML so the hero can paint without waiting on
+    // a separate ~50KB render-blocking stylesheet (helps mobile LCP).
+    inlineSSRStyles: true,
   },
   
   // Optimize build
@@ -89,6 +91,7 @@ export default defineNuxtConfig({
     '/api/homepage/stats': { cache: { maxAge: 300, swr: true } },
     '/api/news/featured': { cache: { maxAge: 300, swr: true } },
     '/api/news/latest': { cache: { maxAge: 300, swr: true } },
+    '/api/seo/site-config': { cache: { maxAge: 300, swr: true } },
     '/api/ai/**': { cache: false },
     '/api/events/top-ten': { cache: { maxAge: 900, swr: true } },
     '/events/**': { isr: 900 },

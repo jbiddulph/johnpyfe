@@ -23,6 +23,12 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
+# Preload the homepage LCP hero as early as possible (HTTP header, before HTML).
+[[headers]]
+  for = "/"
+  [headers.values]
+    Link = "</assets/images/hero-home-640.avif>; rel=preload; as=image; type=image/avif; fetchpriority=high; imagesrcset=\"/assets/images/hero-home-640.avif 640w, /assets/images/hero-home-960.avif 960w, /assets/images/hero-home-1280.avif 1280w, /assets/images/hero-home-1600.avif 1600w\"; imagesizes=\"100vw\""
+
 # Cache static assets
 [[headers]]
   for = "/assets/*"

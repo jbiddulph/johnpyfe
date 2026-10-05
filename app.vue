@@ -9,7 +9,9 @@
 </template>
 
 <script setup>
-await loadSiteSeoConfigIntoState()
+// Non-blocking: SEO overrides hydrate when ready. Awaiting this previously
+// added ~1.5s to every SSR response on a cold Prisma connection (hurts LCP).
+loadSiteSeoConfigIntoState()
 
 useHead({
   meta: [

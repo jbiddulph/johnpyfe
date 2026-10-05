@@ -12,13 +12,13 @@
         sizes="100vw"
       >
       <img
-        src="/assets/images/hero-home-1280.jpg"
+        src="/assets/images/hero-home-640.webp"
         alt=""
         width="1280"
         height="416"
         fetchpriority="high"
         loading="eager"
-        decoding="async"
+        decoding="sync"
         class="absolute inset-0 h-full w-full object-cover"
         aria-hidden="true"
       >
@@ -100,16 +100,27 @@
 const route = useRoute()
 const query = ref('')
 const mode = ref<'search' | 'ask'>('search')
+const canSearch = computed(() => query.value.trim().length >= 2)
 
-const hint = computed(() =>
-  mode.value === 'ask'
-    ? 'Try “dog-friendly pubs in Brighton” or “pubs near Anfield”'
-    : 'Try “Brighton”, “Manchester”, or your favourite pub name',
-)
+// Discover the LCP hero image in <head> before the body <picture> is parsed.
+useHead({
+  link: [
+    {
+      key: 'lcp-hero-avif',
+      rel: 'preload',
+      as: 'image',
+      type: 'image/avif',
+      imagesrcset:
+        '/assets/images/hero-home-640.avif 640w, /assets/images/hero-home-960.avif 960w, /assets/images/hero-home-1280.avif 1280w, /assets/images/hero-home-1600.avif 1600w',
+      imagesizes: '100vw',
+      fetchpriority: 'high',
+    },
+  ],
+})
 
 function resetQuery() {
   mode.value = 'search'
-  promptBox.value?.reset()
+  query.value = ''
 }
 
 watch(
