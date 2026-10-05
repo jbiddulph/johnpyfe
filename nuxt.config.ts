@@ -52,9 +52,11 @@ export default defineNuxtConfig({
   // Performance optimizations
   experimental: {
     payloadExtraction: false, // Reduce bundle size
-    // Inline critical CSS into HTML so the hero can paint without waiting on
-    // a separate ~50KB render-blocking stylesheet (helps mobile LCP).
-    inlineSSRStyles: true,
+  },
+  // Inline critical CSS into HTML so the hero can paint without waiting on a
+  // separate ~50KB render-blocking stylesheet (helps mobile LCP).
+  features: {
+    inlineStyles: true,
   },
   
   // Optimize build
