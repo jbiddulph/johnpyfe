@@ -1,3 +1,22 @@
+export type GscSeoContext = {
+  pageUrl: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+  expectedCtr: number
+  ctrGap: number
+  opportunityScore: number
+  reason: string
+  topQueries: Array<{
+    query: string
+    clicks: number
+    impressions: number
+    ctr: number
+    position: number
+  }>
+}
+
 export type PubSeoData = {
   venueId: number
   name: string
@@ -18,6 +37,8 @@ export type PubSeoData = {
   nearbyAreas: string[]
   nearbyLandmarks: string[]
   isClaimed: boolean
+  /** Present when the daily run selected this venue from Google Search Console. */
+  gsc?: GscSeoContext | null
 }
 
 export type SeoChanges = {
