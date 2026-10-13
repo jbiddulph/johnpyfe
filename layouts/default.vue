@@ -220,19 +220,29 @@ watch(isLoggedIn, (newValue) => {
 
 const logout = async () => {
   const { $supabase } = useNuxtApp();
-  
-  // logout from Supabase/Google 
+  closeMenus()
+
+  // Clear Supabase session first — this drives the nav Login/Logout state
   if ($supabase?.auth) {
     const { error } = await $supabase.auth.signOut()
-    if (error){
-      console.log("Error: ", error)
+    if (error) {
+      console.log('Error signing out: ', error)
     }
   }
-  
-  //logout JWT
-  closeMenus()
-  await authStore.logoutUser();
-  navigateTo("/")
+
+  // Clear legacy JWT leftovers without blocking on a dead backend /logout
+  try {
+    if (import.meta.client) {
+      localStorage.removeItem('userToken')
+    }
+    const Cookies = (await import('js-cookie')).default
+    Cookies.remove('userToken')
+    authStore.user = null
+  } catch (error) {
+    console.error('Error clearing legacy auth state:', error)
+  }
+
+  await navigateTo('/')
 } 
 
 const closeMenus = () => {

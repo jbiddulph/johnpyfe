@@ -55,7 +55,16 @@
 
         <template v-else-if="!claimStatus?.claimed">
           <UButton
-            v-if="isLoggedIn"
+            v-if="!authReady"
+            color="primary"
+            size="lg"
+            label="Claim this venue"
+            icon="i-heroicons-building-storefront-20-solid"
+            loading
+            disabled
+          />
+          <UButton
+            v-else-if="isLoggedIn"
             color="primary"
             size="lg"
             label="Claim this venue"
@@ -81,11 +90,27 @@
 
     <p v-if="message" class="mt-3 text-sm" :class="messageIsError ? 'text-red-600' : 'text-emerald-700 dark:text-emerald-400'">
       {{ message }}
+      <NuxtLink
+        v-if="messageIsError && showBillingLink"
+        to="/dashboard/billing"
+        class="ml-1 font-medium underline"
+      >
+        View billing plans
+      </NuxtLink>
+      <NuxtLink
+        v-else-if="messageIsError && showLoginLink"
+        :to="loginRedirect"
+        class="ml-1 font-medium underline"
+      >
+        Sign in
+      </NuxtLink>
     </p>
   </section>
 </template>
 
 <script setup lang="ts">
+import { fetchErrorMessage } from '@/utils/fetch-error'
+
 const props = defineProps<{
   venueId: number
 }>()
@@ -93,6 +118,7 @@ const props = defineProps<{
 const route = useRoute()
 const { isLoggedIn, initializeAuth } = useAuth()
 
+const authReady = ref(false)
 const claimStatus = ref<{ claimed: boolean; verified: boolean; status?: string } | null>(null)
 const ownerAccess = ref<{
   isOwner: boolean
@@ -102,6 +128,8 @@ const ownerAccess = ref<{
 const claiming = ref(false)
 const message = ref('')
 const messageIsError = ref(false)
+const showBillingLink = ref(false)
+const showLoginLink = ref(false)
 
 const loginRedirect = computed(() => ({
   path: '/login',
@@ -141,10 +169,27 @@ async function loadOwnerAccess() {
   }
 }
 
+function errorStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null
+  const err = error as { statusCode?: number; status?: number; response?: { status?: number } }
+  return err.statusCode || err.status || err.response?.status || null
+}
+
 async function requestClaim() {
-  claiming.value = true
   message.value = ''
   messageIsError.value = false
+  showBillingLink.value = false
+  showLoginLink.value = false
+
+  if (!isLoggedIn.value) {
+    messageIsError.value = true
+    showLoginLink.value = true
+    message.value = 'Please sign in to claim this venue.'
+    await navigateTo(loginRedirect.value)
+    return
+  }
+
+  claiming.value = true
   try {
     const result = await useAuthFetch<{ message: string }>('/api/claims/request', {
       method: 'POST',
@@ -155,8 +200,16 @@ async function requestClaim() {
     await loadOwnerAccess()
   } catch (error: unknown) {
     messageIsError.value = true
-    const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
-    message.value = err?.data?.statusMessage || err?.statusMessage || 'Could not submit claim'
+    const status = errorStatus(error)
+    if (status === 401) {
+      showLoginLink.value = true
+      message.value = 'Please sign in to claim this venue.'
+    } else if (status === 402) {
+      showBillingLink.value = true
+      message.value = fetchErrorMessage(error, 'Your plan pub limit has been reached — upgrade to claim more')
+    } else {
+      message.value = fetchErrorMessage(error, 'Could not submit claim')
+    }
   } finally {
     claiming.value = false
   }
@@ -169,6 +222,7 @@ async function refresh() {
 
 onMounted(async () => {
   await initializeAuth()
+  authReady.value = true
   await refresh()
 })
 

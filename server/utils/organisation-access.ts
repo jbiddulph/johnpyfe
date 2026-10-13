@@ -48,10 +48,16 @@ export function organisationHasProAccess(organisation: Organisation): boolean {
   return isSubscriptionActive(organisation.subscriptionStatus)
 }
 
+/**
+ * Whether the organisation may claim another pub.
+ * Free / unsubscribed orgs can always request a claim.
+ * Paid orgs are limited by their plan's pubLimit (verified claims only).
+ * An active subscription with an unknown plan must not be treated as "at limit".
+ */
 export function canClaimMorePubs(organisation: Organisation, verifiedClaimCount: number): boolean {
-  if (!organisationHasProAccess(organisation)) return false
+  if (!organisationHasProAccess(organisation)) return true
   const plan = getBillingPlan(organisation.plan)
-  if (!plan) return false
+  if (!plan) return true
   return verifiedClaimCount < plan.pubLimit
 }
 
