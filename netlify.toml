@@ -45,3 +45,7 @@
 
 [functions."*"]
   timeout = 26
+
+# Drops the unused Netlify Emails function (Lambda-compatible, subject to the 4KB env limit)
+[[plugins]]
+  package = "./netlify/plugins/remove-unused-functions"

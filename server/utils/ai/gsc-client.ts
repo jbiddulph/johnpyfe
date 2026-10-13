@@ -1,5 +1,6 @@
 import { createSign } from 'node:crypto'
 import { resolveSiteUrl } from '../../../utils/site-url'
+import { bundledGscServiceAccount } from '../../generated/gsc-credentials'
 
 const GSC_SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -52,7 +53,7 @@ function tryParseJson(raw: string): Record<string, unknown> | null {
   }
 }
 
-/** Read service-account credentials from env (JSON blob or email+key). */
+/** Read service-account credentials from env (JSON blob or email+key), falling back to build-time bundle. */
 export function loadGscServiceAccount(): GscServiceAccount | null {
   const jsonRaw = String(process.env.GSC_SERVICE_ACCOUNT_JSON || '').trim()
   if (jsonRaw) {
@@ -68,6 +69,13 @@ export function loadGscServiceAccount(): GscServiceAccount | null {
   const privateKey = String(process.env.GSC_PRIVATE_KEY || '').trim()
   if (clientEmail && privateKey) {
     return { clientEmail, privateKey: normalisePrivateKey(privateKey) }
+  }
+
+  if (bundledGscServiceAccount) {
+    return {
+      clientEmail: bundledGscServiceAccount.clientEmail,
+      privateKey: normalisePrivateKey(bundledGscServiceAccount.privateKey),
+    }
   }
 
   return null
