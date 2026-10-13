@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { resolveSiteUrl } from './utils/site-url'
 
 const mapboxToken = process.env.NUXT_PUBLIC_MAPBOX_TOKEN || ''
@@ -106,6 +107,8 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'netlify',
+    // Serve the server as a Netlify Functions v2 function (no 4KB Lambda env var limit)
+    entry: fileURLToPath(new URL('./server/netlify-entry.ts', import.meta.url)),
     compressPublicAssets: true,
     minify: true,
     prerender: {

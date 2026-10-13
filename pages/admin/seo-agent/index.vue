@@ -192,7 +192,7 @@
             <span v-if="gscSnapshot.fetchedAt"> · fetched {{ formatDate(gscSnapshot.fetchedAt) }}</span>
           </p>
           <div v-if="!gscSnapshot.configured" class="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-            Add a Search Console service account in Netlify env (<code>GSC_SERVICE_ACCOUNT_JSON</code> or
+            Add a Search Console service account in Netlify env (<code>GSC_SERVICE_ACCOUNT_JSON</code>, scoped to Builds only, or
             <code>GSC_CLIENT_EMAIL</code> + <code>GSC_PRIVATE_KEY</code>, plus <code>GSC_SITE_URL</code>).
             Invite the service-account email as a Full user on the property.
           </div>
