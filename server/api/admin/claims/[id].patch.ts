@@ -3,7 +3,6 @@ import { prisma } from '../../../utils/prisma'
 import {
   canClaimMorePubs,
   countVerifiedClaims,
-  organisationHasProAccess,
 } from '../../../utils/organisation-access'
 import { requireAdmin } from '../../../utils/require-admin'
 
@@ -38,10 +37,7 @@ export default defineEventHandler(async (event) => {
     const verifiedCount = countVerifiedClaims(
       claim.organisation.claims.filter((item) => item.id !== claim.id),
     )
-    if (
-      organisationHasProAccess(claim.organisation)
-      && !canClaimMorePubs(claim.organisation, verifiedCount)
-    ) {
+    if (!canClaimMorePubs(claim.organisation, verifiedCount)) {
       throw createError({
         statusCode: 402,
         statusMessage: 'Organisation has reached its plan pub limit',
