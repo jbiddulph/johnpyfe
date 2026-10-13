@@ -50,7 +50,8 @@ export function organisationHasProAccess(organisation: Organisation): boolean {
 
 export function canClaimMorePubs(organisation: Organisation, verifiedClaimCount: number): boolean {
   if (!organisationHasProAccess(organisation)) return false
-  const plan = getBillingPlan(organisation.plan)
+  // Fall back to Solo if plan sync left plan as "none" but subscription is active
+  const plan = getBillingPlan(organisation.plan) || getBillingPlan('solo')
   if (!plan) return false
   return verifiedClaimCount < plan.pubLimit
 }

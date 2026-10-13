@@ -22,12 +22,30 @@ export async function syncOrganisationFromCheckoutSession(
   }
 
   const subscription = await stripe.subscriptions.retrieve(String(session.subscription))
+
+  // Ensure plan metadata survives when Checkout used a shared test price
+  const sessionPlan = String(session.metadata?.plan || '').trim()
+  if (sessionPlan && !subscription.metadata?.plan) {
+    await stripe.subscriptions.update(subscription.id, {
+      metadata: {
+        ...subscription.metadata,
+        organisationId,
+        plan: sessionPlan,
+      },
+    })
+    subscription.metadata = {
+      ...subscription.metadata,
+      organisationId,
+      plan: sessionPlan,
+    }
+  }
+
   await syncOrganisationFromSubscription(organisationId, subscription)
 
   return {
     synced: true,
     status: subscription.status,
-    plan: subscription.metadata?.plan ?? null,
+    plan: subscription.metadata?.plan ?? sessionPlan ?? null,
   }
 }
 

@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   ) {
     throw createError({
       statusCode: 402,
-      statusMessage: 'Your plan pub limit has been reached — upgrade to claim more',
+      statusMessage: 'Your plan pub limit has been reached — open Billing and choose a higher plan, then try again',
     })
   }
 

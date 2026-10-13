@@ -1,6 +1,6 @@
 import type Stripe from 'stripe'
 import { prisma } from './prisma'
-import { getBillingPlan, planIdFromStripePriceId, type BillingPlanId } from './billing-plans'
+import { resolvePlanFromSubscription } from './billing-plans'
 
 /** Basil API (2025-03-31+) moved period fields onto subscription items. */
 function subscriptionPeriodEndUnix(subscription: Stripe.Subscription): number | null {
@@ -27,9 +27,11 @@ export async function syncOrganisationFromSubscription(
   subscription: Stripe.Subscription,
 ) {
   const priceId = subscription.items.data[0]?.price?.id
-  const planFromPrice = priceId ? planIdFromStripePriceId(priceId) : null
-  const metaPlan = String(subscription.metadata?.plan || '').trim() as BillingPlanId
-  const plan = planFromPrice || (getBillingPlan(metaPlan) ? metaPlan : null)
+  // Prefer metadata.plan — required when STRIPE_TEST_PAYMENT maps every plan to one price
+  const plan = resolvePlanFromSubscription({
+    priceId,
+    metadataPlan: subscription.metadata?.plan,
+  })
 
   await prisma.organisation.update({
     where: { id: organisationId },

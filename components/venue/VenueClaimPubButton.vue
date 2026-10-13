@@ -56,21 +56,30 @@
         <template v-else-if="!claimStatus?.claimed">
           <template v-if="isLoggedIn">
             <UButton
-              v-if="!billingStatus || billingStatus.canClaimMore"
+              v-if="!billingLoaded"
+              color="primary"
+              size="lg"
+              label="Checking plan…"
+              icon="i-heroicons-building-storefront-20-solid"
+              loading
+              disabled
+            />
+            <UButton
+              v-else-if="billingStatus && !billingStatus.canClaimMore"
+              color="amber"
+              size="lg"
+              label="Upgrade plan to claim"
+              icon="i-heroicons-arrow-trending-up-20-solid"
+              to="/dashboard/billing"
+            />
+            <UButton
+              v-else
               color="primary"
               size="lg"
               label="Claim this venue"
               icon="i-heroicons-building-storefront-20-solid"
               :loading="claiming"
               @click="requestClaim"
-            />
-            <UButton
-              v-else
-              color="amber"
-              size="lg"
-              label="Upgrade plan to claim"
-              icon="i-heroicons-arrow-trending-up-20-solid"
-              to="/dashboard/billing"
             />
           </template>
           <UButton
@@ -93,13 +102,15 @@
       {{ message }}
     </p>
     <p v-else-if="billingStatus && !billingStatus.canClaimMore" class="mt-3 text-sm text-amber-700 dark:text-amber-400">
-      You've claimed {{ billingStatus.verifiedCount }} of {{ billingStatus.pubLimit }} pubs on your {{ billingStatus.planName }} plan. 
+      You've claimed {{ billingStatus.verifiedCount }} of {{ billingStatus.pubLimit }} pubs on your {{ billingStatus.planName }} plan.
       <NuxtLink to="/dashboard/billing" class="underline font-medium">Upgrade to claim more</NuxtLink>
     </p>
   </section>
 </template>
 
 <script setup lang="ts">
+import { fetchErrorMessage } from '@/utils/fetch-error'
+
 const props = defineProps<{
   venueId: number
 }>()
@@ -119,6 +130,7 @@ const billingStatus = ref<{
   pubLimit: number
   planName: string
 } | null>(null)
+const billingLoaded = ref(false)
 const claiming = ref(false)
 const message = ref('')
 const messageIsError = ref(false)
@@ -139,11 +151,15 @@ async function loadClaimStatus() {
 async function loadOwnerAccess() {
   ownerAccess.value = null
   billingStatus.value = null
-  if (!isLoggedIn.value) return
+  billingLoaded.value = false
+  if (!isLoggedIn.value) {
+    billingLoaded.value = true
+    return
+  }
 
   try {
     const status = await useAuthFetch<{
-      organisation?: { 
+      organisation?: {
         hasProAccess: boolean
         plan?: string
         planLabel?: string
@@ -165,7 +181,6 @@ async function loadOwnerAccess() {
       }
     }
 
-    // Store billing status to check pub limits
     if (status.organisation?.hasProAccess) {
       billingStatus.value = {
         canClaimMore: status.organisation?.canClaimMore ?? true,
@@ -177,6 +192,8 @@ async function loadOwnerAccess() {
   } catch {
     ownerAccess.value = null
     billingStatus.value = null
+  } finally {
+    billingLoaded.value = true
   }
 }
 
@@ -194,8 +211,9 @@ async function requestClaim() {
     await loadOwnerAccess()
   } catch (error: unknown) {
     messageIsError.value = true
-    const err = error as { data?: { statusMessage?: string }; statusMessage?: string }
-    message.value = err?.data?.statusMessage || err?.statusMessage || 'Could not submit claim'
+    message.value = fetchErrorMessage(error, 'Could not submit claim')
+    // Refresh so Upgrade button appears if this was a plan-limit 402
+    await loadOwnerAccess()
   } finally {
     claiming.value = false
   }
