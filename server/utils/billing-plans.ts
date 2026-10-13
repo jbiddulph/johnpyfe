@@ -74,8 +74,9 @@ export function isSubscriptionActive(status: string | null | undefined): boolean
 export function planIdFromStripePriceId(priceId: string): BillingPlanId | null {
   const config = useRuntimeConfig()
   const testPriceId = getStripeTestPaymentPriceId()
+  // Shared test price is used for every plan — never infer plan from it
   if (testPriceId && priceId === testPriceId) {
-    return 'solo'
+    return null
   }
 
   const entries: Array<[BillingPlanId, string]> = [
@@ -86,4 +87,19 @@ export function planIdFromStripePriceId(priceId: string): BillingPlanId | null {
   ]
   const match = entries.find(([, id]) => String(id || '').trim() === priceId)
   return match?.[0] ?? null
+}
+
+/** Resolve the billing plan from subscription metadata and/or Stripe price. */
+export function resolvePlanFromSubscription(params: {
+  priceId?: string | null
+  metadataPlan?: string | null
+}): BillingPlanId | null {
+  const metaPlan = String(params.metadataPlan || '').trim()
+  if (getBillingPlan(metaPlan)) return metaPlan as BillingPlanId
+
+  if (params.priceId) {
+    return planIdFromStripePriceId(params.priceId)
+  }
+
+  return null
 }

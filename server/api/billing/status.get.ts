@@ -36,8 +36,10 @@ export default defineEventHandler(async (event) => {
 
   const organisation = membership.organisation
   const verifiedClaims = countVerifiedClaims(organisation.claims)
-  const plan = getBillingPlan(organisation.plan)
   const hasPro = organisationHasProAccess(organisation)
+  // Fall back to Solo when subscription is active but plan sync left "none"
+  const plan = getBillingPlan(organisation.plan)
+    || (hasPro ? getBillingPlan('solo') : null)
 
   return {
     hasOrganisation: true,
@@ -46,7 +48,7 @@ export default defineEventHandler(async (event) => {
     organisation: {
       id: organisation.id,
       name: organisation.name,
-      plan: organisation.plan,
+      plan: plan?.id || organisation.plan,
       planLabel: plan?.label ?? null,
       pubLimit: plan?.pubLimit ?? 0,
       subscriptionStatus: organisation.subscriptionStatus,

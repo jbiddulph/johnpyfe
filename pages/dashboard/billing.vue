@@ -48,6 +48,15 @@
     />
 
     <UAlert
+      v-if="upgradeMessage"
+      color="green"
+      variant="soft"
+      title="Plan updated"
+      :description="upgradeMessage"
+      class="mb-6"
+    />
+
+    <UAlert
       v-if="status && !status.hasOrganisation"
       color="primary"
       variant="soft"
@@ -120,6 +129,7 @@ const { isLoggedIn, initializeAuth } = useAuth()
 
 const loading = ref(true)
 const errorMessage = ref('')
+const upgradeMessage = ref('')
 const checkoutPlan = ref('')
 const portalLoading = ref(false)
 const syncing = ref(false)
@@ -169,14 +179,26 @@ async function loadStatus() {
 async function startCheckout(planId: string) {
   checkoutPlan.value = planId
   errorMessage.value = ''
+  upgradeMessage.value = ''
   try {
-    const { url } = await useAuthFetch<{ url: string | null }>('/api/billing/checkout', {
+    const result = await useAuthFetch<{
+      url: string | null
+      upgraded?: boolean
+      message?: string
+    }>('/api/billing/checkout', {
       method: 'POST',
       body: { plan: planId },
     })
-    if (url) {
-      window.location.href = url
+    if (result.upgraded) {
+      upgradeMessage.value = result.message || 'Plan updated successfully.'
+      await loadStatus()
+      return
     }
+    if (result.url) {
+      window.location.href = result.url
+      return
+    }
+    errorMessage.value = 'Checkout did not return a payment URL. Try Refresh subscription, then choose a plan again.'
   } catch (error: unknown) {
     errorMessage.value = fetchErrorMessage(error, 'Checkout failed')
   } finally {
