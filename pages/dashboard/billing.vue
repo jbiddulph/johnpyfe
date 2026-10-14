@@ -200,7 +200,10 @@ async function startCheckout(planId: string) {
     }
     errorMessage.value = 'Checkout did not return a payment URL. Try Refresh subscription, then choose a plan again.'
   } catch (error: unknown) {
-    errorMessage.value = fetchErrorMessage(error, 'Checkout failed')
+    const raw = fetchErrorMessage(error, 'Checkout failed')
+    errorMessage.value = /^not found$/i.test(raw.trim())
+      ? 'Stripe could not find the subscription or price for this account. Click Refresh subscription, then choose the plan again. If it still fails, the Stripe price IDs may not match your API key mode (test vs live).'
+      : raw
   } finally {
     checkoutPlan.value = ''
   }
