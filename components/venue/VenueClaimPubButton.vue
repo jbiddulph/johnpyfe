@@ -63,15 +63,34 @@
             loading
             disabled
           />
-          <UButton
-            v-else-if="isLoggedIn"
-            color="primary"
-            size="lg"
-            label="Claim this venue"
-            icon="i-heroicons-building-storefront-20-solid"
-            :loading="claiming"
-            @click="requestClaim"
-          />
+          <template v-else-if="isLoggedIn">
+            <UButton
+              v-if="!billingLoaded"
+              color="primary"
+              size="lg"
+              label="Checking plan…"
+              icon="i-heroicons-building-storefront-20-solid"
+              loading
+              disabled
+            />
+            <UButton
+              v-else-if="billingStatus && !billingStatus.canClaimMore"
+              color="amber"
+              size="lg"
+              label="Upgrade plan to claim"
+              icon="i-heroicons-arrow-trending-up-20-solid"
+              to="/dashboard/billing"
+            />
+            <UButton
+              v-else
+              color="primary"
+              size="lg"
+              label="Claim this venue"
+              icon="i-heroicons-building-storefront-20-solid"
+              :loading="claiming"
+              @click="requestClaim"
+            />
+          </template>
           <UButton
             v-else
             color="primary"
@@ -105,6 +124,10 @@
         Sign in
       </NuxtLink>
     </p>
+    <p v-else-if="billingStatus && !billingStatus.canClaimMore" class="mt-3 text-sm text-amber-700 dark:text-amber-400">
+      You've claimed {{ billingStatus.verifiedCount }} of {{ billingStatus.pubLimit }} pubs on your {{ billingStatus.planName }} plan.
+      <NuxtLink to="/dashboard/billing" class="underline font-medium">Upgrade to claim more</NuxtLink>
+    </p>
   </section>
 </template>
 
@@ -125,6 +148,13 @@ const ownerAccess = ref<{
   canEdit: boolean
   needsSubscription: boolean
 } | null>(null)
+const billingStatus = ref<{
+  canClaimMore: boolean
+  verifiedCount: number
+  pubLimit: number
+  planName: string
+} | null>(null)
+const billingLoaded = ref(false)
 const claiming = ref(false)
 const message = ref('')
 const messageIsError = ref(false)
@@ -146,26 +176,50 @@ async function loadClaimStatus() {
 
 async function loadOwnerAccess() {
   ownerAccess.value = null
-  if (!isLoggedIn.value) return
+  billingStatus.value = null
+  billingLoaded.value = false
+  if (!isLoggedIn.value) {
+    billingLoaded.value = true
+    return
+  }
 
   try {
     const status = await useAuthFetch<{
-      organisation?: { hasProAccess: boolean }
+      organisation?: {
+        hasProAccess: boolean
+        plan?: string
+        planLabel?: string
+        pubLimit?: number
+        verifiedClaimCount?: number
+        canClaimMore?: boolean
+      }
       claims?: Array<{ venueId: number; status: string }>
     }>('/api/billing/status')
 
     const claim = status.claims?.find(
       (item) => item.venueId === props.venueId && item.status === 'verified',
     )
-    if (!claim) return
+    if (claim) {
+      ownerAccess.value = {
+        isOwner: true,
+        canEdit: Boolean(status.organisation?.hasProAccess),
+        needsSubscription: !status.organisation?.hasProAccess,
+      }
+    }
 
-    ownerAccess.value = {
-      isOwner: true,
-      canEdit: Boolean(status.organisation?.hasProAccess),
-      needsSubscription: !status.organisation?.hasProAccess,
+    if (status.organisation?.hasProAccess) {
+      billingStatus.value = {
+        canClaimMore: status.organisation?.canClaimMore ?? true,
+        verifiedCount: status.organisation?.verifiedClaimCount || 0,
+        pubLimit: status.organisation?.pubLimit || 0,
+        planName: status.organisation?.planLabel || status.organisation?.plan || 'Unknown',
+      }
     }
   } catch {
     ownerAccess.value = null
+    billingStatus.value = null
+  } finally {
+    billingLoaded.value = true
   }
 }
 
@@ -207,8 +261,10 @@ async function requestClaim() {
     } else if (status === 402) {
       showBillingLink.value = true
       message.value = fetchErrorMessage(error, 'Your plan pub limit has been reached — upgrade to claim more')
+      await loadOwnerAccess()
     } else {
       message.value = fetchErrorMessage(error, 'Could not submit claim')
+      await loadOwnerAccess()
     }
   } finally {
     claiming.value = false

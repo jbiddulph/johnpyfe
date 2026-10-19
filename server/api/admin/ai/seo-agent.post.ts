@@ -1,14 +1,12 @@
 import { requireAdmin } from '../../../utils/require-admin'
-import { billingSiteUrl } from '../../../utils/billing-site-url'
-import { getLiveSeoRun, nextSeoRunLimit, stopSeoRuns } from '../../../utils/ai/seo-agent'
+import { getLiveSeoRun, nextSeoRunLimit, runDailySeoAgent, stopSeoRuns } from '../../../utils/ai/seo-agent'
 
+/**
+ * Start or stop a manual SEO agent batch. Work runs in-process (no Netlify
+ * scheduled/background SEO functions).
+ */
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
-
-  const secret = process.env.AI_SEO_CRON_SECRET
-  if (!secret) {
-    throw createError({ statusCode: 503, statusMessage: 'AI_SEO_CRON_SECRET is not configured' })
-  }
 
   const body = await readBody(event).catch(() => ({}))
   if (String(body?.action || '') === 'stop') {
@@ -33,21 +31,19 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const response = await fetch(new URL('/api/ai/daily-seo-background', billingSiteUrl(event)), {
-    method: 'POST',
-    headers: {
-      'x-ai-seo-cron-secret': secret,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({ limit }),
+  void (async () => {
+    let runId: string | undefined
+    let remaining = limit
+    for (;;) {
+      const result = await runDailySeoAgent(remaining, { runId })
+      if ('skipped' in result && result.skipped) break
+      if (!result.shouldContinue || result.status !== 'running') break
+      runId = result.id
+      remaining = result.requestedLimit
+    }
+  })().catch((error) => {
+    console.error('[seo-agent] manual run failed', (error as Error).message)
   })
-
-  if (!response.ok && response.status !== 202) {
-    throw createError({
-      statusCode: 502,
-      statusMessage: `Failed to start SEO background worker: ${response.status}`,
-    })
-  }
 
   return {
     started: true,

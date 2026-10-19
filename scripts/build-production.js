@@ -27,12 +27,21 @@ USER_NAME=John Biddulph
 }
 
 try {
+  execSync('node scripts/write-gsc-credentials.mjs', { stdio: 'inherit' })
+
   console.log('🔧 Generating Prisma client...')
   execSync('npx prisma@6.0.1 generate', { stdio: 'inherit' })
   
   console.log('\n📦 Building Nuxt application...')
   execSync('npx nuxt build', { stdio: 'inherit' })
   
+  // v2 functions don't support On-demand Builders; ISR is handled via durable cache headers instead
+  const redirectsPath = 'dist/_redirects'
+  if (fs.existsSync(redirectsPath)) {
+    const redirects = fs.readFileSync(redirectsPath, 'utf8')
+    fs.writeFileSync(redirectsPath, redirects.replaceAll('/.netlify/builders/server', '/.netlify/functions/server'))
+  }
+
   console.log('\n✅ Build completed successfully!')
   console.log('📊 Build artifacts are in .output/ directory')
   
