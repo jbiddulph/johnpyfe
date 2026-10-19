@@ -24,11 +24,15 @@ export const useAuth = () => {
     return profileSyncInFlight;
   };
 
-  // Initialize authentication state (only once)
+  // Initialize authentication state (only once on the client)
   const initializeAuth = async () => {
     if (isInitialized.value) return;
 
+    // Supabase is a client plugin — never mark initialized without it,
+    // or a premature call would leave guests unable to detect a real session.
     if (!$supabase?.auth) {
+      if (import.meta.server) return;
+      console.warn('Supabase auth unavailable; skipping auth init');
       isInitialized.value = true;
       return;
     }
@@ -42,6 +46,8 @@ export const useAuth = () => {
     if (session?.user) {
       user.value = session.user;
       void syncUkpubsProfile();
+    } else {
+      user.value = null;
     }
 
     // Listen for auth changes

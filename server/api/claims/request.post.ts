@@ -4,7 +4,6 @@ import {
   countVerifiedClaims,
   getMembershipForUser,
   getOrCreateOrganisationForUser,
-  organisationHasProAccess,
 } from '../../utils/organisation-access'
 import { requireAuth } from '../../utils/require-auth'
 
@@ -34,10 +33,9 @@ export default defineEventHandler(async (event) => {
 
   const membership = await getMembershipForUser(user.id)
   const verifiedCount = membership ? countVerifiedClaims(membership.organisation.claims) : 0
-  if (
-    organisationHasProAccess(organisation)
-    && !canClaimMorePubs(organisation, verifiedCount)
-  ) {
+  // Only enforce plan limits for subscribed orgs with a known plan that is full.
+  // Guests never reach this handler (requireAuth). Free accounts can always request a claim.
+  if (!canClaimMorePubs(organisation, verifiedCount)) {
     throw createError({
       statusCode: 402,
       statusMessage: 'Your plan pub limit has been reached — open Billing and choose a higher plan, then try again',

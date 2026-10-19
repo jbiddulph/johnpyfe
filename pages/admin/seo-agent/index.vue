@@ -5,7 +5,7 @@
       <div class="flex flex-col gap-2">
         <h1 class="text-4xl font-bold">SEO Agent</h1>
         <p class="text-gray-600 dark:text-gray-300">
-          Each worker is capped at {{ agentStatus?.schedule.listingsPerWorker || 100 }} listings so it can finish inside Netlify’s time limit. Daily cron is at 03:00 UTC when enabled — use Run now for a manual batch (daily cap {{ agentStatus?.schedule.dailyLimit || 500 }}).
+          Each worker is capped at {{ agentStatus?.schedule.listingsPerWorker || 100 }} listings. Scheduled SEO cron is off — use Run now for a manual batch (daily cap {{ agentStatus?.schedule.dailyLimit || 500 }}).
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
@@ -45,9 +45,7 @@
       >
         <p class="font-semibold">Scheduled SEO cron is off</p>
         <p class="mt-1 text-sm">
-          Nightly listing SEO jobs are not running. Use <strong>Run now</strong> below when you want a batch.
-          To turn automatic runs on, set <code>AI_SEO_CRON_ENABLED=true</code> and
-          <code>AI_SEO_CRON_SECRET</code> in Netlify (runs daily at 03:00 UTC).
+          Nightly listing SEO jobs are disabled. Use <strong>Run now</strong> below when you want a batch.
         </p>
         <p class="mt-2 text-sm">
           <strong>Low-cost tip:</strong> keep <code>OPENAI_SEO_MODEL=gpt-5-mini</code>, set

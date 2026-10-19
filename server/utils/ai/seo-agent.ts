@@ -38,17 +38,17 @@ export const SEO_AGENT_WORKER_TIME_BUDGET_MS = 12 * 60 * 1000
 /** Treat leftover running rows as dead if they have not written progress within this window. */
 export const SEO_AGENT_STALE_RUN_MS = 20 * 60 * 1000
 /**
- * Netlify schedule on daily-seo-agent.mts (03:00 UTC). The function still no-ops
- * unless AI_SEO_CRON_ENABLED=true.
+ * Formerly used by the Netlify scheduled daily-seo-agent function (removed).
+ * Kept for admin UI copy / status payloads only — cron is permanently off.
  */
 export const SEO_AGENT_CRON = '0 3 * * *'
 export const SEO_AGENT_CRON_UTC_HOURS = '03:00'
 export const SEO_AGENT_CRON_UK_SUMMER = '04:00'
 export const SEO_AGENT_CRON_UK_WINTER = '03:00'
 
-/** Scheduled SEO jobs stay off until this env var is explicitly set to "true". */
+/** Scheduled SEO Netlify functions were removed; always false. */
 export function isSeoCronEnabled() {
-  return String(process.env.AI_SEO_CRON_ENABLED || '').trim().toLowerCase() === 'true'
+  return false
 }
 
 export function parseSeoAgentDailyLimit(value: unknown = process.env.AI_SEO_DAILY_LIMIT) {
