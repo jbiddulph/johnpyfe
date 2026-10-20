@@ -48,19 +48,28 @@ export function organisationHasProAccess(organisation: Organisation): boolean {
   return isSubscriptionActive(organisation.subscriptionStatus)
 }
 
+export type ClaimBlockReason = 'subscription_required' | 'plan_limit'
+
 /**
- * Whether the organisation may claim another pub.
- * Free / unsubscribed orgs can always request a claim.
- * Paid orgs are limited by their plan's pubLimit (verified claims only).
+ * Why the organisation cannot claim another pub right now, or null if it can.
+ * Claiming requires an active Stripe subscription (plans start at Solo, £4.99/month);
+ * paid orgs are then limited by their plan's pubLimit (verified claims only).
  * An active subscription with an unknown plan must not be treated as "at limit".
  */
-export function canClaimMorePubs(organisation: Organisation, verifiedClaimCount: number): boolean {
-  // Free / unsubscribed orgs can always request a claim (limit applies after subscribe).
-  if (!organisationHasProAccess(organisation)) return true
+export function claimBlockReason(
+  organisation: Organisation,
+  verifiedClaimCount: number,
+): ClaimBlockReason | null {
+  if (!organisationHasProAccess(organisation)) return 'subscription_required'
   // Fall back to Solo if plan sync left plan as "none" but subscription is active
   const plan = getBillingPlan(organisation.plan) || getBillingPlan('solo')
-  if (!plan) return true
-  return verifiedClaimCount < plan.pubLimit
+  if (!plan) return null
+  return verifiedClaimCount < plan.pubLimit ? null : 'plan_limit'
+}
+
+/** Whether the organisation may claim another pub (subscribed and under its plan limit). */
+export function canClaimMorePubs(organisation: Organisation, verifiedClaimCount: number): boolean {
+  return claimBlockReason(organisation, verifiedClaimCount) === null
 }
 
 export async function requireVerifiedClaimAccess(userId: string, venueId: number) {

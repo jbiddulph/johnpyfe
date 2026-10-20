@@ -5,7 +5,7 @@ import {
   isStripeTestMode,
 } from '../../utils/billing-plans'
 import {
-  canClaimMorePubs,
+  claimBlockReason,
   countVerifiedClaims,
   getMembershipForUser,
   organisationHasProAccess,
@@ -40,6 +40,7 @@ export default defineEventHandler(async (event) => {
   // Fall back to Solo when subscription is active but plan sync left "none"
   const plan = getBillingPlan(organisation.plan)
     || (hasPro ? getBillingPlan('solo') : null)
+  const blockReason = claimBlockReason(organisation, verifiedClaims)
 
   return {
     hasOrganisation: true,
@@ -54,7 +55,8 @@ export default defineEventHandler(async (event) => {
       subscriptionStatus: organisation.subscriptionStatus,
       currentPeriodEnd: organisation.currentPeriodEnd,
       verifiedClaimCount: verifiedClaims,
-      canClaimMore: canClaimMorePubs(organisation, verifiedClaims),
+      canClaimMore: blockReason === null,
+      claimBlockReason: blockReason,
       hasProAccess: hasPro,
       recommendedPlan: recommendedPlanForPubCount(Math.max(verifiedClaims, 1)),
     },

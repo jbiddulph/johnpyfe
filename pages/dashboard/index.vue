@@ -37,8 +37,8 @@
       <section class="mb-8 rounded-lg border border-gray-200 p-5 dark:border-gray-700">
         <h2 class="text-2xl font-bold mb-3">Subscription</h2>
         <p v-if="!status.organisation?.hasProAccess" class="text-gray-600 mb-4">
-          Subscribe to unlock logo, photos, menus, and verified branding on your pub pages.
-          Billing is monthly, anchored to the 1st of each month.
+          An active subscription is required to claim a pub and unlock logo, photos, menus, and verified branding on your pub pages.
+          Plans start at £{{ cheapestPlanGbp }}/month. Billing is monthly, anchored to the 1st of each month.
         </p>
         <dl v-if="status.organisation" class="grid gap-2 text-sm sm:grid-cols-2 mb-4">
           <div><dt class="font-medium">Plan</dt><dd>{{ status.organisation.planLabel || 'None' }}</dd></div>
@@ -61,7 +61,14 @@
       <section>
         <h2 class="text-2xl font-bold mb-4">Your claims</h2>
         <p v-if="!status.claims?.length" class="text-gray-600">
-          No claims yet. Open a venue page and click <strong>Claim this venue</strong>.
+          No claims yet.
+          <template v-if="status.organisation?.hasProAccess">
+            Open a venue page and click <strong>Claim this venue</strong>.
+          </template>
+          <template v-else>
+            <NuxtLink to="/dashboard/billing" class="text-primary-600 hover:underline">Choose a plan</NuxtLink>
+            first, then open a venue page and click <strong>Claim this venue</strong>.
+          </template>
         </p>
         <ul v-else class="space-y-3 list-none p-0 m-0">
           <li
@@ -116,7 +123,14 @@ const status = ref<{
     status: string
     venue: { id: number; venuename: string; slug: string; town: string }
   }>
+  plans?: Array<{ id: string; monthlyGbp: number }>
 } | null>(null)
+
+const cheapestPlanGbp = computed(() => {
+  const prices = (status.value?.plans ?? []).map((plan) => plan.monthlyGbp)
+  const min = prices.length ? Math.min(...prices) : 4.99
+  return Number.isInteger(min) ? String(min) : min.toFixed(2)
+})
 
 const breadcrumbItems = [
   { label: 'Home', to: '/' },

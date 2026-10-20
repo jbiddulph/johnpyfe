@@ -24,7 +24,7 @@
             A claim is pending verification. We will confirm ownership before the listing is marked as claimed.
           </template>
           <template v-else>
-            Claim this venue to verify ownership, then subscribe to add your logo, photos, menus, and events.
+            Subscribe from £{{ cheapestPlanGbp }}/month, then claim this venue. We verify ownership before you can add your logo, photos, menus, and events.
           </template>
         </p>
       </div>
@@ -74,12 +74,20 @@
               disabled
             />
             <UButton
+              v-else-if="needsSubscriptionToClaim"
+              color="primary"
+              size="lg"
+              label="Subscribe to claim"
+              icon="i-heroicons-credit-card-20-solid"
+              :to="billingRedirect"
+            />
+            <UButton
               v-else-if="billingStatus && !billingStatus.canClaimMore"
               color="amber"
               size="lg"
               label="Upgrade plan to claim"
               icon="i-heroicons-arrow-trending-up-20-solid"
-              to="/dashboard/billing"
+              :to="billingRedirect"
             />
             <UButton
               v-else
@@ -111,7 +119,7 @@
       {{ message }}
       <NuxtLink
         v-if="messageIsError && showBillingLink"
-        to="/dashboard/billing"
+        :to="billingRedirect"
         class="ml-1 font-medium underline"
       >
         View billing plans
@@ -124,9 +132,13 @@
         Sign in
       </NuxtLink>
     </p>
-    <p v-else-if="billingStatus && !billingStatus.canClaimMore" class="mt-3 text-sm text-amber-700 dark:text-amber-400">
+    <p v-else-if="!claimStatus?.claimed && needsSubscriptionToClaim" class="mt-3 text-sm text-gray-700 dark:text-gray-300">
+      Claiming requires an active subscription. Plans start at £{{ cheapestPlanGbp }}/month for one pub and renew on the 1st of each month.
+      <NuxtLink :to="billingRedirect" class="underline font-medium">Choose a plan</NuxtLink>
+    </p>
+    <p v-else-if="!claimStatus?.claimed && billingStatus && !billingStatus.canClaimMore" class="mt-3 text-sm text-amber-700 dark:text-amber-400">
       You've claimed {{ billingStatus.verifiedCount }} of {{ billingStatus.pubLimit }} pubs on your {{ billingStatus.planName }} plan.
-      <NuxtLink to="/dashboard/billing" class="underline font-medium">Upgrade to claim more</NuxtLink>
+      <NuxtLink :to="billingRedirect" class="underline font-medium">Upgrade to claim more</NuxtLink>
     </p>
   </section>
 </template>
@@ -155,6 +167,8 @@ const billingStatus = ref<{
   planName: string
 } | null>(null)
 const billingLoaded = ref(false)
+const hasProAccess = ref(false)
+const cheapestPlanGbp = ref('4.99')
 const claiming = ref(false)
 const message = ref('')
 const messageIsError = ref(false)
@@ -165,6 +179,20 @@ const loginRedirect = computed(() => ({
   path: '/login',
   query: { redirect: route.fullPath },
 }))
+
+// Billing keeps the venue id so it can send the owner straight back here after Stripe Checkout
+const billingRedirect = computed(() => ({
+  path: '/dashboard/billing',
+  query: { claim: String(props.venueId) },
+}))
+
+const needsSubscriptionToClaim = computed(
+  () => isLoggedIn.value && billingLoaded.value && !hasProAccess.value,
+)
+
+function formatGbp(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2)
+}
 
 async function loadClaimStatus() {
   try {
@@ -177,6 +205,7 @@ async function loadClaimStatus() {
 async function loadOwnerAccess() {
   ownerAccess.value = null
   billingStatus.value = null
+  hasProAccess.value = false
   billingLoaded.value = false
   if (!isLoggedIn.value) {
     billingLoaded.value = true
@@ -194,7 +223,18 @@ async function loadOwnerAccess() {
         canClaimMore?: boolean
       }
       claims?: Array<{ venueId: number; status: string }>
+      plans?: Array<{ monthlyGbp: number }>
     }>('/api/billing/status')
+
+    const cheapest = status.plans?.reduce<number | null>(
+      (min, plan) => (min === null || plan.monthlyGbp < min ? plan.monthlyGbp : min),
+      null,
+    )
+    if (cheapest !== null && cheapest !== undefined) {
+      cheapestPlanGbp.value = formatGbp(cheapest)
+    }
+
+    hasProAccess.value = Boolean(status.organisation?.hasProAccess)
 
     const claim = status.claims?.find(
       (item) => item.venueId === props.venueId && item.status === 'verified',
@@ -218,6 +258,7 @@ async function loadOwnerAccess() {
   } catch {
     ownerAccess.value = null
     billingStatus.value = null
+    hasProAccess.value = false
   } finally {
     billingLoaded.value = true
   }
@@ -260,7 +301,7 @@ async function requestClaim() {
       message.value = 'Please sign in to claim this venue.'
     } else if (status === 402) {
       showBillingLink.value = true
-      message.value = fetchErrorMessage(error, 'Your plan pub limit has been reached — upgrade to claim more')
+      message.value = fetchErrorMessage(error, 'An active subscription is required to claim a venue — choose a plan in Billing')
       await loadOwnerAccess()
     } else {
       message.value = fetchErrorMessage(error, 'Could not submit claim')

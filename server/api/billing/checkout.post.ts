@@ -84,6 +84,9 @@ export default defineEventHandler(async (event) => {
   if (!plan) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid subscription plan' })
   }
+  // Optional: venue the user was trying to claim, so Billing can send them back after payment
+  const claimVenueId = Number.parseInt(String(body?.claimVenueId ?? ''), 10)
+  const claimQuery = Number.isFinite(claimVenueId) && claimVenueId > 0 ? `&claim=${claimVenueId}` : ''
 
   let membership = await getMembershipForUser(user.id)
   if (!membership) {
@@ -183,8 +186,8 @@ export default defineEventHandler(async (event) => {
       customer: customerId,
       client_reference_id: organisation.id,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${siteUrl}/dashboard/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/dashboard/billing?checkout=canceled`,
+      success_url: `${siteUrl}/dashboard/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}${claimQuery}`,
+      cancel_url: `${siteUrl}/dashboard/billing?checkout=canceled${claimQuery}`,
       metadata: {
         organisationId: organisation.id,
         plan: planId,
