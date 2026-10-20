@@ -1,7 +1,7 @@
 import { deleteClaimAndRelatedRecords } from '../../../utils/claim-cleanup'
 import { prisma } from '../../../utils/prisma'
 import {
-  canClaimMorePubs,
+  claimBlockReason,
   countVerifiedClaims,
 } from '../../../utils/organisation-access'
 import { requireAdmin } from '../../../utils/require-admin'
@@ -37,7 +37,14 @@ export default defineEventHandler(async (event) => {
     const verifiedCount = countVerifiedClaims(
       claim.organisation.claims.filter((item) => item.id !== claim.id),
     )
-    if (!canClaimMorePubs(claim.organisation, verifiedCount)) {
+    const blockReason = claimBlockReason(claim.organisation, verifiedCount)
+    if (blockReason === 'subscription_required') {
+      throw createError({
+        statusCode: 402,
+        statusMessage: 'Organisation has no active subscription — the owner must subscribe before this claim can be verified',
+      })
+    }
+    if (blockReason === 'plan_limit') {
       throw createError({
         statusCode: 402,
         statusMessage: 'Organisation has reached its plan pub limit',

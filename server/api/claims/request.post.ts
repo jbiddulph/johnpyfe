@@ -1,11 +1,13 @@
 import { prisma } from '../../utils/prisma'
 import {
-  canClaimMorePubs,
+  claimBlockReason,
   countVerifiedClaims,
   getMembershipForUser,
-  getOrCreateOrganisationForUser,
 } from '../../utils/organisation-access'
 import { requireAuth } from '../../utils/require-auth'
+
+const SUBSCRIPTION_REQUIRED_MESSAGE
+  = 'An active subscription is required before you can claim a venue — choose a plan in Billing (from £4.99/month), then try again'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
@@ -28,17 +30,33 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'This pub has already been claimed' })
   }
 
-  const displayName = String(user.user_metadata?.name || user.email?.split('@')[0] || 'My pubs')
-  const organisation = await getOrCreateOrganisationForUser(user.id, displayName)
-
+  // Claiming is a paid feature: the user must subscribe (via /dashboard/billing → Stripe)
+  // before a claim can be requested. Checkout creates the organisation, so no membership
+  // means no subscription yet — bail out without creating an empty organisation.
   const membership = await getMembershipForUser(user.id)
-  const verifiedCount = membership ? countVerifiedClaims(membership.organisation.claims) : 0
-  // Only enforce plan limits for subscribed orgs with a known plan that is full.
-  // Guests never reach this handler (requireAuth). Free accounts can always request a claim.
-  if (!canClaimMorePubs(organisation, verifiedCount)) {
+  if (!membership) {
+    throw createError({
+      statusCode: 402,
+      statusMessage: SUBSCRIPTION_REQUIRED_MESSAGE,
+      data: { reason: 'subscription_required' },
+    })
+  }
+
+  const organisation = membership.organisation
+  const verifiedCount = countVerifiedClaims(organisation.claims)
+  const blockReason = claimBlockReason(organisation, verifiedCount)
+  if (blockReason === 'subscription_required') {
+    throw createError({
+      statusCode: 402,
+      statusMessage: SUBSCRIPTION_REQUIRED_MESSAGE,
+      data: { reason: blockReason },
+    })
+  }
+  if (blockReason === 'plan_limit') {
     throw createError({
       statusCode: 402,
       statusMessage: 'Your plan pub limit has been reached — open Billing and choose a higher plan, then try again',
+      data: { reason: blockReason },
     })
   }
 

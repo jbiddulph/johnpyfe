@@ -11,7 +11,31 @@
       color="green"
       variant="soft"
       title="Payment received"
-      :description="confirmingSession ? 'Activating your subscription…' : 'Your subscription is active. You can edit your verified venues from the dashboard.'"
+      :description="confirmingSession
+        ? 'Activating your subscription…'
+        : claimVenueId
+          ? 'Your subscription is active. Head back to the venue page to claim it.'
+          : 'Your subscription is active. Open a venue page and click Claim this venue to get started.'"
+      class="mb-6"
+    >
+      <template v-if="claimVenueId && !confirmingSession && status?.organisation?.hasProAccess" #description>
+        Your subscription is active. Head back to the venue page to claim it.
+        <UButton
+          class="mt-3"
+          color="green"
+          label="Claim your venue"
+          icon="i-heroicons-building-storefront-20-solid"
+          :to="claimVenuePath"
+        />
+      </template>
+    </UAlert>
+
+    <UAlert
+      v-else-if="claimVenueId && status && !status.organisation?.hasProAccess"
+      color="primary"
+      variant="soft"
+      title="Subscribe to claim your venue"
+      description="Claiming a venue requires an active subscription. Choose a plan below — after payment you will be sent back to the venue page to finish your claim."
       class="mb-6"
     />
 
@@ -57,11 +81,11 @@
     />
 
     <UAlert
-      v-if="status && !status.hasOrganisation"
+      v-if="status && !status.hasOrganisation && !claimVenueId"
       color="primary"
       variant="soft"
-      title="Claim a venue when you are ready"
-      description="You can subscribe now. After payment, claim a venue from its page and we will verify ownership before editing goes live."
+      title="Subscribe first, then claim your venue"
+      description="Claiming a venue requires an active subscription. Subscribe below, then open your venue's page and click Claim this venue — we verify ownership before editing goes live."
       class="mb-6"
     />
 
@@ -156,6 +180,16 @@ const breadcrumbItems = [
   { label: 'Billing' },
 ]
 
+// Venue the user was trying to claim (from the venue page's "Subscribe to claim" button)
+const claimVenueId = computed(() => {
+  const id = Number.parseInt(String(route.query.claim ?? ''), 10)
+  return Number.isFinite(id) && id > 0 ? id : null
+})
+// The venue page 301s to the canonical slug, so any placeholder slug works here
+const claimVenuePath = computed(() =>
+  claimVenueId.value ? venuePath(claimVenueId.value, 'venue') : '/',
+)
+
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 }
@@ -187,11 +221,14 @@ async function startCheckout(planId: string) {
       message?: string
     }>('/api/billing/checkout', {
       method: 'POST',
-      body: { plan: planId },
+      body: { plan: planId, claimVenueId: claimVenueId.value ?? undefined },
     })
     if (result.upgraded) {
       upgradeMessage.value = result.message || 'Plan updated successfully.'
       await loadStatus()
+      if (claimVenueId.value) {
+        await navigateTo(claimVenuePath.value)
+      }
       return
     }
     if (result.url) {
