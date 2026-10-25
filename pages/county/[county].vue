@@ -19,6 +19,8 @@
         :county-slug="countySlug"
         :towns="countyTowns"
         :map-venues="mapVenues"
+        :venue-count="initialVenueTotal"
+        @map-visible="loadMapVenues"
       />
       <TownVenueList
         :town-name="countyDisplayName"
@@ -76,13 +78,15 @@ const { data: countyVenuesData } = await useAsyncData(
   { default: () => ({ items: [], total: 0, totalPages: 1 }) },
 )
 
-const { data: mapVenuesData } = await useAsyncData(
+// Map pins are client-only and fetched when the map scrolls into view: embedding up to
+// 500 full venue rows in the SSR payload was the largest part of every hub page.
+const { data: mapVenuesData, execute: loadMapVenues } = useAsyncData(
   `county-map-venues-${countySlug}`,
   () =>
-    requestFetch(
-      `/api/venues/county?slug=${encodeURIComponent(countySlug)}&skip=0&take=500&all=1`,
+    $fetch(
+      `/api/venues/county?slug=${encodeURIComponent(countySlug)}&skip=0&take=500&all=1&fields=map`,
     ),
-  { default: () => ({ items: [] }) },
+  { server: false, immediate: false, default: () => ({ items: [] }) },
 )
 
 const initialVenueItems = computed(() => countyVenuesData.value?.items ?? [])
@@ -104,7 +108,7 @@ const seoKeywords = computed(() => countySeoKeywords(countyDisplayName.value))
 
 const seoIntro = useSiteSeoIntro('county', () => ({
   county: countyDisplayName.value,
-  venueCount: mapVenues.value.length || '',
+  venueCount: initialVenueTotal.value || '',
   townCount: countyTowns.value.length || '',
 }))
 
@@ -117,7 +121,7 @@ useSiteSeo(() => ({
     key: 'county',
     vars: {
       county: countyDisplayName.value,
-      venueCount: mapVenues.value.length || '',
+      venueCount: initialVenueTotal.value || '',
       townCount: countyTowns.value.length || '',
     },
   },

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <PlaceHeaderMap :place-name="townName" :venues="mapVenues" />
+    <PlaceHeaderMap :place-name="townName" :venues="mapVenues" @visible="loadMapVenues" />
     <div class="container mx-auto p-4 my-8">
       <Breadcrumbs :items="breadcrumbItems" />
       <h1 class="text-4xl font-bold mt-6 mb-2">{{ townName }}</h1>
@@ -115,13 +115,15 @@ const { data: townVenuesData } = await useAsyncData(
   { default: () => ({ items: [], total: 0, totalPages: 1 }) },
 )
 
-const { data: mapVenuesData } = await useAsyncData(
+// Map pins are client-only and fetched when the map scrolls into view: embedding up to
+// 500 full venue rows in the SSR payload was the largest part of every hub page.
+const { data: mapVenuesData, execute: loadMapVenues } = useAsyncData(
   `town-map-venues-${townSlug}`,
   () =>
-    requestFetch(
-      `/api/venues/town?town=${encodeURIComponent(resolvedTownName)}&skip=0&take=500&all=1`,
+    $fetch(
+      `/api/venues/town?town=${encodeURIComponent(resolvedTownName)}&skip=0&take=500&all=1&fields=map`,
     ),
-  { default: () => ({ items: [] }) },
+  { server: false, immediate: false, default: () => ({ items: [] }) },
 )
 
 const venueList = ref(townVenuesData.value?.items ?? [])
