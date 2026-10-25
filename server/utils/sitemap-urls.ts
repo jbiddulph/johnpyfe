@@ -41,26 +41,27 @@ async function buildSitemapUrls(now: Date) {
     take: 40000,
   })
 
+  // ~50k venue pages rarely change; advertising weekly/daily here invites crawlers to
+  // re-fetch the whole site constantly, which is the largest bandwidth cost.
   const venueUrls = venues.map((venue) => ({
     loc: `/venues/${venue.id}/${venue.slug}`,
     lastmod: safeLastmod(venue.updated_at, now),
-    changefreq: 'weekly' as const,
+    changefreq: 'monthly' as const,
     priority: 0.7,
   }))
 
+  // Hubs have no real modified date; omitting lastmod is better than claiming "now" on every build.
   const townHubs = await listTownSlugs()
   const townUrls = townHubs.map((town) => ({
     loc: `/town/${town.slug}`,
-    lastmod: now,
-    changefreq: 'daily' as const,
+    changefreq: 'weekly' as const,
     priority: 0.75,
   }))
 
   const countyHubs = await listCountySlugs()
   const countyUrls = countyHubs.map((county) => ({
     loc: `/county/${county.slug}`,
-    lastmod: now,
-    changefreq: 'weekly' as const,
+    changefreq: 'monthly' as const,
     priority: 0.72,
   }))
 
@@ -74,7 +75,7 @@ async function buildSitemapUrls(now: Date) {
   const eventUrls = events.map((event) => ({
     loc: `/events/${event.id}`,
     lastmod: safeLastmod(event.created_at, now),
-    changefreq: 'daily' as const,
+    changefreq: 'weekly' as const,
     priority: 0.65,
   }))
 
