@@ -10,16 +10,19 @@
         :alt="venuePhotoAlt"
       />
       <div v-else class="w-full max-h-[480px] overflow-hidden bg-gray-200 dark:bg-gray-700">
-        <img
+        <!-- Local photos (incl. the shared default hero) go through the image CDN for
+             AVIF/WebP + responsive widths; hotlinked photos are served as-is. -->
+        <OptimizedImg
           :src="venuePhotoSrc"
           :alt="venuePhotoAlt"
           :title="venuePhotoAlt"
           width="1200"
           height="480"
+          sizes="xs:100vw sm:100vw md:100vw lg:100vw xl:1280px"
           fetchpriority="high"
           loading="eager"
-          decoding="async"
-          class="w-full h-auto max-h-[480px] object-cover"
+          preload
+          img-class="w-full h-auto max-h-[480px] object-cover"
         />
       </div>
 
