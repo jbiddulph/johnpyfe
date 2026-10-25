@@ -229,22 +229,9 @@ export default defineNuxtConfig({
       disableLocalFallbacks: true,
     },
   },
+  // Crawler groups live in public/_robots.txt (merged by @nuxtjs/robots) so there is a
+  // single `User-agent: *` group; server/plugins/robots-crawl-delay.ts adds Crawl-delay.
   robots: {
-    groups: [
-      {
-        userAgent: '*',
-        disallow: [
-          '/admin',
-          '/admin/',
-          '/login',
-          '/register',
-          '/auth',
-          '/auth/',
-          '/ask',
-          '/ask/',
-        ],
-      },
-    ],
     sitemap: ['/sitemap_index.xml'],
   },
   sitemap: {

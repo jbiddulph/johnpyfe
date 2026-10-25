@@ -13,7 +13,7 @@
           class="brand-logo h-12 flex items-center space-x-3 rtl:space-x-reverse"
           style="display:flex;height:3rem;align-items:center;gap:0.75rem"
         >
-            <img src="/ukpubs-logo.png" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" style="height:2rem;width:2rem" />
+            <img src="/ukpubs-logo-64.webp" class="h-8 w-8" alt="UK Pubs logo — pint and map pin" width="32" height="32" style="height:2rem;width:2rem" />
             <span class="self-center text-2xl font-semibold tracking-tight whitespace-nowrap text-stone-900 dark:text-white" title="Pubs in the UK" style="font-size:1.5rem;font-weight:600;white-space:nowrap;color:#1c1917">UK <span class="brand-logo__pubs">Pubs</span></span>
         </NuxtLink>
         <button

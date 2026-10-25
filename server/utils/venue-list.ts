@@ -27,6 +27,20 @@ export function paginatedVenueResponse<T>(items: T[], total: number, skip: numbe
   }
 }
 
+/** Minimal fields for plotting hub map pins (`?fields=map`). ~5x smaller than venueHubSelect. */
+export const venueMapSelect = {
+  id: true,
+  slug: true,
+  venuename: true,
+  latitude: true,
+  longitude: true,
+  county: true,
+} as const
+
+export function venueListSelect(query: Record<string, unknown>) {
+  return String(query.fields || '') === 'map' ? venueMapSelect : venueHubSelect
+}
+
 export const venueHubSelect = {
   id: true,
   slug: true,

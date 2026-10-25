@@ -3,10 +3,12 @@ import { buildCountyVenueWhereWithLive } from '../../../utils/place-hub'
 import {
   paginatedVenueResponse,
   parseVenuePagination,
-  venueHubSelect,
+  venueListSelect,
 } from '../../../utils/venue-list'
 
 export default defineEventHandler(async (event) => {
+  // Public hub data; let the CDN absorb repeat map-pin fetches from hub pages (matches their ISR window).
+  setResponseHeader(event, 'Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
   const query = getQuery(event)
   const slug = String(query.slug || '').trim()
   const countyName = String(query.county || '').trim()
@@ -21,7 +23,7 @@ export default defineEventHandler(async (event) => {
   const [items, total] = await Promise.all([
     prisma.venue.findMany({
       where,
-      select: venueHubSelect,
+      select: venueListSelect(query),
       orderBy: { venuename: 'asc' },
       skip,
       take,

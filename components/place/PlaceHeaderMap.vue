@@ -42,6 +42,9 @@ const props = defineProps({
   },
 })
 
+/** `visible` fires once when the map scrolls into view, so parents can defer loading pin data. */
+const emit = defineEmits(['visible'])
+
 const SOURCE_ID = 'place-venues'
 const HIGHLIGHT_SOURCE_ID = 'place-venues-highlight'
 const LAYER_CLUSTERS = 'place-venue-clusters'
@@ -442,9 +445,15 @@ onMounted(async () => {
   scheduleMapInit()
 })
 
+let visibleEmitted = false
+
 function scheduleMapInit() {
   if (!mapEl.value) return
   whenVisible(mapEl.value, () => {
+    if (!visibleEmitted) {
+      visibleEmitted = true
+      emit('visible')
+    }
     initMap()
   })
 }

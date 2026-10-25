@@ -1207,7 +1207,6 @@ function buildVenueGeoJson(venues: MapVenuePoint[]) {
           },
           properties: {
             id: venue.id,
-            fsa_id: venue.fsaId,
             venuename: venue.name,
             lat,
             lng,
@@ -1420,7 +1419,6 @@ function mapFeatureToVenue(properties?: Record<string, unknown>): SelectedMapVen
 
   return {
     id: Number(properties.id || 0),
-    fsaId: Number(properties.fsa_id || 0),
     name: String(properties.venuename || ''),
     lat,
     lng,
@@ -1928,7 +1926,6 @@ function clearAiSearchResults() {
 function onAiSelectPub(pub: AiPubResult) {
   selectedVenue.value = {
     id: pub.id,
-    fsaId: 0,
     name: pub.name,
     lat: pub.latitude,
     lng: pub.longitude,

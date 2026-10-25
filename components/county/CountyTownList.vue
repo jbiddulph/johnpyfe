@@ -2,10 +2,12 @@
   <section class="my-10">
     <h2 class="text-3xl font-bold mb-4">Towns in {{ countyName }}</h2>
 
-    <div v-if="mapVenues?.length" class="mb-8">
+    <!-- Pins arrive after the map becomes visible (see @visible), so render on the venue total. -->
+    <div v-if="venueCount > 0 || mapVenues?.length" class="mb-8">
       <PlaceHeaderMap
         :place-name="countyName"
         :venues="mapVenues"
+        @visible="emit('map-visible')"
       />
     </div>
 
@@ -45,16 +47,24 @@
 <script setup lang="ts">
 const TOWN_PAGE_SIZE = 104
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   countyName: string
   countySlug?: string
   mapVenues?: Array<Record<string, unknown>>
+  /** Total venues in the county; decides whether the map is shown before pins load. */
+  venueCount?: number
   towns: Array<{
     slug: string
     displayName: string
     href: string | null
     venueCount: number
   }>
+}>(), {
+  venueCount: 0,
+})
+
+const emit = defineEmits<{
+  'map-visible': []
 }>()
 
 const currentPage = ref(1)
