@@ -78,8 +78,8 @@ export const MAP_NEAR_ME_RADII = [
 
 export type MapVenuePoint = {
   id: number
-  fsaId: number
   name: string
+  /** Rounded to 5 dp (~1m) to keep the ~50k-point payload small. */
   lat: number
   lng: number
   /** Index into the legend's `types` array. */

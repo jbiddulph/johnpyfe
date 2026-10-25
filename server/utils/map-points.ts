@@ -20,9 +20,10 @@ let cacheExpiresAt = 0
 let inflight: Promise<MapPointsPayload> | null = null
 const CACHE_MS = 60 * 60 * 1000
 
+/** 5 decimal places is ~1m — plenty for a pin, and ~30% fewer bytes than raw DB strings. */
 function parseCoord(value: string | null | undefined) {
   const n = Number(value)
-  return Number.isFinite(n) && n !== 0 ? n : null
+  return Number.isFinite(n) && n !== 0 ? Math.round(n * 1e5) / 1e5 : null
 }
 
 async function upcomingEventVenueIds(): Promise<Set<number>> {
@@ -48,7 +49,6 @@ async function buildMapPoints(): Promise<MapPointsPayload> {
       },
       select: {
         id: true,
-        fsa_id: true,
         venuename: true,
         venuetype: true,
         latitude: true,
@@ -85,7 +85,7 @@ async function buildMapPoints(): Promise<MapPointsPayload> {
     if (String(venue.website ?? '').trim() && venue.website?.toLowerCase() !== 'null') f |= flagBit(MAP_META_FLAGS.hasWebsite)
     if (String(venue.description ?? '').trim().length >= 40) f |= flagBit(MAP_META_FLAGS.hasDescription)
 
-    const point: MapVenuePoint = { id: venue.id, fsaId: venue.fsa_id, name: venue.venuename, lat, lng }
+    const point: MapVenuePoint = { id: venue.id, name: venue.venuename, lat, lng }
     if (t) point.t = t
     if (f) point.f = f
     points.push(point)
