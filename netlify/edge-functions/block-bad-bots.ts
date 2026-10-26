@@ -7,30 +7,47 @@ type EdgeContext = { next: () => Promise<Response> }
  * reaches the CDN cache or the SSR function. A 403 from the edge costs one edge
  * invocation and ~0 bytes, versus 20–150KB of HTML per crawled page otherwise.
  *
- * Match on the exact product tokens these bots send. Googlebot, Bingbot, DuckDuckBot,
- * Applebot (search) and social preview fetchers are deliberately not listed.
+ * Keep this list in sync with public/_robots.txt AI/scraper groups.
+ * Googlebot, Bingbot, DuckDuckBot, Applebot (search) and social preview fetchers
+ * are deliberately not listed.
  */
 const BLOCKED_USER_AGENTS = [
+  // SEO scrapers
   'AhrefsBot',
   'SemrushBot',
   'MJ12bot',
   'DotBot',
   'BLEXBot',
   'DataForSeoBot',
+  // AI training / search / user-fetch bots
   'Bytespider',
   'PetalBot',
   'Amazonbot',
   'GPTBot',
+  'ChatGPT-User',
+  'OAI-SearchBot',
   'ClaudeBot',
   'Claude-User',
+  'Claude-SearchBot',
   'anthropic-ai',
   'CCBot',
   'cohere-ai',
+  'cohere-training-data-crawler',
   'Diffbot',
   'ImagesiftBot',
   'meta-externalagent',
+  'meta-externalfetcher',
+  'FacebookBot',
   'PerplexityBot',
+  'Perplexity-User',
   'Timpibot',
+  'AI2Bot',
+  'MistralAI-User',
+  'MistralAI-Training',
+  'omgili',
+  'omgilibot',
+  'Google-CloudVertexBot',
+  'GoogleOther',
 ].map((token) => token.toLowerCase())
 
 export default async (request: Request, context: EdgeContext) => {
